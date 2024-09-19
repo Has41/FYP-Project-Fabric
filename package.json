@@ -1,0 +1,11 @@
+{
+  "name": "fyp_backend",
+  "version": "1.0.0",
+  "description": "Our Fyp ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Hassan Hassaan Mustehsun",
+  "license": "ISC"
+}
