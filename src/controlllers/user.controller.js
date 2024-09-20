@@ -379,53 +379,60 @@ const adminProfile = asyncHandler(async (req, res) => {
 });
 
 const orderHistory = asyncHandler(async (req, res) => {
-  const orders = await User.aggregate([
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(req.user._id),
+  try {
+    const orders = await User.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(req.user._id),
+        },
       },
-    },
-    {
-      $lookup: {
-        from: "orders",
-        localField: "_id",
-        foreignField: "orderBy",
-        as: "ordersHistory",
-        pipeline: [
-          {
-            $lookup: {
-              from: "products",
-              localField: "products",
-              foreignField: "_id",
-              as: "Products",
-              pipeline: [
-                {
-                  $lookup: {
-                    from: "categories",
-                    localField: "category",
-                    foreignField: "_id",
-                    as: "Category",
+      {
+        $lookup: {
+          from: "orders",
+          localField: "_id", 
+          foreignField: "orderBy",
+          as: "ordersHistory",
+          pipeline: [
+            {
+              $lookup: {
+                from: "products",
+                localField: "products",
+                foreignField: "_id",
+                as: "Products",
+                pipeline: [
+                  {
+                    $lookup: {
+                      from: "categories",
+                      localField: "category",
+                      foreignField: "_id",
+                      as: "Category",
+                    },
                   },
-                },
-              ],
+                ],
+              },
             },
-          },
-          {
-            $lookup: {
-              from: "designs",
-              localField: "designs",
-              foreignField: "_id",
-              as: "Desings",
+            {
+              $lookup: {
+                from: "designs",
+                localField: "designs",
+                foreignField: "_id",
+                as: "Designs",
+              },
             },
-          },
-        ],
+          ],
+        },
       },
-    },
-  ]);
+    ]);
 
-  return res
-  .status(200)
-  .json(new ApiResponse(200, orders,'Orders History Fetched'))
+    return res
+      .status(200)
+      .json(new ApiResponse(200, orders, "Orders History Fetched"));
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json(new ApiError(500, "Error fetching order history")); // Provide a generic error message
+  }
 });
 
 export {
