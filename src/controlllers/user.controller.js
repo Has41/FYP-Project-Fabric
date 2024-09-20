@@ -262,7 +262,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         phoneNumber,
         address,
         city,
-        postalCode: postalCode || '',
+        postalCode: postalCode || "",
       },
     },
     {
@@ -274,39 +274,159 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 });
 
 const updateUserAvtar = asyncHandler(async (req, res) => {
-    const avatarLocalPath = req.file?.path;
-  
-    if (!avatarLocalPath) {
-      throw new ApiError(400, "Avatar is missing on server");
-    }
-  
-    const oldAvatar = req.user?.avatar;
+  const avatarLocalPath = req.file?.path;
 
-    if(oldAvatar){
-        const public_id = oldAvatar.split('/').pop().split('.')[0];
-        await deleteFromCloudinary(public_id);
-    }
-  
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
-  
-    if (!avatar) {
-      throw new ApiError(402, "File not uploaded on cloudinary");
-    }
-  
-    const user = await User.findByIdAndUpdate(
-      req.user?._id,
-      {
-        $set: {
-          avatar: avatar.url,
-        },
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar is missing on server");
+  }
+
+  const oldAvatar = req.user?.avatar;
+
+  if (oldAvatar) {
+    const public_id = oldAvatar.split("/").pop().split(".")[0];
+    await deleteFromCloudinary(public_id);
+  }
+
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+  if (!avatar) {
+    throw new ApiError(402, "File not uploaded on cloudinary");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
       },
-      { new: true }
-    );
-  
-    return res
-      .status(200)
-      .json(new ApiResponse(200, user, "Avatar Uploaded suceesfully"));
-  });
+    },
+    { new: true }
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar Uploaded suceesfully"));
+});
+
+const userProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username Not Found");
+  }
+
+  const profile = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "designs",
+        localField: "_id",
+        foreignField: "owner",
+        as: "designs",
+      },
+    },
+
+    {
+      $project: {
+        refreshToken: 0,
+        password: 0,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, profile, "profile Detail Fatched"));
+});
+
+const adminProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username Not Found");
+  }
+
+  const profile = await User.aggregate([
+    {
+      $match: {
+        username: username?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "pattrens",
+        localField: "_id",
+        foreignField: "owner",
+        as: "pattrens",
+      },
+    },
+
+    {
+      $project: {
+        refreshToken: 0,
+        password: 0,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, profile, "profile Detail Fatched"));
+});
+
+const orderHistory = asyncHandler(async (req, res) => {
+  const orders = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "orders",
+        localField: "_id",
+        foreignField: "orderBy",
+        as: "ordersHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "products",
+              localField: "products",
+              foreignField: "_id",
+              as: "Products",
+              pipeline: [
+                {
+                  $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "Category",
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $lookup: {
+              from: "designs",
+              localField: "designs",
+              foreignField: "_id",
+              as: "Desings",
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, orders,'Orders History Fetched'))
+});
 
 export {
   registerUser,
@@ -317,4 +437,7 @@ export {
   getCurrentUser,
   updateAccountDetails,
   updateUserAvtar,
+  userProfile,
+  adminProfile,
+  orderHistory,
 };
