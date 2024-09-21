@@ -364,6 +364,14 @@ const adminProfile = asyncHandler(async (req, res) => {
         as: "pattrens",
       },
     },
+    {
+      $lookup: {
+        from: "products",
+        localField: "_id",
+        foreignField: "owner",
+        as: "products",
+      },
+    },
 
     {
       $project: {
@@ -389,7 +397,7 @@ const orderHistory = asyncHandler(async (req, res) => {
       {
         $lookup: {
           from: "orders",
-          localField: "_id", 
+          localField: "_id",
           foreignField: "orderBy",
           as: "ordersHistory",
           pipeline: [
