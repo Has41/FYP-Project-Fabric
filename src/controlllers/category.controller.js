@@ -4,7 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Category } from "../models/category.model.js";
 import mongoose from "mongoose";
 
-const addCategory = asyncHandler(async (req, res) => {
+const addCategory = asyncHandler(async (req, res, next) => {
   try {
     const { name } = req.body;
 
