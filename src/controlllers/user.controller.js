@@ -33,7 +33,7 @@ const genrateAccessTokenAndRefreshToken = async (userId) => {
   }
 };
 
-const registerUser = asyncHandler(async (req, res,next) => {
+const registerUser = asyncHandler(async (req, res, next) => {
   try {
     const {
       fullname,
@@ -370,6 +370,16 @@ const adminProfile = asyncHandler(async (req, res) => {
         localField: "_id",
         foreignField: "owner",
         as: "products",
+        pipeline: [
+          {
+            $lookup: { 
+              form : 'categories',
+              localField : 'category',
+              foreignField : '_id',
+              as : 'categoryName'
+            }
+        }
+      ],
       },
     },
 
