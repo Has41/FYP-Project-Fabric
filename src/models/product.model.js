@@ -35,17 +35,12 @@ const productSchema = new Schema(
       required: true,
       min: 1,
     },
-    images: [
-      {
-        type: String,
-        required: true,
-      },
-    ],
     images: {
-      type: Array,
+      type: [String],  // Array of strings for image URLs
+      required: true,
       validate: {
         validator: function (arr) {
-          return arr.length >= 4;
+          return arr.length >= 4;  // Ensure at least 4 images
         },
         message: "You must provide at least 4 images.",
       },
@@ -56,6 +51,5 @@ const productSchema = new Schema(
   }
 );
 
-
-videoSchema.plugin(mongooseAggregatePaginate);
+productSchema.plugin(mongooseAggregatePaginate);
 export const Product = mongoose.model("Product", productSchema);
