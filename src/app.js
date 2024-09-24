@@ -18,5 +18,4 @@ import categoryRouter from "./routes/category.route.js";
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/categories", categoryRouter);
 
-
 export { app };
