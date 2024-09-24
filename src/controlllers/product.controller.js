@@ -15,7 +15,9 @@ const addProduct = asyncHandler(async (req, res, next) => {
     if (!title || !description || !price || !quantity || !category) {
       throw new ApiError(400, "Required fields missing");
     }
-  
+    if (!mongoose.Types.ObjectId.isValid(category)) {
+      throw new ApiError(400, "Invalid Category ID");
+    }
     // Ensure that at least 4 images are uploaded
     if (!req.files || req.files.length < 4) {
       throw new ApiError(400, "You must upload at least 4 images.");
