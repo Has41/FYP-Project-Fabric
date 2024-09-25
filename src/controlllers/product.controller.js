@@ -6,7 +6,7 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { Product } from "../models/product.model.js";
-import mongoose from "mongoose";
+import mongoose, { set } from "mongoose";
 
 const addProduct = asyncHandler(async (req, res, next) => {
   const { title, description, price, discount_price, quantity, category } =
@@ -37,7 +37,7 @@ const addProduct = asyncHandler(async (req, res, next) => {
       title,
       description,
       price,
-      discount_price: discount_price || "",
+      discount_price: discount_price || null,
       quantity,
       owner,
       category,
@@ -99,4 +99,104 @@ const removeProduct = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, deletedProduct, "Product Deleted Successfully"));
 });
 
-export { addProduct, removeProduct };
+const updateProductInfo = asyncHandler(async (req, res) => {
+  const { title, description, price, discount_price, quantity, category } =
+    req.body;
+  const { productId } = req.params;
+
+  if (!title || !description || !price || !quantity || !category) {
+    throw new ApiError(400, "Required fields missing");
+  }
+  if (!mongoose.Types.ObjectId.isValid(category)) {
+    throw new ApiError(400, "Invalid Category ID");
+  }
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid Category ID");
+  }
+  const updatedProduct = await Product.findByIdAndUpdate(
+    productId,
+    {
+      $set: {
+        title,
+        description,
+        price,
+        discount_price: discount_price || null,
+        quantity,
+        category,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+  if (!updatedProduct) {
+    throw new ApiError(501, "Server Error");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedProduct, "ProductUpdated"));
+});
+
+const updateProductPics = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+  if (!productId.trim()) {
+    throw new ApiError(404, "Product Id not Found in Params");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid Product ID");
+  }
+
+  if (!req.files || req.files.length < 4) {
+    throw new ApiError(400, "You must upload at least 4 images.");
+  }
+
+  try {
+    // Upload images to Cloudinary
+    const imageUrls = await Promise.all(
+      req.files.map(async (file) => {
+        const uploadResult = await uploadOnCloudinary(file.path);
+        return uploadResult.secure_url; // Save the Cloudinary URL
+      })
+    );
+  } catch (error) {
+    throw new ApiError(500, "Error Uploading images from Cloudinary");
+  }
+
+  // Find the product by ID
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new ApiError(404, "Product Not Found");
+  }
+
+  // Delete images from Cloudinary
+  try {
+    // Assuming the product.images is an array of URLs
+    const deleteImagePromises = product.images.map(async (imageUrl) => {
+      // Extract the public_id from the image URL (Cloudinary URLs contain the public_id before the extension)
+      const publicId = extractPublicId(imageUrl); // Create a helper function for this
+      await deleteFromCloudinary(publicId);
+    });
+
+    // Wait for all images to be deleted
+    await Promise.all(deleteImagePromises);
+  } catch (error) {
+    throw new ApiError(500, "Error deleting images from Cloudinary");
+  }
+
+  const updatedProduct = await Product.findByIdAndUpdate(
+    productId,
+    { $set: { images: imageUrls } },
+    { new: true }
+  );
+  if (!updatedProduct) {
+    throw new ApiError(501, "Server Error");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedProduct, "ProductUpdated"));
+});
+
+export { addProduct, removeProduct, updateProductInfo, updateProductPics };
