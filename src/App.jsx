@@ -1,6 +1,6 @@
 import EditPage from "./pages/EditPage"
 import { Route, Routes } from "react-router-dom"
-import Register from "./pages/Register"
+import Register from "./components/Register"
 
 const App = () => {
   return (
