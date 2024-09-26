@@ -3,7 +3,7 @@ import { verifyJwt } from "../middleware/auth.middleware.js";
 import {
     addCategory,
 
-} from '../controlllers/category.controller.js';
+} from '../controllers/category.controller.js';
 
 const router = Router();
 router.use(verifyJwt);

@@ -6,7 +6,7 @@ import {
   removeProduct,
   updateProductInfo,
   updateProductPics,
-} from "../controlllers/product.controller.js";
+} from "../controllers/product.controller.js";
 
 const router = Router();
 router.use(verifyJwt);
