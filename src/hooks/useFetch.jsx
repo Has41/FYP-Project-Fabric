@@ -38,7 +38,7 @@ const useFetch = ({ endpoint, method = "GET", body = null, options = {} }) => {
     retry,
     retryDelay,
     onError: (error) => {
-      console.error("Error fetching data:", error)
+      console.error("Error fetching data: ", error)
       if (queryOptions.onError) {
         queryOptions.onError(error)
       }
