@@ -40,3 +40,5 @@ router.route("/up/:username").get(verifyJwt, userProfile);
 router.route("/ap/:username").get(verifyJwt, adminProfile);
 
 router.route("/order-history").get(verifyJwt, orderHistory);
+
+export default router;
