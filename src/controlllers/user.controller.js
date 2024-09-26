@@ -33,7 +33,7 @@ const genrateAccessTokenAndRefreshToken = async (userId) => {
   }
 };
 
-const registerUser = asyncHandler(async (req, res) => {
+const registerUser = asyncHandler(async (req, res, next) => {
   try {
     const {
       fullname,
