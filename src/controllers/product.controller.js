@@ -6,7 +6,8 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { Product } from "../models/product.model.js";
-import mongoose, { set } from "mongoose";
+import mongoose from "mongoose";
+
 
 const addProduct = asyncHandler(async (req, res, next) => {
   const { title, description, price, discount_price, quantity, category } =
@@ -199,4 +200,86 @@ const updateProductPics = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedProduct, "ProductUpdated"));
 });
 
-export { addProduct, removeProduct, updateProductInfo, updateProductPics };
+const searchProduct = asyncHandler(async (req, res) => {
+  const { productId } = req.params;
+
+  if (!productId.trim()) {
+    throw new ApiError(404, "Product Id not Found in Body");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new ApiError(400, "Invalid Product ID");
+  }
+
+  const product = await Product.aggregate([
+    {
+      $match: { _id: mongoose.Types.ObjectId(productId) } // Match by productId
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    {
+      $unwind: "$category" // Optionally flatten the category array
+    }
+  ]);
+
+  if (!product || product.length === 0) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, product[0], "Product Found"));
+});
+
+const allProducts = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query; // Set default pagination values
+
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+  };
+
+  const aggregateQuery = Product.aggregate([
+    {
+      $lookup: {
+        from: "categories", // Join with the 'categories' collection
+        localField: "category",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    {
+      $unwind: "$category", // Flatten the category array if needed
+    },
+  ]);
+
+  // Use aggregatePaginate to paginate the results
+  const products = await Product.aggregatePaginate(aggregateQuery, options);
+
+  if (!products.docs || products.docs.length === 0) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, null, "No products found"));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, products, "Products Fetched Successfully"));
+});
+
+
+
+export {
+  addProduct,
+  removeProduct,
+  updateProductInfo,
+  updateProductPics,
+  searchProduct,
+  allProducts
+};
