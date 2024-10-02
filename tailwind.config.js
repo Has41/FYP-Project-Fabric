@@ -5,22 +5,22 @@ export default {
     extend: {
       backgroundImage: {
         "dusty-grass": "linear-gradient(15deg, #FFE259 0%, #FFA751 100%)",
-        "button-color": "linear-gradient(15deg, #FFE259 0%, #FFA751 100%)",
+        "button-color": "linear-gradient(15deg, #FFE259 0%, #FFA751 100%)"
       },
       backgroundColor: {
-        "custom-green": "#B79891",
+        "custom-green": "#FFE259"
       },
       textColor: {
-        "custom-text": "#FFA751",
+        "custom-text": "#FFA751"
       },
       borderColor: {
-        "custom-border": "#FFA751",
+        "custom-border": "#FFA751"
       },
       fontFamily: {
         poppins: ["Poppins", "sans-serif"],
-        mont: ["Montserrat", "sans-serif"],
-      },
-    },
+        mont: ["Montserrat", "sans-serif"]
+      }
+    }
   },
-  plugins: [],
-};
+  plugins: []
+}

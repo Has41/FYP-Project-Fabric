@@ -1,5 +1,5 @@
 import React from "react"
-import { loginFields } from "../utils/inputFields"
+import { loginFields } from "../utils/dynamicData"
 import { useForm } from "react-hook-form"
 import useFetch from "../hooks/useFetch"
 
@@ -16,7 +16,6 @@ const Login = ({ onRegisterClick }) => {
         },
         onError: (err) => {
           console.error("Login failed:", err)
-          reset()
         }
       }
     }
@@ -97,7 +96,7 @@ const Login = ({ onRegisterClick }) => {
               </button>
             </div>
             <div className="mx-auto mt-5 text-sm text-black/80">
-              Don't have an account?{" "}
+              Don't have an account?
               <span onClick={onRegisterClick} className="ml-1 cursor-pointer">
                 Sign up now!
               </span>

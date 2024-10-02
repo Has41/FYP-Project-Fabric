@@ -13,9 +13,10 @@ const AuthPage = () => {
   const subTitle = useRef(null)
 
   const handleSwitchToLogin = () => {
-    const tl = gsap.timeline()
+    const timeLine = gsap.timeline()
 
-    tl.to(registerRef.current, { opacity: 0, scale: 0.95, duration: 0.7 })
+    timeLine
+      .to(registerRef.current, { opacity: 0, scale: 0.95, duration: 0.7 })
       .to([titleRef.current, subTitle.current], { opacity: 0, scale: 0.95, duration: 0.7 })
       .call(() => setIsLogin(true))
       .set(registerRef.current, { display: "none" })
@@ -23,13 +24,14 @@ const AuthPage = () => {
       .to(loginRef.current, { opacity: 1, scale: 1, duration: 0.7 })
       .to([titleRef.current, subTitle.current], { opacity: 1, scale: 1, duration: 0.7 })
 
-    tl.play()
+    timeLine.play()
   }
 
   const handleSwitchToRegister = () => {
-    const tl = gsap.timeline()
+    const timeLine = gsap.timeline()
 
-    tl.to(loginRef.current, { opacity: 0, scale: 0.95, duration: 0.7 })
+    timeLine
+      .to(loginRef.current, { opacity: 0, scale: 0.95, duration: 0.7 })
       .to([titleRef.current, subTitle.current], { opacity: 0, scale: 0.95, duration: 0.7 })
       .call(() => setIsLogin(false))
       .set(loginRef.current, { display: "none" })
@@ -37,7 +39,7 @@ const AuthPage = () => {
       .to(registerRef.current, { opacity: 1, scale: 1, duration: 0.7 })
       .to([titleRef.current, subTitle.current], { opacity: 1, scale: 1, duration: 0.7 })
 
-    tl.play()
+    timeLine.play()
   }
 
   useEffect(() => {

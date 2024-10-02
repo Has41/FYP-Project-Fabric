@@ -18,12 +18,10 @@ const Register = ({ onLoginClick }) => {
       mutationOptions: {
         onSuccess: (data) => {
           console.log("Registration successful:", data)
-          reset()
           setStep(1)
         },
         onError: (err) => {
           console.error("Registration failed:", err)
-          reset()
           setStep(1)
         }
       }
@@ -39,6 +37,7 @@ const Register = ({ onLoginClick }) => {
       }
 
       mutate(formData)
+      reset()
     } catch (err) {
       console.error(err)
     }
