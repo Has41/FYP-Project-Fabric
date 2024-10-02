@@ -13,6 +13,7 @@ import {
   updateAccountDetails,
   updateUserAvtar,
   userProfile,
+  verifyEmail,
 } from "../controllers/user.controller.js";
 
 
@@ -33,6 +34,7 @@ router.route("/change-password").post(verifyJwt, currentPasswordChange);
 router.route("/update-details").patch(verifyJwt, updateAccountDetails);
 
 router.route("/get-user").get(getCurrentUser);
+
 
 router
   .route("/update-avatar")

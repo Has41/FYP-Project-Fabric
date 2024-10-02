@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import {
-    addCategory,
+    addCategory, allCategories, categoryById, deleteCategory, updateCategory,
 
 } from '../controllers/category.controller.js';
 

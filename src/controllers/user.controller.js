@@ -10,6 +10,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import { log } from "console";
 
 const genrateAccessTokenAndRefreshToken = async (userId) => {
   try {
@@ -64,14 +65,16 @@ const registerUser = asyncHandler(async (req, res, next) => {
     }
 
     let avatarLocalPath;
-    if (
-      req.file &&
-      Array.isArray(req.file.avatar) &&
-      req.file.avatar.length > 0
-    ) {
-      avatarLocalPath = req.file.avatar[0].path;
+    if (req.file && req.file.path) {
+      avatarLocalPath = req.file.path;
+      console.log("Avatar local path:", avatarLocalPath);
+    } else {
+      console.log("No file uploaded or incorrect file structure:", req.file);
     }
+
     const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    console.log(avatar.secure_url);
 
     const user = await User.create({
       fullname,
@@ -92,30 +95,30 @@ const registerUser = asyncHandler(async (req, res, next) => {
       throw new ApiError(500, "Server Error");
     }
 
-    const otp = crypto.randomBytes(3).toString("hex"); // 6-digit OTP
-    const otpExpires = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
+    // const otp = crypto.randomBytes(3).toString("hex"); // 6-digit OTP
+    // const otpExpires = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
 
-    user.emailVerificationToken = otp;
-    user.emailVerificationExpires = otpExpires;
+    // user.emailVerificationToken = otp;
+    // user.emailVerificationExpires = otpExpires;
 
-    await user.save({ validateBeforeSave: false });
+    // await user.save({ validateBeforeSave: false });
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail", // Or any other email provider
-      auth: {
-        user: process.env.EMAIL_USER, // Your email address
-        pass: process.env.EMAIL_PASS, // Your email password
-      },
-    });
+    // const transporter = nodemailer.createTransport({
+    //   service: "gmail", // Or any other email provider
+    //   auth: {
+    //     user: process.env.EMAIL_USER, // Your email address
+    //     pass: process.env.EMAIL_PASS, // Your email password
+    //   },
+    // });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: "Email Verification",
-      text: `Your OTP code for email verification is ${otp}. It will expire in 10 minutes.`,
-    };
+    // const mailOptions = {
+    //   from: process.env.EMAIL_USER,
+    //   to: user.email,
+    //   subject: "Email Verification",
+    //   text: `Your OTP code for email verification is ${otp}. It will expire in 10 minutes.`,
+    // };
 
-    await transporter.sendMail(mailOptions);
+    // await transporter.sendMail(mailOptions);
 
     // Return the response with user data
     return res
