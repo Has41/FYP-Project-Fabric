@@ -8,7 +8,8 @@ import {
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 const genrateAccessTokenAndRefreshToken = async (userId) => {
   try {
@@ -91,6 +92,31 @@ const registerUser = asyncHandler(async (req, res, next) => {
       throw new ApiError(500, "Server Error");
     }
 
+    const otp = crypto.randomBytes(3).toString("hex"); // 6-digit OTP
+    const otpExpires = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
+
+    user.emailVerificationToken = otp;
+    user.emailVerificationExpires = otpExpires;
+
+    await user.save({ validateBeforeSave: false });
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail", // Or any other email provider
+      auth: {
+        user: process.env.EMAIL_USER, // Your email address
+        pass: process.env.EMAIL_PASS, // Your email password
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Email Verification",
+      text: `Your OTP code for email verification is ${otp}. It will expire in 10 minutes.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
     // Return the response with user data
     return res
       .status(201)
@@ -101,14 +127,53 @@ const registerUser = asyncHandler(async (req, res, next) => {
   }
 });
 
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  // Check if email and OTP are provided
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and OTP are required.");
+  }
+
+  // Find user by email
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  // Check if OTP is valid
+  if (
+    user.emailVerificationToken !== otp ||
+    user.emailVerificationExpires < Date.now()
+  ) {
+    throw new ApiError(400, "Invalid or expired OTP.");
+  }
+
+  // Mark email as verified
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Email verified successfully."));
+});
+
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
+
   if (!email && !username) {
     throw new ApiError(401, "Email or Username is Requried");
   }
   const user = await User.findOne({ $or: [{ email }, { username }] });
   if (!user) {
     throw new ApiError(404, "User Not Found");
+  }
+
+  if (!user.isEmailVerified) {
+    throw new ApiError(403, "Please verify your email to log in.");
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
@@ -373,14 +438,14 @@ const adminProfile = asyncHandler(async (req, res) => {
         as: "products",
         pipeline: [
           {
-            $lookup: { 
-              form : 'categories',
-              localField : 'category',
-              foreignField : '_id',
-              as : 'categoryName'
-            }
-        }
-      ],
+            $lookup: {
+              form: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryName",
+            },
+          },
+        ],
       },
     },
 
@@ -466,4 +531,5 @@ export {
   userProfile,
   adminProfile,
   orderHistory,
+  verifyEmail,
 };

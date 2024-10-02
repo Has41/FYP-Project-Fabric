@@ -26,10 +26,22 @@ const userSchema = new Schema(
       trim: true,
       index: true,
     },
+
+    // Existing fields...
+    isEmailVerified: {
+      type: Boolean,
+      default: false, // By default, email is not verified
+    },
+    emailVerificationToken: {
+      type: String,
+    },
+    emailVerificationExpires: {
+      type: Date, // Expiration date for OTP
+    },
     role: {
       type: String,
-      enum:["user","admin"],
-      default: 'user',
+      enum: ["user", "admin"],
+      default: "user",
       lowercase: true,
       trim: true,
       index: true,
