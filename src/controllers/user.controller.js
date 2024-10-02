@@ -10,7 +10,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
-import { log } from "console";
+//import { log } from "console";
 
 const genrateAccessTokenAndRefreshToken = async (userId) => {
   try {
@@ -175,9 +175,9 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User Not Found");
   }
 
-  if (!user.isEmailVerified) {
-    throw new ApiError(403, "Please verify your email to log in.");
-  }
+  // if (!user.isEmailVerified) {
+  //   throw new ApiError(403, "Please verify your email to log in.");
+  // }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
 
