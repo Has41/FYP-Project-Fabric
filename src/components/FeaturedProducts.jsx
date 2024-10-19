@@ -1,5 +1,6 @@
 import React from "react"
 import blackImg from "../assets/test1.png"
+import { Link } from "react-router-dom"
 
 const FeaturedProducts = () => {
   return (
@@ -10,7 +11,10 @@ const FeaturedProducts = () => {
         </h1>
       </div>
       <div className="grid grid-cols-3 place-items-center">
-        <div className="bg-slate-50 w-[330px] h-[420px] py-4 hover:shadow-md hover:border hover:border-slate-100 hover:bg-slate-100 transition-all duration-500 cursor-pointer">
+        <Link
+          to={"/Edit"}
+          className="bg-slate-50 w-[330px] h-[420px] py-4 hover:shadow-md hover:border hover:border-slate-100 hover:bg-slate-100 transition-all duration-500 cursor-pointer"
+        >
           <div className="flex flex-col items-center justify-center gap-y-2">
             <div>
               <img src={blackImg} width={500} height={500} alt="" />
@@ -21,9 +25,12 @@ const FeaturedProducts = () => {
               <p className="text-black/80 font-bold font-mont">$256.00</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-slate-50 w-[330px] h-[420px] py-4 hover:shadow-md hover:border hover:border-slate-100 hover:bg-slate-100 transition-all duration-500 cursor-pointer">
+        <Link
+          to={"/Edit"}
+          className="bg-slate-50 w-[330px] h-[420px] py-4 hover:shadow-md hover:border hover:border-slate-100 hover:bg-slate-100 transition-all duration-500 cursor-pointer"
+        >
           <div className="flex flex-col items-center justify-center gap-y-2">
             <div>
               <img src={blackImg} width={500} height={500} alt="" />
@@ -34,9 +41,12 @@ const FeaturedProducts = () => {
               <p className="text-black/80 font-bold font-mont">$256.00</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-slate-50 w-[330px] h-[420px] py-4 hover:shadow-md hover:border hover:border-slate-100 hover:bg-slate-100 transition-all duration-500 cursor-pointer">
+        <Link
+          to={"/edit"}
+          className="bg-slate-50 w-[330px] h-[420px] py-4 hover:shadow-md hover:border hover:border-slate-100 hover:bg-slate-100 transition-all duration-500 cursor-pointer"
+        >
           <div className="flex flex-col items-center justify-center gap-y-2">
             <div>
               <img src={blackImg} width={500} height={500} alt="" />
@@ -47,7 +57,7 @@ const FeaturedProducts = () => {
               <p className="text-black/80 font-bold font-mont">$256.00</p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </section>
   )

@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import useFetch from "../hooks/useFetch"
-import { stepOneRegisterField, stepTwoRegisterField } from "../utils/inputFields"
+import { stepOneRegisterField, stepTwoRegisterField } from "../utils/dynamicData"
 
 const Register = ({ onLoginClick }) => {
   const [step, setStep] = useState(1)

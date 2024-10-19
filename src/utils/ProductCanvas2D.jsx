@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react"
 import { fabric } from "fabric"
-import testImg from "../assets/test1.png" // Ensure you are using an appropriate image file
+import testImg from "../assets/test1.png"
 
 const ProductCanvas2D = ({ selectedColor }) => {
   const canvasRef = useRef(null)
@@ -22,6 +22,7 @@ const ProductCanvas2D = ({ selectedColor }) => {
     const imgElement = new Image()
     imgElement.src = testImg
     imgElement.crossOrigin = "anonymous"
+    console.log(testImg)
 
     const desiredWidth = 700
     const desiredHeight = 500
@@ -50,26 +51,26 @@ const ProductCanvas2D = ({ selectedColor }) => {
     }
   }, [])
 
-  useEffect(() => {
-    if (imageRef.current && selectedColor) {
-      try {
-        const img = imageRef.current
-        img.filters = []
+  // useEffect(() => {
+  //   if (imageRef.current && selectedColor) {
+  //     try {
+  //       const img = imageRef.current
+  //       img.filters = []
 
-        const tintColorFilter = new fabric.Image.filters.BlendColor({
-          color: selectedColor || null,
-          mode: "tint",
-          alpha: 0.7
-        })
+  //       const tintColorFilter = new fabric.Image.filters.BlendColor({
+  //         color: selectedColor || null,
+  //         mode: "tint",
+  //         alpha: 0.7
+  //       })
 
-        img.filters.push(tintColorFilter)
-        img.applyFilters()
-        img.canvas.renderAll()
-      } catch (error) {
-        console.error("Error applying filters to the image:", error.message)
-      }
-    }
-  }, [selectedColor])
+  //       img.filters.push(tintColorFilter)
+  //       img.applyFilters()
+  //       img.canvas.renderAll()
+  //     } catch (error) {
+  //       console.error("Error applying filters to the image:", error.message)
+  //     }
+  //   }
+  // }, [selectedColor])
 
   return <canvas ref={canvasRef} />
 }

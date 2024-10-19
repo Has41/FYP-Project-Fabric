@@ -1,13 +1,14 @@
 import React, { useState, useRef } from "react"
 import useDragger from "../hooks/useDragger"
 import { menuOptions, toolOptions, clothOptions } from "../utils/dynamicData"
-import ProductCanvas2D from "../utils/ProductCanvas2D"
+import Product3DCanvas from "./Product3DCanvas"
+// import ProductCanvas2D from "../utils/ProductCanvas2D"
 // import { SketchPicker } from "react-color"
 
 const EditFabric = () => {
   const [activeOption, setActiveOption] = useState("Cloth-Option")
   const [subActiveOption, setSubActiveOption] = useState(null)
-  const [selectedColor, setSelectedColor] = useState("lightblue")
+  // const [selectedColor, setSelectedColor] = useState("lightblue")
   const closePopup = () => setSubActiveOption("")
   const containerRef = useRef(null)
 
@@ -29,7 +30,7 @@ const EditFabric = () => {
         ref={containerRef}
         className="bg-slate-50 select-none flex items-center max-w-full w-[97%] h-[95%] rounded-md shadow-md overflow-none"
       >
-        <div className="w-[30%] h-full p-8 flex flex-col gap-y-1 font-poppins">
+        <div className="w-[40%] h-full p-8 flex flex-col gap-y-1 font-poppins">
           <div className="flex flex-col gap-y-3 bg-[#FFF] px-4 py-3 rounded-md shadow-sm">
             <div>
               <h2 className="font-semibold text-xl text-black/80">Fabric Design Studio</h2>
@@ -199,7 +200,7 @@ const EditFabric = () => {
           } bg-[#FFF] h-96 w-64 flex items-center px-2 mx-auto rounded-md ${isColorDragging ? "cursor-grab" : "cursor-pointer"}`}
           style={{ transform: "translate(16rem, -8rem)" }}
         >
-          <div>
+          <div className="z-10">
             <div className="flex justify-center">
               <div>Color Picker</div>
               <div className="ml-auto" onClick={closePopup}>
@@ -318,14 +319,16 @@ const EditFabric = () => {
             </svg>
           </div>
         </div>
-        <div className="w-[45%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm overflow-hidden">
+        {/* <div className="w-[45%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm overflow-hidden">
           <span className="flex items-center justify-center bg-[#FFF] py-1 rounded-t-md shadow-sm">2D</span>
           <div className="flex justify-center items-center h-full ">
             <ProductCanvas2D selectedColor={selectedColor} />
           </div>
-        </div>
-        <div className="w-[45%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm">
-          <span className="flex items-center justify-center bg-[#FFF] py-1 rounded-t-md shadow-sm">3D</span>
+        </div> */}
+        <div className="w-[85%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm z-0">
+          <div className="flex justify-center items-center h-full ">
+            <Product3DCanvas />
+          </div>
         </div>
       </section>
     </>
