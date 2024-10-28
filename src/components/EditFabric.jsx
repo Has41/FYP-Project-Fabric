@@ -197,7 +197,9 @@ const EditFabric = () => {
           ref={colorPickerRef}
           className={`absolute shadow-sm ${
             subActiveOption === "Color-Picker" ? "flex" : "hidden"
-          } bg-[#FFF] h-96 w-64 flex items-center px-2 mx-auto rounded-md ${isColorDragging ? "cursor-grab" : "cursor-pointer"}`}
+          } bg-[#FFF] h-96 w-64 flex items-center z-[1000] px-2 mx-auto rounded-md ${
+            isColorDragging ? "cursor-grab" : "cursor-pointer"
+          }`}
           style={{ transform: "translate(16rem, -8rem)" }}
         >
           <div className="z-10">

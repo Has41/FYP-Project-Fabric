@@ -1,23 +1,29 @@
-import { Canvas, useFrame, useThree } from "@react-three/fiber"
+import { Canvas } from "@react-three/fiber"
 import { useRef } from "react"
 import { Environment, OrbitControls, useGLTF } from "@react-three/drei"
 // import { DirectionalLightHelper } from "three"
 import { Leva, useControls } from "leva"
+// import { AxesHelper } from "three"
 
-const Modal = ({ position, side, scale }) => {
+const Modal = ({ position, scale }) => {
   const ref = useRef()
   const { scene } = useGLTF("/models/shirt/shirt.gltf")
-
-  useFrame((_state, delta, _frame) => {
-    ref.current.rotation.y += delta * 1
-  })
-
   return <primitive object={scene} position={position} ref={ref} scale={scale} />
 }
 
+// const Cube = ({ position, side, color }) => {
+//   const ref = useRef()
+
+//   return (
+//     <mesh position={position} ref={ref}>
+//       <boxGeometry args={[side, side, side]} />
+//       <meshStandardMaterial color={color} />
+//     </mesh>
+//   )
+// }
+
 const Scene = () => {
   const directionalLightRef = useRef()
-  const { camera, gl } = useThree()
 
   const { lightColour, lightIntensity } = useControls({
     lightColour: "white",
@@ -29,20 +35,24 @@ const Scene = () => {
     }
   })
 
+  const modelPosition = [0, 0, 0]
+
   return (
     <>
       <directionalLight position={[0, 1, 2]} intensity={lightIntensity} ref={directionalLightRef} color={lightColour} />
       <ambientLight intensity={0.5} />
-      <Modal position={[1, -5, 1]} scale={4} />
+      <Modal position={[0, -5, 0]} scale={4} />
+      {/* <Cube position={[1, 0, 0]} color={"green"} args={1} /> */}
       <Environment preset="apartment" background={true} />
-      <OrbitControls args={[camera, gl.domElement]} enableZoom={false} />
+      <OrbitControls target={modelPosition} maxDistance={10} minDistance={2} enableZoom={false} />
+      {/* <axesHelper args={[10]} /> */}
     </>
   )
 }
 
 const Product3DCanvas = () => {
   return (
-    <Canvas className="rounded-sm">
+    <Canvas camera={{ position: [3, 0, 3] }} className="rounded-sm">
       <Leva hidden />
       <Scene />
     </Canvas>
