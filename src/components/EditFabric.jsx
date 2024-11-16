@@ -1,14 +1,17 @@
 import React, { useState, useRef } from "react"
 import useDragger from "../hooks/useDragger"
-import { menuOptions, toolOptions, clothOptions } from "../utils/dynamicData"
+import { menuOptions, toolOptions, clothOptions, saveOptions } from "../utils/dynamicData"
 import Product3DCanvas from "./Product3DCanvas"
-// import ProductCanvas2D from "../utils/ProductCanvas2D"
-// import { SketchPicker } from "react-color"
+import ColorPicker from "./EditFeatures/ColorPicker"
+import PatternPicker from "./EditFeatures/PatternPicker"
+import TextTool from "./EditFeatures/TextTool"
+import GraphicsPicker from "./EditFeatures/GraphicsPicker"
+import TexturePicker from "./EditFeatures/TexturePicker"
 
 const EditFabric = () => {
   const [activeOption, setActiveOption] = useState("Cloth-Option")
   const [subActiveOption, setSubActiveOption] = useState(null)
-  // const [selectedColor, setSelectedColor] = useState("lightblue")
+  const [color, setColor] = useState("#FFF")
   const closePopup = () => setSubActiveOption("")
   const containerRef = useRef(null)
 
@@ -143,193 +146,71 @@ const EditFabric = () => {
 
             {/* Save info */}
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Upload/Save" ? "flex" : "hidden"}`}>
-              {/* Save Button */}
-              <div className="flex items-center bg-white shadow-sm py-2 px-2 rounded-lg cursor-pointer">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-5 ml-2 text-black/80"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75h1.5m9 0h-9"
-                  />
-                </svg>
+              {saveOptions?.map((save, index) => {
+                return (
+                  <div key={index} className="flex items-center bg-white shadow-sm py-2 px-2 rounded-lg cursor-pointer">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="size-5 ml-2 text-black/80"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d={save.path} />
+                    </svg>
 
-                <span className="text-sm ml-2">Save Your Design</span>
-                <div className="ml-auto bg-slate-100 py-1 px-3 rounded-md">
-                  <p className="text-xs">Save</p>
-                </div>
-              </div>
-
-              {/* Cart Button */}
-              <div className="flex items-center bg-white shadow-sm py-2 px-2 rounded-lg cursor-pointer">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-5 ml-2 text-black/80"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                  />
-                </svg>
-
-                <span className="text-sm ml-2">Add To Cart</span>
-                <div className="ml-auto bg-slate-100 py-1 px-3 rounded-md">
-                  <p className="text-xs">Cart</p>
-                </div>
-              </div>
+                    <span className="text-sm ml-2">{save.title}</span>
+                    <div className="ml-auto bg-slate-100 py-1 px-3 rounded-md">
+                      <p className="text-xs">{save.type}</p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
 
         {/* Pop-ups */}
-        <div
-          ref={colorPickerRef}
-          className={`absolute shadow-sm ${
-            subActiveOption === "Color-Picker" ? "flex" : "hidden"
-          } bg-[#FFF] h-96 w-64 flex items-center z-[1000] px-2 mx-auto rounded-md ${
-            isColorDragging ? "cursor-grab" : "cursor-pointer"
-          }`}
-          style={{ transform: "translate(16rem, -8rem)" }}
-        >
-          <div className="z-10">
-            <div className="flex justify-center">
-              <div>Color Picker</div>
-              <div className="ml-auto" onClick={closePopup}>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-4"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </div>
-            </div>
-            <div>{/* <SketchPicker /> */}</div>
-          </div>
-        </div>
+        <ColorPicker
+          onColorChange={setColor}
+          subActiveOption={subActiveOption}
+          closePopup={closePopup}
+          isColorDragging={isColorDragging}
+          colorPickerRef={colorPickerRef}
+        />
 
-        <div
-          ref={patternPickerRef}
-          className={`absolute shadow-sm ${
-            subActiveOption === "Pattern-Picker" ? "flex" : "hidden"
-          } bg-[#FFF] h-80 w-60 flex items-center px-2 mx-auto ${isPatternDragging ? "cursor-grab" : "cursor-pointer"}`}
-          style={{ transform: "translate(16rem, -8rem)" }}
-        >
-          <div>
-            <div>Pattern Library</div>
-            <div>Patterns</div>
-          </div>
-          <div className="ml-auto" onClick={closePopup}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-4"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </div>
-        </div>
+        <PatternPicker
+          subActiveOption={subActiveOption}
+          closePopup={closePopup}
+          isPatternDragging={isPatternDragging}
+          patternPickerRef={patternPickerRef}
+        />
 
-        <div
-          ref={textPickerRef}
-          className={`absolute shadow-sm ${
-            subActiveOption === "Text-Picker" ? "flex" : "hidden"
-          } bg-[#FFF] h-80 w-60 flex items-center px-2 mx-auto ${isTextDragging ? "cursor-grab" : "cursor-pointer"}`}
-          style={{ transform: "translate(16rem, -8rem)" }}
-        >
-          <div>
-            <div>Text Tool</div>
-            <div>Text Options</div>
-          </div>
-          <div className="ml-auto" onClick={closePopup}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-4"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </div>
-        </div>
+        <TextTool
+          subActiveOption={subActiveOption}
+          closePopup={closePopup}
+          isTextDragging={isTextDragging}
+          textPickerRef={textPickerRef}
+        />
 
-        <div
-          ref={graphicsPickerRef}
-          className={`absolute shadow-sm ${
-            subActiveOption === "Graphics-Picker" ? "flex" : "hidden"
-          } bg-[#FFF] h-80 w-60 flex items-center px-2 mx-auto ${isGraphicsDragging ? "cursor-grab" : "cursor-pointer"}`}
-          style={{ transform: "translate(16rem, -8rem)" }}
-        >
-          <div>
-            <div>Graphics Tool</div>
-            <div>Graphics Options</div>
-          </div>
-          <div className="ml-auto" onClick={closePopup}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-4"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </div>
-        </div>
+        <GraphicsPicker
+          subActiveOption={subActiveOption}
+          closePopup={closePopup}
+          isGraphicsDragging={isGraphicsDragging}
+          graphicsPickerRef={graphicsPickerRef}
+        />
 
-        <div
-          ref={texturePickerRef}
-          className={`absolute shadow-sm ${
-            subActiveOption === "Texture-Picker" ? "flex" : "hidden"
-          } bg-[#FFF] h-80 w-60 flex items-center px-2 mx-auto ${isTextureDragging ? "cursor-grab" : "cursor-pointer"}`}
-          style={{ transform: "translate(16rem, -8rem)" }}
-        >
-          <div>
-            <div>Texture Tool</div>
-            <div>Texture Options</div>
-          </div>
-          <div className="ml-auto" onClick={closePopup}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-4"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </div>
-        </div>
-        {/* <div className="w-[45%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm overflow-hidden">
-          <span className="flex items-center justify-center bg-[#FFF] py-1 rounded-t-md shadow-sm">2D</span>
-          <div className="flex justify-center items-center h-full ">
-            <ProductCanvas2D selectedColor={selectedColor} />
-          </div>
-        </div> */}
+        <TexturePicker
+          subActiveOption={subActiveOption}
+          closePopup={closePopup}
+          isTextureDragging={isTextureDragging}
+          texturePickerRef={texturePickerRef}
+        />
+
         <div className="w-[85%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm z-0">
           <div className="flex justify-center items-center h-full ">
-            <Product3DCanvas />
+            <Product3DCanvas color={color} />
           </div>
         </div>
       </section>
