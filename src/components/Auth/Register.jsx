@@ -1,0 +1,184 @@
+import React, { useState } from "react"
+import { useForm } from "react-hook-form"
+import useFetch from "../../hooks/useFetch"
+import { stepOneRegisterField, stepTwoRegisterField } from "../../utils/dynamicData"
+import InputField from "../Shared/InputField"
+import AvatarSection from "../Shared/AvatarSection"
+
+const Register = ({ onLoginClick }) => {
+  const [step, setStep] = useState(1)
+  const [avatar, setAvatar] = useState(null)
+  const { register, handleSubmit, reset } = useForm()
+
+  const nextStep = () => setStep(step + 1)
+  const prevStep = () => setStep(step - 1)
+
+  const { mutate } = useFetch({
+    endpoint: "/api/v1/users/register",
+    method: "POST"
+  })
+
+  const onSubmit = async (data) => {
+    try {
+      const formData = new FormData()
+
+      for (const [key, value] of Object.entries(data)) {
+        formData.append(key, value)
+      }
+
+      mutate(formData)
+      reset()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const renderStep = () => {
+    const fields = step === 1 ? stepOneRegisterField : stepTwoRegisterField
+    return fields.map((field) => <InputField key={field.id || field.name} field={field} register={register} />)
+  }
+
+  return (
+    <div className="flex items-center justify-center h-full font-poppins select-none">
+      <div className="shadow-lg w-[450px] h-[520px] py-8 px-4 bg-white rounded-tr-lg rounded-br-lg tracking-wide">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[1.6rem] ml-4 font-bold text-black/80 relative after:content-[''] after:w-[2rem] after:block after:h-1 after:rounded-2xl after:bg-dusty-grass after:absolute after:left-4 after:transform after:-translate-x-1/2 after:-bottom-1">
+              Register
+            </h3>
+          </div>
+          {step === 3 && (
+            <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2">
+              <button
+                className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-full font-semibold tracking-wider py-2 px-3 text-white mr-2"
+                type="button"
+                onClick={prevStep}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-5 h-5 mr-2"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+
+                <span>Back</span>
+              </button>
+            </div>
+          )}
+        </div>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div
+            className={`transition-opacity duration-1000 ease-in-out transform ${
+              step === 1 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"
+            } w-full`}
+          >
+            {step === 1 && (
+              <div className="flex flex-col mt-10">
+                {renderStep()}
+                <div className="ml-4 flex justify-start max-w-[90%] mt-2">
+                  <button
+                    className="bg-dusty-grass rounded-[4px] w-full text-lg font-semibold tracking-wider py-2 text-white flex items-center justify-center"
+                    type="button"
+                    onClick={nextStep}
+                  >
+                    <span>Next</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 ml-2"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="mx-auto mt-6 text-sm text-black/80">
+                  Already have an account?{" "}
+                  <span onClick={onLoginClick} className="ml-1 cursor-pointer">
+                    Login now!
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div
+            className={`transition-opacity duration-1000 ease-in-out transform ${
+              step === 2 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
+            } w-full`}
+          >
+            {step === 2 && (
+              <div className="flex flex-col mt-10">
+                {renderStep()}
+                <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2">
+                  <button
+                    className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-1/2 text-lg font-semibold tracking-wider py-2 text-white mr-2"
+                    type="button"
+                    onClick={prevStep}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 mr-2"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                    </svg>
+
+                    <span>Back</span>
+                  </button>
+                  <button
+                    className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-1/2 text-lg font-semibold tracking-wider py-2 text-white ml-2"
+                    type="button"
+                    onClick={nextStep}
+                  >
+                    <span>Next</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 ml-2"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div
+            className={`transition-opacity duration-1000 ease-in-out transform ${
+              step === 3 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
+            } flex items-center justify-center w-full h-full`}
+          >
+            <div className={`px-4 mt-4 w-full ${step !== 3 ? "hidden" : ""}`}>
+              <h3 className="mb-4 ml-2 text-black/80">Would you like to upload?</h3>
+              <AvatarSection avatar={avatar} setAvatar={setAvatar} register={register} />
+              <div className="flex flex-col items-center justify-between max-w-[95%] mt-4 gap-y-4">
+                <button
+                  className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-full font-semibold tracking-wider py-2 text-white ml-2"
+                  type="submit"
+                >
+                  <span>Submit</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default Register

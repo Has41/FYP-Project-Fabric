@@ -176,14 +176,14 @@ const patternLibrary = [
   "/hideout.svg",
   "/jigsaw.svg",
   "/jupiter.svg",
-  "/kiwi,svg",
+  "/kiwi.svg",
   "/overlapping-hexagons.svg",
   "/pie-factory.svg",
   "/squares.svg",
   "/stamp-collection.svg",
   "/temple.svg",
   "/tiny-checkers.svg",
-  "topography.svg"
+  "/topography.svg"
 ]
 
 export {

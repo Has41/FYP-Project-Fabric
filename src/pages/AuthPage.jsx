@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react"
-import Login from "../components/Login"
-import Register from "../components/Register"
+import Login from "../components/Auth/Login"
+import Register from "../components/Auth/Register"
 import bgImage from "../assets/bg.jpeg"
 import gsap from "gsap"
 

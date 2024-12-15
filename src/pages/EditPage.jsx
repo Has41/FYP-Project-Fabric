@@ -1,5 +1,5 @@
 import React from "react"
-import EditFabric from "../components/EditFabric"
+import EditFabric from "../components/Custom/EditFabric"
 
 const EditPage = () => {
   return (

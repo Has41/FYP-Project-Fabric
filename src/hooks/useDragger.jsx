@@ -10,7 +10,7 @@ const useDragger = (modalRef, containerRef) => {
   })
 
   const onMouseMove = (e) => {
-    if (!modal.current.dom) return // Ensure modal is available
+    if (!modal.current.dom) return
 
     const currentCursor = {
       x: e.clientX,
@@ -41,7 +41,7 @@ const useDragger = (modalRef, containerRef) => {
   }
 
   const onMouseUp = () => {
-    if (!modal.current.dom) return
+    if (!modal?.current.dom || !containerRef.current) return
     setIsDragging(false)
 
     modal.current.dom.classList.remove("cursor-grab")
@@ -74,7 +74,6 @@ const useDragger = (modalRef, containerRef) => {
 
         modal.current.dom = modalRef.current
         modal.current.dom.classList.add("cursor-grab")
-        console.log(modal.current.dom.classList)
 
         document.addEventListener("mousemove", onMouseMove)
         document.addEventListener("mouseup", onMouseUp)
@@ -90,7 +89,7 @@ const useDragger = (modalRef, containerRef) => {
       document.removeEventListener("mousemove", onMouseMove)
       document.removeEventListener("mouseup", onMouseUp)
     }
-  }, [modalRef]) // Dependency array includes the modalRef and containerRef
+  }, [modalRef, containerRef]) // Dependency array includes the modalRef and containerRef
   return { isDragging }
 }
 
