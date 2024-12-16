@@ -18,16 +18,14 @@ const ShirtModel = ({ position, scale, color, pattern }) => {
 
       shapes.forEach((shape) => {
         console.log(shape.getAttribute("stroke-width"))
-        if (!shape.getAttribute("stroke")) {
-          shape.setAttribute("stroke", "black")
+        if (!shape.getAttribute("stroke") || shape.getAttribute("stroke") === null) {
+          shape.setAttribute("stroke", "#000")
         }
-        if (!shape.getAttribute("stroke-width")) {
+        if (!shape.getAttribute("stroke-width" || shape.getAttribute("stroke-width") === null)) {
           shape.setAttribute("stroke-width", "4")
-          console.log(shape.getAttribute("stroke-width"))
         }
         if (shape.getAttribute("fill") === "none" || shape.getAttribute("fill") === null) {
           shape.setAttribute("fill", "#000")
-          console.log(shape.setAttribute("fill", "#000"))
         }
       })
 
