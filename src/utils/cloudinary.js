@@ -22,7 +22,7 @@ const uploadOnCloudinary = async (localFilePath) => {
 
     // Check if the file exists before deleting
     if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
+     // fs.unlinkSync(localFilePath);
     }
 
     // Return the upload result

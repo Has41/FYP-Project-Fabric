@@ -83,24 +83,30 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.method.isPasswordCorrect = async function (password) {
+userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcript.compare(password, this.password);
 };
 
-userSchema.method.generateAccessToken = async function () {
-  return jwt.sign(
-    {
-      _id: this._id,
-      username: this.username,
-      fullname: this.fullname,
-      email: this.email,
-    },
-    process.env.ACCESS_TOKEN_SECRET,
-    {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    }
-  );
+userSchema.methods.generateAccessToken = function () {
+  try {
+    return jwt.sign(
+      {
+        _id: this._id,
+        username: this.username,
+        fullname: this.fullname,
+        email: this.email,
+      },
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      }
+    );
+  } catch (error) {
+    console.error("Error generating access token:", error);
+    throw error;
+  }
 };
+
 
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(

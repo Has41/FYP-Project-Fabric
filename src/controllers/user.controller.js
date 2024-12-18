@@ -166,6 +166,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
+  console.log(email || username);
 
   if (!email && !username) {
     throw new ApiError(401, "Email or Username is Requried");
