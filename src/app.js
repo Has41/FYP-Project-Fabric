@@ -18,11 +18,13 @@ import userRouter from "./routes/user.routes.js";
 import categoryRouter from "./routes/category.route.js";
 import productRouter from "./routes/product.route.js";
 import pattrenRouter from  "./routes/pattren.route.js"
+import defaultPattrenRouter from  "./routes/defaultPattren.route.js"
 
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/pattrens", pattrenRouter)
+app.use("/api/v1/defaupattrens", defaultPattrenRouter)
 
 
 
