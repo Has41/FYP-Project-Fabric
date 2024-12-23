@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import {DefaultPattren} from "../models/defaultPattren.model.js"
+import {DefaultPattren} from "../models/defaulPattren.model.js"
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,

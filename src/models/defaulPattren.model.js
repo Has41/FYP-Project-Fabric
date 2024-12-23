@@ -17,4 +17,4 @@ const pattrenSchema = new Schema(
   }
 );
 
-export const Pattren = mongoose.model("DefaultPattren", pattrenSchema);
+export const DefaultPattren = mongoose.model("DefaultPattren", pattrenSchema);

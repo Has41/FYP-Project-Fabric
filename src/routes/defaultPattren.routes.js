@@ -6,8 +6,9 @@ import {
   allPattren,
   deletePattren,
 } from "../controllers/defaultPattren.controller.js";
+import { adminOnly } from "../middleware/admin.middleware.js";
 const router = Router();
-router.use(verifyJwt);
+router.use(verifyJwt, adminOnly);
 
 router.post("/add", upload.single("pattren"), addPattren);
 
