@@ -35,16 +35,11 @@ const productSchema = new Schema(
       required: true,
       min: 1,
     },
-    images: {
-      type: [String],  // Array of strings for image URLs
-      required: true,
-      validate: {
-        validator: function (arr) {
-          return arr.length >= 4;  // Ensure at least 4 images
-        },
-        message: "You must provide at least 4 images.",
-      },
-    },
+    model :{
+      type : String,
+      required : true,
+      trim : true
+    }
   },
   {
     timestamps: true,

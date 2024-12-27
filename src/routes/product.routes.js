@@ -7,22 +7,22 @@ import {
   removeProduct,
   searchProduct,
   updateProductInfo,
-  updateProductPics,
+  updateProductModel,
 } from "../controllers/product.controller.js";
 
 const router = Router();
 router.use(verifyJwt);
 
-router.post("/add", upload.array("images", 4), addProduct);
+router.post("/add", upload.single("model"), addProduct);
 
 router.delete("/:productId", removeProduct);
 
 router.put("/update/:productId", updateProductInfo);
 
 router.patch(
-  "/update-images/:productId",
-  upload.array("images", 4),
-  updateProductPics
+  "/update-model/:productId",
+ upload.single("model"),
+  updateProductModel
 );
 
 router.get("/:productId", searchProduct);

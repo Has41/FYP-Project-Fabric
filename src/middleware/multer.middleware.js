@@ -1,11 +1,16 @@
 import multer from "multer";
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/svg+xml', 'image/jpeg', 'image/png'];
+  const allowedTypes = [
+    'image/svg+xml', 
+    'image/jpeg', 
+    'image/png', 
+    'model/gltf-binary' // MIME type for .glb files
+  ];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true); // Accept the file
   } else {
-    cb(new Error("Only SVG, JPG, and PNG files are allowed!"), false); // Reject the file
+    cb(new Error("Only SVG, JPG, PNG, and GLB files are allowed!"), false); // Reject the file
   }
 };
 
