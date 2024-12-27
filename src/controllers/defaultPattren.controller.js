@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import {DefaultPattren} from "../models/defaulPattren.model.js"
+import { DefaultPattren } from "../models/defaulPattren.model.js";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
@@ -13,18 +13,16 @@ const addPattren = asyncHandler(async (req, res, next) => {
     let pattrenLocalPath;
     if (req.file && req.file.path) {
       pattrenLocalPath = req.file.path;
-      console.log("pattrenImage local path:", pattrenLocalPath);
     } else {
-      console.log("No file uploaded or incorrect file structure:", req.file);
+      console.error("No file uploaded or incorrect file structure:", req.file);
     }
 
     const pattrenImage = await uploadOnCloudinary(pattrenLocalPath);
     const owner = req.user._id;
-    console.log(pattrenImage.secure_url);
 
     const pattren = await DefaultPattren.create({
       owner,
-      
+
       name: name || null,
       image: pattrenImage.secure_url,
     });
@@ -82,6 +80,5 @@ const allPattren = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
-
 
 export { addPattren, deletePattren, allPattren };

@@ -35,11 +35,11 @@ const productSchema = new Schema(
       required: true,
       min: 1,
     },
-    model :{
-      type : String,
-      required : true,
-      trim : true
-    }
+    model: {
+      type: String,
+      required: true,
+      trim: true,
+    },
   },
   {
     timestamps: true,

@@ -10,20 +10,10 @@ const designSchema = new Schema(
       type: String,
       required: true,
     },
-    images: [
-      {
-        type: String,
-        required: true,
-      },
-    ],
-    images: {
-      type: Array,
-      validate: {
-        validator: function (arr) {
-          return arr.length >= 4;
-        },
-        message: "You must provide at least 4 images.",
-      },
+    model: {
+      type: String,
+      required: true,
+      trim: true,
     },
     product: {
       type: Schema.Types.ObjectId,
@@ -31,7 +21,19 @@ const designSchema = new Schema(
     },
     isPublic: {
       type: Boolean,
-      required: true,
+      required: false,
+    },
+    color: {
+      type: String,
+      requried: true,
+    },
+    pattren: {
+      type: Schema.Types.ObjectId,
+      ref: "Pattren",
+    },
+    defaultPattren: {
+      type: Schema.Types.ObjectId,
+      ref: "DefaultPattren",
     },
     price: {
       type: Number,

@@ -8,10 +8,10 @@ import {
 import { Product } from "../models/product.model.js";
 import mongoose from "mongoose";
 
-
 const addProduct = asyncHandler(async (req, res, next) => {
-  const { title, description, price, discount_price, quantity, category } = req.body;
-  const owner = req.user_.id;
+  const { title, description, price, discount_price, quantity, category } =
+    req.body;
+  const owner = req.user._id;
 
   // Validate required fields
   if (!title || !description || !price || !quantity || !category) {
@@ -56,7 +56,6 @@ const addProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
-
 const removeProduct = asyncHandler(async (req, res, next) => {
   const { productId } = req.params;
 
@@ -75,7 +74,7 @@ const removeProduct = asyncHandler(async (req, res, next) => {
     // Delete the model file from Cloudinary
     const modelUrl = product.model; // Assuming `model` stores the Cloudinary URL
     if (modelUrl) {
-      const modelPublicId = modelUrl.split('/').pop().split('.')[0]; // Extract Cloudinary public_id
+      const modelPublicId = modelUrl.split("/").pop().split(".")[0]; // Extract Cloudinary public_id
       await deleteFromCloudinary(modelPublicId); // Implement this function for Cloudinary deletions
     }
 
@@ -90,7 +89,6 @@ const removeProduct = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
-
 
 const updateProductInfo = asyncHandler(async (req, res) => {
   const { title, description, price, discount_price, quantity, category } =
@@ -153,7 +151,7 @@ const updateProductModel = asyncHandler(async (req, res, next) => {
 
     // Delete the old model file from Cloudinary
     if (product.model) {
-      const oldModelPublicId = product.model.split('/').pop().split('.')[0]; // Extract Cloudinary public_id
+      const oldModelPublicId = product.model.split("/").pop().split(".")[0]; // Extract Cloudinary public_id
       await deleteFromCloudinary(oldModelPublicId); // Implemented in the previous example
     }
 
@@ -170,12 +168,17 @@ const updateProductModel = asyncHandler(async (req, res, next) => {
     // Return success response
     return res
       .status(200)
-      .json(new ApiResponse(200, updatedProduct, "Product model updated successfully"));
+      .json(
+        new ApiResponse(
+          200,
+          updatedProduct,
+          "Product model updated successfully"
+        )
+      );
   } catch (error) {
     next(error);
   }
 });
-
 
 const searchProduct = asyncHandler(async (req, res) => {
   const { productId } = req.params;
@@ -190,7 +193,7 @@ const searchProduct = asyncHandler(async (req, res) => {
 
   const product = await Product.aggregate([
     {
-      $match: { _id: mongoose.Types.ObjectId(productId) } // Match by productId
+      $match: { _id: mongoose.Types.ObjectId(productId) }, // Match by productId
     },
     {
       $lookup: {
@@ -201,8 +204,8 @@ const searchProduct = asyncHandler(async (req, res) => {
       },
     },
     {
-      $unwind: "$category" // Optionally flatten the category array
-    }
+      $unwind: "$category", // Optionally flatten the category array
+    },
   ]);
 
   if (!product || product.length === 0) {
@@ -250,13 +253,11 @@ const allProducts = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, products, "Products Fetched Successfully"));
 });
 
-
-
 export {
   addProduct,
   removeProduct,
   updateProductInfo,
   updateProductModel,
   searchProduct,
-  allProducts
+  allProducts,
 };

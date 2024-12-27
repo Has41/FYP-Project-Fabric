@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJwt } from "../middleware/auth.middleware.js";
+import { adminOnly } from "../middleware/admin.middleware.js";
 import {
   addProduct,
   allProducts,
@@ -11,7 +12,7 @@ import {
 } from "../controllers/product.controller.js";
 
 const router = Router();
-router.use(verifyJwt);
+router.use(verifyJwt, adminOnly);
 
 router.post("/add", upload.single("model"), addProduct);
 
@@ -21,7 +22,7 @@ router.put("/update/:productId", updateProductInfo);
 
 router.patch(
   "/update-model/:productId",
- upload.single("model"),
+  upload.single("model"),
   updateProductModel
 );
 

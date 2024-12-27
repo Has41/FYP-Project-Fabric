@@ -5,10 +5,9 @@ import { Order } from "../models/order.model.js";
 import mongoose from "mongoose";
 
 const addOrder = asyncHandler(async (req, res) => {
-  const {  products, designs, price, paymentStatus, deliveryStatus } =
-    req.body;
+  const { products, designs, price, paymentStatus, deliveryStatus } = req.body;
 
-    const orderBy = req.user._id;
+  const orderBy = req.user._id;
 
   // Validate required fields
   if (!orderBy || !price || !paymentStatus || !deliveryStatus) {

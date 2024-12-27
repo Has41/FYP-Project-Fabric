@@ -67,14 +67,11 @@ const registerUser = asyncHandler(async (req, res, next) => {
     let avatarLocalPath;
     if (req.file && req.file.path) {
       avatarLocalPath = req.file.path;
-      console.log("Avatar local path:", avatarLocalPath);
     } else {
-      console.log("No file uploaded or incorrect file structure:", req.file);
+      console.error("No file uploaded or incorrect file structure:", req.file);
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath);
-
-    console.log(avatar.secure_url);
 
     const user = await User.create({
       fullname,
@@ -166,7 +163,6 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
-  console.log(email || username);
 
   if (!email && !username) {
     throw new ApiError(401, "Email or Username is Requried");

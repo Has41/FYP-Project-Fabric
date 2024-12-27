@@ -1,6 +1,5 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { User } from "../models/user.model.js";
 import { Pattren } from "../models/pattren.model.js";
 import {
   deleteFromCloudinary,
@@ -14,18 +13,16 @@ const addPattren = asyncHandler(async (req, res, next) => {
     let pattrenLocalPath;
     if (req.file && req.file.path) {
       pattrenLocalPath = req.file.path;
-      console.log("pattrenImage local path:", pattrenLocalPath);
     } else {
-      console.log("No file uploaded or incorrect file structure:", req.file);
+      console.error("No file uploaded or incorrect file structure:", req.file);
     }
 
     const pattrenImage = await uploadOnCloudinary(pattrenLocalPath);
     const owner = req.user._id;
-    console.log(pattrenImage.secure_url);
 
     const pattren = await Pattren.create({
       owner,
-      
+
       name: name || null,
       image: pattrenImage.secure_url,
     });
@@ -67,9 +64,11 @@ const deletePattren = asyncHandler(async (req, res, next) => {
   }
 });
 
-const allPattren = asyncHandler(async (req, res, next) => {
-  const patterns = await Pattren.find();
+const allPatterns = asyncHandler(async (req, res, next) => {
   try {
+    // Fetch patterns owned by the current user
+    const patterns = await Pattren.find({ owner: req.user._id });
+
     if (!patterns || patterns.length === 0) {
       return res
         .status(404)
@@ -85,4 +84,4 @@ const allPattren = asyncHandler(async (req, res, next) => {
 });
 
 /******  30e5f2fc-ea0b-4487-aa48-854d5bef4772  *******/
-export { addPattren, deletePattren, allPattren };
+export { addPattren, deletePattren, allPatterns };
