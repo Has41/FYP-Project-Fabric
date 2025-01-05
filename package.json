@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.9.1",
     "@react-three/drei": "^9.114.4",
     "@react-three/fiber": "^8.17.10",
     "axios": "^1.7.7",
@@ -22,7 +23,8 @@
     "react-hook-form": "^7.53.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.26.2",
-    "three": "^0.169.0"
+    "three": "^0.169.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

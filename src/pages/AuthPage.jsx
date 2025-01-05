@@ -3,6 +3,8 @@ import Login from "../components/Auth/Login"
 import Register from "../components/Auth/Register"
 import bgImage from "../assets/bg.jpeg"
 import gsap from "gsap"
+import useAuth from "../hooks/useAuth"
+import { useNavigate } from "react-router-dom"
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true)
@@ -11,6 +13,15 @@ const AuthPage = () => {
   const imageRef = useRef(null)
   const titleRef = useRef(null)
   const subTitle = useRef(null)
+  const [formHeight, setFormHeight] = useState(null)
+  const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/")
+    }
+  }, [isAuthenticated])
 
   const handleSwitchToLogin = () => {
     const timeLine = gsap.timeline()
@@ -21,6 +32,7 @@ const AuthPage = () => {
       .call(() => setIsLogin(true))
       .set(registerRef.current, { display: "none" })
       .set(loginRef.current, { display: "block" })
+      .call(() => setFormHeight(loginRef.current?.offsetHeight))
       .to(loginRef.current, { opacity: 1, scale: 1, duration: 0.7 })
       .to([titleRef.current, subTitle.current], { opacity: 1, scale: 1, duration: 0.7 })
 
@@ -36,6 +48,7 @@ const AuthPage = () => {
       .call(() => setIsLogin(false))
       .set(loginRef.current, { display: "none" })
       .set(registerRef.current, { display: "block" })
+      .call(() => setFormHeight(registerRef.current?.offsetHeight))
       .to(registerRef.current, { opacity: 1, scale: 1, duration: 0.7 })
       .to([titleRef.current, subTitle.current], { opacity: 1, scale: 1, duration: 0.7 })
 
@@ -43,24 +56,23 @@ const AuthPage = () => {
   }
 
   useEffect(() => {
-    console.log(isLogin)
-  }, [isLogin])
+    setFormHeight(loginRef.current?.offsetHeight)
+  }, [])
 
   return (
     <section className="flex items-center justify-center h-screen">
       <div className={`${isLogin ? "" : "hidden"}`} ref={loginRef}>
-        <Login onRegisterClick={handleSwitchToRegister} />
+        <Login setFormHeight={setFormHeight} onRegisterClick={handleSwitchToRegister} />
       </div>
       <div
         ref={imageRef}
         style={{
           backgroundImage: `url(${bgImage})`,
           backgroundSize: "cover",
-          backgroundPosition: "center"
+          backgroundPosition: "center",
+          height: `${formHeight}px`
         }}
-        className={`relative select-none shadow-lg w-[450px] ${
-          !isLogin ? "h-[520px]" : "h-[480px]"
-        } font-poppins py-8 px-4 bg-white ${
+        className={`relative select-none shadow-lg w-[450px] font-poppins py-8 px-4 bg-white ${
           !isLogin ? "rounded-tl-lg rounded-bl-lg" : "rounded-tr-lg rounded-br-lg"
         } tracking-wide`}
       >
@@ -70,7 +82,7 @@ const AuthPage = () => {
           }`}
         ></div>
 
-        <div className="relative z-10 flex flex-col items-center justify-center gap-y-4 h-full text-white">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full text-white">
           <h1 ref={titleRef} className="text-4xl font-bold mb-4">
             {isLogin ? "Welcome Back!" : "Join Us Now!"}
           </h1>
@@ -80,7 +92,7 @@ const AuthPage = () => {
         </div>
       </div>
       <div className={`${!isLogin ? "" : "hidden"}`} ref={registerRef}>
-        <Register onLoginClick={handleSwitchToLogin} />
+        <Register setFormHeight={setFormHeight} onLoginClick={handleSwitchToLogin} />
       </div>
     </section>
   )

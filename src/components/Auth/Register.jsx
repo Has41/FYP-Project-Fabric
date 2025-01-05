@@ -1,46 +1,87 @@
-import React, { useState } from "react"
+import React, { useState, useRef } from "react"
 import { useForm } from "react-hook-form"
 import useFetch from "../../hooks/useFetch"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { registerSchema } from "../../utils/zodSchema"
 import { stepOneRegisterField, stepTwoRegisterField } from "../../utils/dynamicData"
 import InputField from "../Shared/InputField"
 import AvatarSection from "../Shared/AvatarSection"
+import { useNavigate } from "react-router-dom"
+import LoadingSpinner from "../Shared/LoadingSpinner"
 
-const Register = ({ onLoginClick }) => {
+const Register = ({ onLoginClick, setFormHeight }) => {
   const [step, setStep] = useState(1)
   const [avatar, setAvatar] = useState(null)
-  const { register, handleSubmit, reset } = useForm()
+  const registerRef = useRef(null)
+  const navigate = useNavigate()
+  const {
+    register,
+    clearErrors,
+    handleSubmit,
+    reset,
+    trigger,
+    formState: { errors }
+  } = useForm({
+    resolver: zodResolver(registerSchema)
+  })
 
-  const nextStep = () => setStep(step + 1)
+  const recalculateFormHeight = () => {
+    setFormHeight(registerRef.current?.clientHeight)
+  }
+
+  const nextStep = async () => {
+    if (step === 1) {
+      const isValid = await trigger()
+      if (!isValid) {
+        setFormHeight(registerRef.current.clientHeight)
+        return
+      }
+    }
+    setFormHeight(registerRef.current.clientHeight)
+    setStep(step + 1)
+  }
+
   const prevStep = () => setStep(step - 1)
 
-  const { mutate } = useFetch({
+  const { mutate, isLoading } = useFetch({
     endpoint: "/api/v1/users/register",
     method: "POST"
   })
 
   const onSubmit = async (data) => {
-    try {
-      const formData = new FormData()
+    const formData = new FormData()
 
-      for (const [key, value] of Object.entries(data)) {
-        formData.append(key, value)
-      }
-
-      mutate(formData)
-      reset()
-    } catch (err) {
-      console.error(err)
+    for (const [key, value] of Object.entries(data)) {
+      formData.append(key, value)
+      // console.log(key, value)
     }
-  }
 
-  const renderStep = () => {
-    const fields = step === 1 ? stepOneRegisterField : stepTwoRegisterField
-    return fields.map((field) => <InputField key={field.id || field.name} field={field} register={register} />)
+    if (avatar) {
+      formData.append("avatar", avatar)
+    }
+
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value)
+    }
+
+    mutate(formData, {
+      onSuccess: () => {
+        navigate("/auth")
+        window.location.reload()
+      },
+      onError: () => {
+        console.error("An error occurred while registering")
+        // reset()
+      }
+    })
   }
 
   return (
     <div className="flex items-center justify-center h-full font-poppins select-none">
-      <div className="shadow-lg w-[450px] h-[520px] py-8 px-4 bg-white rounded-tr-lg rounded-br-lg tracking-wide">
+      <div
+        ref={registerRef}
+        className="shadow-lg w-[450px] min-h-[32rem] py-8 px-4 bg-white rounded-tr-lg rounded-br-lg tracking-wide"
+      >
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-[1.6rem] ml-4 font-bold text-black/80 relative after:content-[''] after:w-[2rem] after:block after:h-1 after:rounded-2xl after:bg-dusty-grass after:absolute after:left-4 after:transform after:-translate-x-1/2 after:-bottom-1">
@@ -78,7 +119,17 @@ const Register = ({ onLoginClick }) => {
           >
             {step === 1 && (
               <div className="flex flex-col mt-10">
-                {renderStep()}
+                {stepOneRegisterField.map((field) => (
+                  <InputField
+                    key={field.name}
+                    field={field}
+                    error={errors[field.name]}
+                    clearErrors={clearErrors}
+                    setTrigger={trigger}
+                    register={register}
+                    recalculateFormHeight={recalculateFormHeight}
+                  />
+                ))}
                 <div className="ml-4 flex justify-start max-w-[90%] mt-2">
                   <button
                     className="bg-dusty-grass rounded-[4px] w-full text-lg font-semibold tracking-wider py-2 text-white flex items-center justify-center"
@@ -98,7 +149,8 @@ const Register = ({ onLoginClick }) => {
                     </svg>
                   </button>
                 </div>
-                <div className="mx-auto mt-6 text-sm text-black/80">
+                {/* ${errors ? "mt-1" : "mt-6"}  */}
+                <div className={`mx-auto mt-5 text-sm text-black/80`}>
                   Already have an account?{" "}
                   <span onClick={onLoginClick} className="ml-1 cursor-pointer">
                     Login now!
@@ -115,7 +167,15 @@ const Register = ({ onLoginClick }) => {
           >
             {step === 2 && (
               <div className="flex flex-col mt-10">
-                {renderStep()}
+                {stepTwoRegisterField.map((field) => (
+                  <InputField
+                    key={field.name}
+                    setTrigger={trigger}
+                    recalculateFormHeight={recalculateFormHeight}
+                    field={field}
+                    register={register}
+                  />
+                ))}
                 <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2">
                   <button
                     className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-1/2 text-lg font-semibold tracking-wider py-2 text-white mr-2"
@@ -167,10 +227,12 @@ const Register = ({ onLoginClick }) => {
               <AvatarSection avatar={avatar} setAvatar={setAvatar} register={register} />
               <div className="flex flex-col items-center justify-between max-w-[95%] mt-4 gap-y-4">
                 <button
-                  className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-full font-semibold tracking-wider py-2 text-white ml-2"
+                  className={`${
+                    isLoading ? "bg-dusty-grass cursor-not-allowed" : "bg-dusty-grass hover:bg-amber-500 hover:transition-colors"
+                  } rounded-[4px] flex items-center justify-center w-full font-semibold tracking-wider py-2 text-white ml-2`}
                   type="submit"
                 >
-                  <span>Submit</span>
+                  <LoadingSpinner loading={isLoading} loadingText={"Submitting"} finalText={"Register"} />
                 </button>
               </div>
             </div>

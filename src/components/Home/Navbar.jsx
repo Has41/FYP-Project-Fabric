@@ -1,6 +1,32 @@
-import React from "react"
+import React, { useState } from "react"
+import useFetch from "../../hooks/useFetch"
+import { useNavigate } from "react-router-dom"
+import useAuth from "../../hooks/useAuth"
 
 const Navbar = () => {
+  const [dropdownVisible, setDropdownVisible] = useState(false)
+  const { setIsAuthenticated } = useAuth()
+  const navigate = useNavigate()
+
+  const { mutate } = useFetch({ endpoint: "/api/v1/users/logout", method: "POST" })
+
+  const toggleDropdown = () => {
+    setDropdownVisible((prev) => !prev)
+  }
+
+  const handleLogout = () => {
+    mutate(
+      {},
+      {
+        onSuccess: () => {
+          setDropdownVisible(false)
+          setIsAuthenticated(false)
+          navigate("/auth")
+        }
+      }
+    )
+  }
+
   return (
     <nav className="bg-white font-poppins">
       <div className="container mx-auto flex justify-between items-center py-4">
@@ -20,10 +46,7 @@ const Navbar = () => {
         </div>
 
         {/* Get Started Button */}
-        <div className="flex gap-x-4">
-          {/* <button className="bg-button-color text-white py-2 px-4 rounded-md hover:bg-[#FFA751] transition-colors duration-300">
-            Get Started
-          </button> */}
+        <div className="flex gap-x-4 relative">
           <div>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -40,14 +63,15 @@ const Navbar = () => {
               />
             </svg>
           </div>
-          <div>
+          <div className="relative">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="size-6 text-black/80"
+              className="size-6 text-black/80 cursor-pointer"
+              onClick={toggleDropdown}
             >
               <path
                 strokeLinecap="round"
@@ -55,6 +79,15 @@ const Navbar = () => {
                 d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
               />
             </svg>
+            {dropdownVisible && (
+              <div className="absolute right-0 mt-2 bg-white shadow-md rounded-lg w-20">
+                <ul className="text-gray-600">
+                  <li onClick={handleLogout} className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
+                    Logout
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>

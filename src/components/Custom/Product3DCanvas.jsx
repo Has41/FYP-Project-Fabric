@@ -16,7 +16,6 @@ const Scene = ({ color, pattern }) => {
       step: 0.1
     }
   })
-  console.log(pattern)
 
   const modelPosition = [0, 0, 0] // Lower the Y value further
 
