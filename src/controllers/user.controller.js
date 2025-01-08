@@ -212,26 +212,30 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
-  await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      $unset: { refreshToken: 1 },
-    },
-    {
-      new: true,
+  try {
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $unset: { refreshToken: 1 },
+      },
+      {
+        new: true,
+      }
+    );
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+  
+    return res
+      .status(200)
+      .clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .json(new ApiResponse(200, {}, "User Logged Out"));
+    } catch (error) {
+      throw new ApiError(500, 'Server Error', error)
     }
-  );
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
-  return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "User Logged Out"));
-});
+  });
 
 const refreshToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
