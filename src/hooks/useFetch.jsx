@@ -32,7 +32,9 @@ const useFetch = ({ endpoint, method = "GET", body = null, options = {} }) => {
     }
   }, [endpoint, method, body, headers])
 
-  const useFetchQuery = useQuery([endpoint, method, JSON.stringify(body)], fetchData, {
+  const queryKey = endpoint
+
+  const useFetchQuery = useQuery(queryKey, fetchData, {
     ...queryOptions,
     enabled: method === "GET",
     retry,

@@ -1,25 +1,48 @@
 import { createContext, useState, useEffect } from "react"
-import useFetch from "../hooks/useFetch"
+// import useFetch from "../hooks/useFetch"
+import { useQuery } from "react-query"
+import axiosInstance from "../utils/axiosInstance"
 
 export const AuthContext = createContext()
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const { data, refetch, isError, error } = useFetch({
-    endpoint: "/api/v1/users/get-user",
-    method: "GET"
+  // const { data, refetch, error, isLoading } = useFetch({
+  //   endpoint: "/api/v1/users/get-user",
+  //   method: "GET",
+  //   options: {
+  //     retry: false,
+  //     refetchOnWindowFocus: false,
+  //     refetchOnmount: false,
+  //     refetchOnReconnect: false,
+  //     staleTime: 24 * 60 * 60 * 1000
+  //   }
+  // })
+
+  const { data, refetch, isLoading } = useQuery({
+    queryKey: "/api/v1/users/get-user",
+    queryFn: async () => {
+      const { data } = await axiosInstance.get("/api/v1/users/get-user")
+      return data
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    staleTime: 24 * 60 * 60 * 1000
   })
 
   useEffect(() => {
     if (data && !user) {
       setUser(data?.data)
       setIsAuthenticated(true)
+      console.log("Authenticating user...")
     }
-  }, [data, user])
+  }, [data, isAuthenticated])
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, setIsAuthenticated, refetch, isError, error }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, setIsAuthenticated, refetch, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

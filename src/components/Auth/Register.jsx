@@ -18,7 +18,6 @@ const Register = ({ onLoginClick, setFormHeight }) => {
     register,
     clearErrors,
     handleSubmit,
-    reset,
     trigger,
     formState: { errors }
   } = useForm({
@@ -53,7 +52,6 @@ const Register = ({ onLoginClick, setFormHeight }) => {
 
     for (const [key, value] of Object.entries(data)) {
       formData.append(key, value)
-      // console.log(key, value)
     }
 
     if (avatar) {
@@ -149,7 +147,6 @@ const Register = ({ onLoginClick, setFormHeight }) => {
                     </svg>
                   </button>
                 </div>
-                {/* ${errors ? "mt-1" : "mt-6"}  */}
                 <div className={`mx-auto mt-5 text-sm text-black/80`}>
                   Already have an account?{" "}
                   <span onClick={onLoginClick} className="ml-1 cursor-pointer">
@@ -170,12 +167,15 @@ const Register = ({ onLoginClick, setFormHeight }) => {
                 {stepTwoRegisterField.map((field) => (
                   <InputField
                     key={field.name}
-                    setTrigger={trigger}
-                    recalculateFormHeight={recalculateFormHeight}
                     field={field}
+                    error={errors[field.name]}
+                    clearErrors={clearErrors}
+                    setTrigger={trigger}
                     register={register}
+                    recalculateFormHeight={recalculateFormHeight}
                   />
                 ))}
+
                 <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2">
                   <button
                     className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-1/2 text-lg font-semibold tracking-wider py-2 text-white mr-2"

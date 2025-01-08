@@ -36,7 +36,10 @@ const Login = ({ onRegisterClick, setFormHeight }) => {
 
   const { mutate, error, isLoading } = useFetch({
     endpoint: "/api/v1/users/login",
-    method: "POST"
+    method: "POST",
+    options: {
+      enabled: false
+    }
   })
 
   const onSubmit = (data) => {

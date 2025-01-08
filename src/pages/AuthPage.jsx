@@ -3,8 +3,6 @@ import Login from "../components/Auth/Login"
 import Register from "../components/Auth/Register"
 import bgImage from "../assets/bg.jpeg"
 import gsap from "gsap"
-import useAuth from "../hooks/useAuth"
-import { useNavigate } from "react-router-dom"
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true)
@@ -14,14 +12,6 @@ const AuthPage = () => {
   const titleRef = useRef(null)
   const subTitle = useRef(null)
   const [formHeight, setFormHeight] = useState(null)
-  const { isAuthenticated } = useAuth()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/")
-    }
-  }, [isAuthenticated])
 
   const handleSwitchToLogin = () => {
     const timeLine = gsap.timeline()
