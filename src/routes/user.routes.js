@@ -33,7 +33,7 @@ router.route("/change-password").post(verifyJwt, currentPasswordChange);
 
 router.route("/update-details").patch(verifyJwt, updateAccountDetails);
 
-router.route("/get-user").get(getCurrentUser);
+router.route("/get-user").get(verifyJwt,getCurrentUser);
 
 
 router
