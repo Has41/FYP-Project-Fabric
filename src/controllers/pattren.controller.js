@@ -11,20 +11,37 @@ const addPattren = asyncHandler(async (req, res, next) => {
   try {
     let { name } = req.body;
     let pattrenLocalPath;
+
+    // Ensure that a file is uploaded and that it's an SVG
     if (req.file && req.file.path) {
+      const fileMimeType = req.file.mimetype;
+
+      // Check if the uploaded file is an SVG
+      if (fileMimeType !== 'image/svg+xml') {
+        return res.status(400).json(new ApiResponse(400, null, "Only SVG files are allowed"));
+      }
+
       pattrenLocalPath = req.file.path;
     } else {
       console.error("No file uploaded or incorrect file structure:", req.file);
+      return res.status(400).json(new ApiResponse(400, null, "Only svg allowed"));
     }
 
+    // Upload the SVG image to Cloudinary
     const pattrenImage = await uploadOnCloudinary(pattrenLocalPath);
-    const owner = req.user._id;
 
+    // Check if the upload was successful
+    if (!pattrenImage) {
+      return res.status(500).json(new ApiResponse(500, null, "Error uploading image to Cloudinary"));
+    }
+
+    const owner = req.user._id; // Assuming the user is authenticated and their ID is stored in `req.user._id`
+
+    // Create the pattern in the database with the image URL from Cloudinary
     const pattren = await Pattren.create({
       owner,
-
       name: name || null,
-      image: pattrenImage.secure_url,
+      image: pattrenImage.secure_url, // Use the Cloudinary URL of the uploaded image
     });
 
     const createdPattren = await Pattren.findById(pattren._id);
@@ -33,7 +50,7 @@ const addPattren = asyncHandler(async (req, res, next) => {
       throw new ApiError(500, "Server Error");
     }
 
-    // Return the response with user data
+    // Return success response with the created pattern
     return res
       .status(200)
       .json(new ApiResponse(200, createdPattren, "Pattren Added Successfully"));
