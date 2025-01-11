@@ -3,15 +3,10 @@ import { useMutation, useQuery } from "react-query"
 import axiosInstance from "../../../utils/axiosInstance"
 import ConvertApi from "convertapi-js"
 
-const PatternPicker = ({
-  isPatternDragging,
-  closePopup,
-  patternPickerRef,
-  subActiveOption,
-  patternLibrary,
-  setSelectedPattern
-}) => {
+const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subActiveOption, setSelectedPattern }) => {
   const [customPattern, setCustomPattern] = useState([])
+  const [defaultPatterns, setDefaultPatterns] = useState([])
+  const [selectedPattern, setSelectedPatternState] = useState(null)
 
   const { mutate: addCustomPattern, isLoading } = useMutation({
     mutationFn: async (patternData) => {
@@ -19,23 +14,48 @@ const PatternPicker = ({
       return data
     },
     onSuccess: () => {
+      refetchCustomPatterns()
       console.log("Pattern added successfully!")
-      refetch()
     }
   })
 
-  const { refetch } = useQuery({
+  const { refetch: refetchDefaultPatterns } = useQuery({
+    queryKey: "/api/v1/defaupattrens",
+    queryFn: async () => {
+      const { data } = await axiosInstance.get("/api/v1/defaupattrens")
+      return data
+    },
+    onSuccess: (data) => {
+      setDefaultPatterns(data?.data)
+      // console.log(data?.data)
+    },
+    onError: (error) => {
+      console.error(error)
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    staleTime: 24 * 60 * 60 * 1000
+  })
+
+  const { refetch: refetchCustomPatterns } = useQuery({
     queryKey: "/api/v1/pattrens",
     queryFn: async () => {
       return await axiosInstance.get("/api/v1/pattrens/")
     },
     onSuccess: (data) => {
       setCustomPattern(data?.data?.data)
-      console.log("Fetched more patterns")
+      // console.log("Fetched more patterns")
     },
     onError: (error) => {
       console.error(error)
-    }
+    },
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    staleTime: 24 * 60 * 60 * 1000
   })
 
   const handleFileChange = async (event) => {
@@ -43,6 +63,15 @@ const PatternPicker = ({
 
     if (!file) {
       console.error("No file selected.")
+      return
+    }
+
+    const allowedFileTypes = ["image/jpeg", "image/png"]
+    const allowedFileExtensions = [".jpg", ".jpeg", ".png"]
+
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf("."))
+    if (!allowedFileTypes.includes(file.type) || !allowedFileExtensions.includes(fileExtension)) {
+      console.error("Invalid file type. Please upload a JPG, JPEG, or PNG file.")
       return
     }
 
@@ -55,23 +84,30 @@ const PatternPicker = ({
       params.add("ScaleProportions", "true")
       params.add("ImageHeight", "200")
       params.add("ImageWidth", "200")
-      const result = await convertApi.convert("jpg", "svg", params)
+      const fileType = file.type === "image/jpeg" || fileExtension === ".jpg" || fileExtension === ".jpeg" ? "jpg" : "png" // Dynamically set source type
+      const result = await convertApi.convert(fileType, "svg", params)
+
       if (result?.files?.length > 0) {
         const svgFileUrl = result.files[0].Url
         const response = await fetch(svgFileUrl)
         const blob = await response.blob()
-        const file = new File([blob], `converted-${Date.now()}.svg`, { type: blob.type })
+        const convertedFile = new File([blob], `converted-${Date.now()}.svg`, { type: blob.type })
         const formData = new FormData()
-        formData.append("pattren", file)
-        formData.append("name", file.name)
+        formData.append("pattren", convertedFile)
+        formData.append("name", convertedFile.name)
         addCustomPattern(formData)
         event.target.value = null
       } else {
         console.error("Conversion failed. No output files found.")
       }
     } catch (error) {
-      console.error("Error converting JPG to SVG:", error)
+      console.error("Error converting image to SVG:", error)
     }
+  }
+
+  const handlePatternSelect = (pattern) => {
+    setSelectedPatternState(pattern)
+    setSelectedPattern(pattern?.image)
   }
 
   return (
@@ -101,24 +137,36 @@ const PatternPicker = ({
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        {patternLibrary.map((svg, index) => (
-          <div key={index} onClick={() => setSelectedPattern(svg)} className="flex justify-center items-center">
+        {defaultPatterns.map((svg, index) => (
+          <div key={index} onClick={() => handlePatternSelect(svg)} className="flex justify-center items-center">
             <div
-              className="m-3 bg-center bg-no-repeat bg-cover size-14 rounded-full shadow-md hover:shadow-2xl transition-shadow duration-500"
+              className={`m-3 bg-center bg-no-repeat bg-cover size-14 ${
+                selectedPattern?.image === svg.image ? "shadow-black" : ""
+              } rounded-full shadow-md hover:shadow-2xl transition-shadow duration-500`}
               style={{
-                backgroundImage: `url(${import.meta.env.VITE_API_PUBLIC_URL}${svg})`
+                backgroundImage: `url(${svg.image})`
               }}
             />
           </div>
         ))}
       </div>
+      <div className="py-6">
+        <button
+          onClick={() => handlePatternSelect(null)}
+          className="bg-black/80 text-white font-poppins hover:bg-white hover:text-black py-2 px-4 rounded transition-colors duration-300"
+        >
+          Reset Pattern
+        </button>
+      </div>
       <h2 className="py-4 font-poppins">Your Custom patterns</h2>
       <div className="grid grid-cols-3 gap-4">
         {customPattern && customPattern.length > 0 ? (
           customPattern.map((pattern, index) => (
-            <div key={index} onClick={() => setSelectedPattern(pattern.image)} className="flex justify-center items-center">
+            <div key={index} onClick={() => handlePatternSelect(pattern)} className="flex justify-center items-center">
               <div
-                className="m-3 bg-center bg-no-repeat bg-cover size-14 rounded-full shadow-md hover:shadow-2xl transition-shadow duration-500"
+                className={`m-3 bg-center bg-no-repeat ${
+                  selectedPattern?.image === pattern.image ? "shadow-black" : ""
+                } bg-cover size-14 rounded-full shadow-md hover:shadow-2xl transition-shadow duration-500`}
                 style={{
                   backgroundImage: `url(${pattern.image})`
                 }}
@@ -133,11 +181,13 @@ const PatternPicker = ({
       <div className="py-4 max-w-[300px]">
         <label
           htmlFor="fileInput"
-          className="px-4 py-2 bg-amber-400 font-poppins text-white rounded-lg cursor-pointer hover:bg-custom-green transition-colors duration-300"
+          className={`px-4 py-2 bg-amber-400 font-poppins text-white rounded-lg cursor-pointer ${
+            isLoading ? "bg-dusty-grass cursor-not-allowed" : "bg-dusty-grass hover:bg-amber-500 hover:transition-colors"
+          } hover:bg-custom-green transition-colors duration-300`}
         >
           {isLoading ? "Uploading..." : "Upload Pattern"}
         </label>
-        <input type="file" id="fileInput" className="hidden" accept="image/*" onChange={handleFileChange} />
+        <input type="file" disabled={isLoading} id="fileInput" className="hidden" accept="image/*" onChange={handleFileChange} />
       </div>
     </div>
   )

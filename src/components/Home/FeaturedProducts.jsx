@@ -1,8 +1,26 @@
-import React from "react"
+import React, { useState } from "react"
 import blackImg from "../../assets/test1.png"
 import { Link } from "react-router-dom"
+import { useQuery } from "react-query"
+import axiosInstance from "../../utils/axiosInstance"
 
 const FeaturedProducts = () => {
+  const [products, setProducts] = useState([])
+
+  const { refetch } = useQuery({
+    queryKey: "/api/v1/products/all-products",
+    queryFn: async () => {
+      const { data } = axiosInstance.get("/api/v1/products/all-products")
+      return data
+    },
+    onSuccess: (data) => {
+      // setProducts(data)
+      console.log(data?.data)
+    },
+    onError: (error) => {
+      console.error(error)
+    }
+  })
   return (
     <section className="font-poppins my-4">
       <div className="ml-10 py-10 mb-4">

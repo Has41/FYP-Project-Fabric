@@ -9,14 +9,13 @@ const ShirtModel = ({ position, scale, color, pattern }) => {
   useEffect(() => {
     const loadSVGAsTexture = async () => {
       if (pattern) {
-        const response = await fetch(`${import.meta.env.VITE_API_PUBLIC_URL}/${pattern}`)
+        const response = await fetch(pattern)
         const svgText = await response.text()
         const parser = new DOMParser()
         const svgDoc = parser.parseFromString(svgText, "image/svg+xml")
         const shapes = svgDoc.querySelectorAll("path")
 
         shapes.forEach((shape) => {
-          // console.log(shape.getAttribute("stroke-width"))
           if (!shape.getAttribute("stroke") || shape.getAttribute("stroke") === null) {
             shape.setAttribute("stroke", "#000")
           }
@@ -53,10 +52,22 @@ const ShirtModel = ({ position, scale, color, pattern }) => {
           texture.wrapS = THREE.RepeatWrapping
           texture.wrapT = THREE.RepeatWrapping
           texture.repeat.set(20, 20)
-
           textureRef.current = texture
           applyTexture(texture)
         }
+      } else {
+        resetTexture()
+      }
+    }
+
+    const resetTexture = () => {
+      if (scene) {
+        scene.traverse((child) => {
+          if (child.isMesh) {
+            child.material.map = null
+            child.material.needsUpdate = true
+          }
+        })
       }
     }
 
@@ -65,7 +76,6 @@ const ShirtModel = ({ position, scale, color, pattern }) => {
         scene.traverse((child) => {
           if (child.isMesh) {
             child.material.map = texture
-            // child.material.color = new THREE.Color(color)
             child.material.transparent = false
             child.material.opacity = 1
             child.material.needsUpdate = true
