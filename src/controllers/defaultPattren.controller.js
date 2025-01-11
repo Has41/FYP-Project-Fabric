@@ -9,39 +9,50 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 const addPattren = asyncHandler(async (req, res, next) => {
   try {
-    let { name } = req.body;
-    let pattrenLocalPath;
-    if (req.file && req.file.path) {
-      pattrenLocalPath = req.file.path;
+    const { name } = req.body;
+    //const owner = req.user._id;
+
+    let files = [];
+
+    // Handle single file or multiple files
+    if (req.file) {
+      files = [req.file]; // Single file case
+    } else if (req.files && Array.isArray(req.files)) {
+      files = req.files; // Multiple files case
     } else {
-      console.error("No file uploaded or incorrect file structure:", req.file);
+      throw new ApiError(400, "No file uploaded");
     }
 
-    const pattrenImage = await uploadOnCloudinary(pattrenLocalPath);
-    const owner = req.user._id;
+    const createdPatterns = [];
 
-    const pattren = await DefaultPattren.create({
-      owner,
+    // Process each file
+    for (const file of files) {
+      const pattrenLocalPath = file.path;
 
-      name: name || null,
-      image: pattrenImage.secure_url,
-    });
+      // Upload to Cloudinary
+      const pattrenImage = await uploadOnCloudinary(pattrenLocalPath);
 
-    const createdPattren = await DefaultPattren.findById(pattren._id);
+      // Save to the database
+      const pattren = await DefaultPattren.create({
+       
+        name: name || null,
+        image: pattrenImage.secure_url,
+      });
 
-    if (!createdPattren) {
-      throw new ApiError(500, "Server Error");
+      createdPatterns.push(pattren);
     }
 
-    // Return the response with user data
+    // Return the response with all created patterns
     return res
       .status(200)
-      .json(new ApiResponse(200, createdPattren, "Pattren Added Successfully"));
+      .json(new ApiResponse(200, createdPatterns, "Patterns Added Successfully"));
   } catch (error) {
     next(error);
     throw new ApiError(400, error?.message || "Invalid access token");
   }
 });
+
+
 
 const deletePattren = asyncHandler(async (req, res, next) => {
   try {
