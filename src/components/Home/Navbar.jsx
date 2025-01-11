@@ -1,30 +1,30 @@
 import React, { useState } from "react"
-import useFetch from "../../hooks/useFetch"
 import { useNavigate } from "react-router-dom"
 import useAuth from "../../hooks/useAuth"
+import { useMutation } from "react-query"
+import axiosInstance from "../../utils/axiosInstance"
 
 const Navbar = () => {
   const [dropdownVisible, setDropdownVisible] = useState(false)
   const { isAuthenticated, setIsAuthenticated } = useAuth()
   const navigate = useNavigate()
 
-  const { mutate } = useFetch({ endpoint: "/api/v1/users/logout", method: "POST" })
+  const { mutate } = useMutation({
+    mutationFn: async () => {
+      return await axiosInstance.post("/api/v1/users/logout")
+    },
+    onSuccess: () => {
+      setDropdownVisible(false)
+      setIsAuthenticated(false)
+      navigate("/auth")
+    },
+    onError: (error) => {
+      console.error("An error occurred while logging out", error)
+    }
+  })
 
   const toggleDropdown = () => {
     setDropdownVisible((prev) => !prev)
-  }
-
-  const handleLogout = () => {
-    mutate(
-      {},
-      {
-        onSuccess: () => {
-          setDropdownVisible(false)
-          setIsAuthenticated(false)
-          navigate("/auth")
-        }
-      }
-    )
   }
 
   return (
@@ -84,7 +84,7 @@ const Navbar = () => {
                 {dropdownVisible && (
                   <div className="absolute right-0 mt-2 bg-white shadow-md rounded-lg w-20">
                     <ul className="text-gray-600">
-                      <li onClick={handleLogout} className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
+                      <li onClick={mutate} className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
                         Logout
                       </li>
                     </ul>

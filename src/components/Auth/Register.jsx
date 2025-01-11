@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react"
 import { useForm } from "react-hook-form"
-import useFetch from "../../hooks/useFetch"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { registerSchema } from "../../utils/zodSchema"
 import { stepOneRegisterField, stepTwoRegisterField } from "../../utils/dynamicData"
@@ -8,6 +7,8 @@ import InputField from "../Shared/InputField"
 import AvatarSection from "../Shared/AvatarSection"
 import { useNavigate } from "react-router-dom"
 import LoadingSpinner from "../Shared/LoadingSpinner"
+import { useMutation } from "react-query"
+import axiosInstance from "../../utils/axiosInstance"
 
 const Register = ({ onLoginClick, setFormHeight }) => {
   const [step, setStep] = useState(1)
@@ -16,6 +17,7 @@ const Register = ({ onLoginClick, setFormHeight }) => {
   const navigate = useNavigate()
   const {
     register,
+    reset,
     clearErrors,
     handleSubmit,
     trigger,
@@ -42,9 +44,19 @@ const Register = ({ onLoginClick, setFormHeight }) => {
 
   const prevStep = () => setStep(step - 1)
 
-  const { mutate, isLoading } = useFetch({
-    endpoint: "/api/v1/users/register",
-    method: "POST"
+  const { mutate, isLoading } = useMutation({
+    mutationFn: async (formData) => {
+      const { data } = await axiosInstance.post("/api/v1/users/register", formData)
+      return data
+    },
+    onSuccess: () => {
+      navigate("/auth")
+      window.location.reload()
+    },
+    onError: () => {
+      console.error("An error occurred while registering")
+      reset()
+    }
   })
 
   const onSubmit = async (data) => {
@@ -61,17 +73,7 @@ const Register = ({ onLoginClick, setFormHeight }) => {
     for (let [key, value] of formData.entries()) {
       console.log(`${key}:`, value)
     }
-
-    mutate(formData, {
-      onSuccess: () => {
-        navigate("/auth")
-        window.location.reload()
-      },
-      onError: () => {
-        console.error("An error occurred while registering")
-        // reset()
-      }
-    })
+    mutate(formData)
   }
 
   return (

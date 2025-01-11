@@ -1,5 +1,4 @@
 import { createContext, useState, useEffect } from "react"
-// import useFetch from "../hooks/useFetch"
 import { useQuery } from "react-query"
 import axiosInstance from "../utils/axiosInstance"
 
@@ -8,17 +7,6 @@ export const AuthContext = createContext()
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  // const { data, refetch, error, isLoading } = useFetch({
-  //   endpoint: "/api/v1/users/get-user",
-  //   method: "GET",
-  //   options: {
-  //     retry: false,
-  //     refetchOnWindowFocus: false,
-  //     refetchOnmount: false,
-  //     refetchOnReconnect: false,
-  //     staleTime: 24 * 60 * 60 * 1000
-  //   }
-  // })
 
   const { data, refetch, isLoading } = useQuery({
     queryKey: "/api/v1/users/get-user",

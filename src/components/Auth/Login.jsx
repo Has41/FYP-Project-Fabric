@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useRef, useState } from "react"
 import { loginFields } from "../../utils/dynamicData"
 import { useForm } from "react-hook-form"
-import useFetch from "../../hooks/useFetch"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { loginSchema } from "../../utils/zodSchema"
 import LoadingSpinner from "../Shared/LoadingSpinner"
 import { useNavigate } from "react-router-dom"
 import useAuth from "../../hooks/useAuth"
+import { useMutation } from "react-query"
+import axiosInstance from "../../utils/axiosInstance"
 
 const Login = ({ onRegisterClick, setFormHeight }) => {
   const [isFocused, setIsFocused] = useState(false)
@@ -34,25 +35,21 @@ const Login = ({ onRegisterClick, setFormHeight }) => {
     await trigger(fieldId)
   }
 
-  const { mutate, error, isLoading } = useFetch({
-    endpoint: "/api/v1/users/login",
-    method: "POST",
-    options: {
-      enabled: false
+  const { mutate, error, isLoading } = useMutation({
+    mutationFn: async (credentials) => {
+      const { data } = await axiosInstance.post("/api/v1/users/login", credentials)
+      return data
+    },
+    onSuccess: () => {
+      setIsAuthenticated(true)
+      console.log("Logged in successfully")
+      navigate("/")
+    },
+    onError: () => {
+      console.error("An error occurred while logging in")
+      // reset()
     }
   })
-
-  const onSubmit = (data) => {
-    mutate(data, {
-      onSuccess: () => {
-        setIsAuthenticated(true)
-        navigate("/")
-      },
-      onError: () => {
-        reset()
-      }
-    })
-  }
 
   useEffect(() => {
     if (isFocused || error) {
@@ -74,7 +71,7 @@ const Login = ({ onRegisterClick, setFormHeight }) => {
             {error ? <span className="text-red-500">{error?.response?.data?.message}</span> : "Please login to your account!"}
           </p>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="select-none" action="">
+        <form onSubmit={handleSubmit(mutate)} className="select-none" action="">
           <div className="flex flex-col mt-5">
             {loginFields.map((field) => (
               <Fragment key={field.id}>
