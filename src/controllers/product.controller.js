@@ -218,13 +218,6 @@ const searchProduct = asyncHandler(async (req, res) => {
 });
 
 const allProducts = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query; // Set default pagination values
-
-  const options = {
-    page: parseInt(page),
-    limit: parseInt(limit),
-  };
-
   const aggregateQuery = Product.aggregate([
     {
       $lookup: {
@@ -239,10 +232,10 @@ const allProducts = asyncHandler(async (req, res) => {
     },
   ]);
 
-  // Use aggregatePaginate to paginate the results
-  const products = await Product.aggregatePaginate(aggregateQuery, options);
+  // Execute the aggregate query directly
+  const products = await aggregateQuery.exec();
 
-  if (!products.docs || products.docs.length === 0) {
+  if (!products || products.length === 0) {
     return res
       .status(404)
       .json(new ApiResponse(404, null, "No products found"));
@@ -252,6 +245,7 @@ const allProducts = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, products, "Products Fetched Successfully"));
 });
+
 
 export {
   addProduct,
