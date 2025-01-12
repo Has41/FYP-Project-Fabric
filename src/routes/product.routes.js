@@ -26,7 +26,7 @@ router.patch(
   updateProductModel
 );
 
-router.get("get/:productId", searchProduct);
+router.get('/get', searchProduct);
 
 router.get("/all-products", allProducts);
 

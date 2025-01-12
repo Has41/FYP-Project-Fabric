@@ -181,10 +181,10 @@ const updateProductModel = asyncHandler(async (req, res, next) => {
 });
 
 const searchProduct = asyncHandler(async (req, res) => {
-  const { productId } = req.params;
+  const { productId } = req.query; // Extract productId from query parameters
 
-  if (!productId.trim()) {
-    throw new ApiError(404, "Product Id not Found in Body");
+  if (!productId || !productId.trim()) {
+    throw new ApiError(404, "Product Id not found in query");
   }
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -193,7 +193,7 @@ const searchProduct = asyncHandler(async (req, res) => {
 
   const product = await Product.aggregate([
     {
-      $match: { _id: mongoose.Types.ObjectId(productId) }, // Match by productId
+      $match: { _id: new mongoose.Types.ObjectId(productId) }, // Use 'new' here
     },
     {
       $lookup: {
@@ -216,6 +216,8 @@ const searchProduct = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, product[0], "Product Found"));
 });
+
+
 
 const allProducts = asyncHandler(async (req, res) => {
   const aggregateQuery = Product.aggregate([

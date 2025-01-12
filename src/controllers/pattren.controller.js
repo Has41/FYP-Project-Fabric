@@ -100,5 +100,4 @@ const allPatterns = asyncHandler(async (req, res, next) => {
   }
 });
 
-/******  30e5f2fc-ea0b-4487-aa48-854d5bef4772  *******/
 export { addPattren, deletePattren, allPatterns };
