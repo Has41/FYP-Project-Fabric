@@ -31,12 +31,12 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
     },
     onError: (error) => {
       console.error(error)
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-    staleTime: 24 * 60 * 60 * 1000
+    }
+    // retry: false,
+    // refetchOnWindowFocus: false,
+    // refetchOnReconnect: false,
+    // refetchOnMount: false,
+    // staleTime: 24 * 60 * 60 * 1000
   })
 
   const { refetch: refetchCustomPatterns } = useQuery({
@@ -50,12 +50,12 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
     },
     onError: (error) => {
       console.error(error)
-    },
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-    staleTime: 24 * 60 * 60 * 1000
+    }
+    // retry: false,
+    // refetchOnWindowFocus: false,
+    // refetchOnReconnect: false,
+    // refetchOnMount: false,
+    // staleTime: 24 * 60 * 60 * 1000
   })
 
   const handleFileChange = async (event) => {
@@ -158,10 +158,11 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
           Reset Pattern
         </button>
       </div>
-      <h2 className="py-4 font-poppins">Your Custom patterns</h2>
-      <div className="grid grid-cols-3 gap-4">
-        {customPattern && customPattern.length > 0 ? (
-          customPattern.map((pattern, index) => (
+      <h2 className="py-4 font-poppins font-bold">Your Custom patterns</h2>
+
+      {customPattern && customPattern.length > 0 ? (
+        <div className="grid grid-cols-3 gap-4 my-4 max-w-full">
+          {customPattern.map((pattern, index) => (
             <div key={index} onClick={() => handlePatternSelect(pattern)} className="flex justify-center items-center">
               <div
                 className={`m-3 bg-center bg-no-repeat ${
@@ -172,11 +173,11 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
                 }}
               />
             </div>
-          ))
-        ) : (
-          <p className="text-slate-500 text-sm pb-4 font-mont">No custom patterns uploaded</p>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <span className="text-slate-500 text-sm font-mont text-center py-4">No custom patterns uploaded</span>
+      )}
 
       <div className="py-4 max-w-[300px]">
         <label

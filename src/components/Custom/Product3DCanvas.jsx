@@ -17,7 +17,7 @@ const Scene = ({ color, pattern }) => {
     }
   })
 
-  const modelPosition = [0, 0, 0] // Lower the Y value further
+  const modelPosition = [0, 0, 0]
 
   return (
     <>
@@ -33,7 +33,6 @@ const Scene = ({ color, pattern }) => {
         maxPolarAngle={Math.PI / 2}
         minPolarAngle={Math.PI / 2}
       />
-      {/* <axesHelper args={[5]} /> */}
     </>
   )
 }

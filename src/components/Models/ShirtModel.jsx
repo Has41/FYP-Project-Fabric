@@ -1,9 +1,13 @@
 import { useEffect, useRef } from "react"
 import { useGLTF } from "@react-three/drei"
 import * as THREE from "three"
+import useProduct from "../../hooks/useProduct"
 
 const ShirtModel = ({ position, scale, color, pattern }) => {
-  const { scene } = useGLTF("/models/shirt/shirt.glb")
+  const { productDetails } = useProduct()
+  console.log("Product Details:", productDetails)
+  if (!productDetails?.model) return null
+  const { scene } = useGLTF(productDetails.model)
   const textureRef = useRef(null)
 
   useEffect(() => {

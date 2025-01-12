@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "react-query"
 import AuthProvider from "./context/AuthContext.jsx"
 import App from "./App.jsx"
 import "./index.css"
+import { ProductProvider } from "./context/ProductContext.jsx"
 
 const queryClient = new QueryClient()
 
@@ -12,9 +13,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <ProductProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ProductProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>

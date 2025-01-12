@@ -47,7 +47,7 @@ const Login = ({ onRegisterClick, setFormHeight }) => {
     },
     onError: () => {
       console.error("An error occurred while logging in")
-      // reset()
+      reset()
     }
   })
 
