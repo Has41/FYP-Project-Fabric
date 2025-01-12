@@ -13,6 +13,7 @@ router.post("/add", upload.single("pattren"), addPattren);
 
 router.get("/", allPatterns);
 
-router.delete("/delete", deletePattren);
+router.delete('/delete/:pattrenId', deletePattren);
+
 
 export default router;
