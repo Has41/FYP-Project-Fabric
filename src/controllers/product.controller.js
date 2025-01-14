@@ -181,10 +181,10 @@ const updateProductModel = asyncHandler(async (req, res, next) => {
 });
 
 const searchProduct = asyncHandler(async (req, res) => {
-  const { productId } = req.query; // Extract productId from query parameters
+  const { productId } = req.params; // Extract productId from route parameters
 
   if (!productId || !productId.trim()) {
-    throw new ApiError(404, "Product Id not found in query");
+    throw new ApiError(404, "Product Id not found in parameters");
   }
 
   if (!mongoose.Types.ObjectId.isValid(productId)) {
@@ -216,6 +216,7 @@ const searchProduct = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, product[0], "Product Found"));
 });
+
 
 
 
