@@ -21,7 +21,7 @@ const productSchema = new Schema(
       type: String,
       required: true,
       minlength: 50,
-      maxlength: 200,
+      maxlength: 1000,
     },
     price: {
       type: Number,
@@ -36,9 +36,8 @@ const productSchema = new Schema(
       min: 1,
     },
     model: {
-      type: String,
-      required: true,
-      trim: true,
+      type: Schema.Types.ObjectId,
+      ref: "Model",
     },
   },
   {

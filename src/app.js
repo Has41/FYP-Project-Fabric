@@ -23,6 +23,7 @@ import productRouter from "./routes/product.routes.js";
 import pattrenRouter from "./routes/pattren.routes.js";
 import defaultPattrenRouter from "./routes/defaultPattren.routes.js";
 import colorRouter from "./routes/color.routes.js";
+import modelRouter from "./routes/model.routes.js";
 
 
 app.use("/api/v1/users", userRouter);
@@ -31,6 +32,7 @@ app.use("/api/v1/products", productRouter);
 app.use("/api/v1/pattrens", pattrenRouter);
 app.use("/api/v1/defaupattrens", defaultPattrenRouter);
 app.use("/api/v1/colors", colorRouter);
+app.use("/api/v1/models", modelRouter);
 
 
 app.use(errorHandler);

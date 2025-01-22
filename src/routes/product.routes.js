@@ -8,23 +8,17 @@ import {
   removeProduct,
   searchProduct,
   updateProductInfo,
-  updateProductModel,
+  
 } from "../controllers/product.controller.js";
 
 const router = Router();
 router.use(verifyJwt);
 
-router.post("/add", upload.single("model"), addProduct);
+router.post("/add", addProduct);
 
 router.delete("/:productId", removeProduct);
 
 router.put("/update/:productId", updateProductInfo);
-
-router.patch(
-  "/update-model/:productId",
-  upload.single("model"),
-  updateProductModel
-);
 
 router.get('/get/:productId', searchProduct);
 

@@ -9,29 +9,29 @@ import { Product } from "../models/product.model.js";
 import mongoose from "mongoose";
 
 const addProduct = asyncHandler(async (req, res, next) => {
-  const { title, description, price, discount_price, quantity, category } =
+  const { title, description, price, discount_price, quantity, category, model } =
     req.body;
   const owner = req.user._id;
 
+  console.log(req.body);
+  console.log(title);
+  console.log(description);
+  console.log(price);
+
   // Validate required fields
-  if (!title || !description || !price || !quantity || !category) {
+  if (!title || !description || !price || !quantity || !category || !model) {
     throw new ApiError(400, "Required fields missing");
   }
   if (!mongoose.Types.ObjectId.isValid(category)) {
     throw new ApiError(400, "Invalid Category ID");
   }
+  if(!mongoose.Types.ObjectId.isValid(model)){
+    throw new ApiError(400, "Invalid Model ID");
+  }
 
   try {
     // Validate and upload model file
-    let model;
-    if (req.file && req.file.path) {
-      model = await uploadOnCloudinary(req.file.path);
-      if (!model || !model.secure_url) {
-        throw new ApiError(500, "Error uploading model file to Cloudinary");
-      }
-    } else {
-      throw new ApiError(400, "No model file uploaded");
-    }
+    
 
     // Create and save the product
     const product = new Product({
@@ -42,7 +42,7 @@ const addProduct = asyncHandler(async (req, res, next) => {
       quantity,
       owner,
       category,
-      model: model.secure_url, // Use Cloudinary's secure URL
+      model, 
     });
 
     const savedProduct = await product.save();
@@ -72,11 +72,7 @@ const removeProduct = asyncHandler(async (req, res, next) => {
     }
 
     // Delete the model file from Cloudinary
-    const modelUrl = product.model; // Assuming `model` stores the Cloudinary URL
-    if (modelUrl) {
-      const modelPublicId = modelUrl.split("/").pop().split(".")[0]; // Extract Cloudinary public_id
-      await deleteFromCloudinary(modelPublicId); // Implement this function for Cloudinary deletions
-    }
+   
 
     // Delete the product from the database
     await Product.findByIdAndDelete(productId);
@@ -91,11 +87,11 @@ const removeProduct = asyncHandler(async (req, res, next) => {
 });
 
 const updateProductInfo = asyncHandler(async (req, res) => {
-  const { title, description, price, discount_price, quantity, category } =
+  const { title, description, price, discount_price, quantity, category, model } =
     req.body;
   const { productId } = req.params;
 
-  if (!title || !description || !price || !quantity || !category) {
+  if (!title || !description || !price || !quantity || !category || !model) {
     throw new ApiError(400, "Required fields missing");
   }
   if (!mongoose.Types.ObjectId.isValid(category)) {
@@ -104,6 +100,10 @@ const updateProductInfo = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new ApiError(400, "Invalid Category ID");
   }
+  if(!mongoose.Types.ObjectId.isValid(model)){
+    throw new ApiError(400, "Invalid Model ID");
+  }
+
   const updatedProduct = await Product.findByIdAndUpdate(
     productId,
     {
@@ -114,6 +114,7 @@ const updateProductInfo = asyncHandler(async (req, res) => {
         discount_price: discount_price || null,
         quantity,
         category,
+        model,
       },
     },
     {
@@ -129,56 +130,6 @@ const updateProductInfo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedProduct, "ProductUpdated"));
 });
 
-const updateProductModel = asyncHandler(async (req, res, next) => {
-  const { productId } = req.params;
-
-  // Validate productId
-  if (!mongoose.Types.ObjectId.isValid(productId)) {
-    throw new ApiError(400, "Invalid Product ID");
-  }
-
-  try {
-    // Find the product by ID
-    const product = await Product.findById(productId);
-    if (!product) {
-      throw new ApiError(404, "Product not found");
-    }
-
-    // Check if a new file is provided
-    if (!req.file || !req.file.path) {
-      throw new ApiError(400, "No file uploaded");
-    }
-
-    // Delete the old model file from Cloudinary
-    if (product.model) {
-      const oldModelPublicId = product.model.split("/").pop().split(".")[0]; // Extract Cloudinary public_id
-      await deleteFromCloudinary(oldModelPublicId); // Implemented in the previous example
-    }
-
-    // Upload the new model file to Cloudinary
-    const newModel = await uploadOnCloudinary(req.file.path);
-    if (!newModel || !newModel.secure_url) {
-      throw new ApiError(500, "Error uploading new model to Cloudinary");
-    }
-
-    // Update the product's model field
-    product.model = newModel.secure_url;
-    const updatedProduct = await product.save();
-
-    // Return success response
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          updatedProduct,
-          "Product model updated successfully"
-        )
-      );
-  } catch (error) {
-    next(error);
-  }
-});
 
 const searchProduct = asyncHandler(async (req, res) => {
   const { productId } = req.params; // Extract productId from route parameters
@@ -193,18 +144,40 @@ const searchProduct = asyncHandler(async (req, res) => {
 
   const product = await Product.aggregate([
     {
-      $match: { _id: new mongoose.Types.ObjectId(productId) }, // Use 'new' here
+      $match: { _id: new mongoose.Types.ObjectId(productId) }, // Match product by ID
     },
     {
       $lookup: {
-        from: "categories",
+        from: "categories", // Lookup category collection
         localField: "category",
         foreignField: "_id",
         as: "category",
       },
     },
     {
-      $unwind: "$category", // Optionally flatten the category array
+      $unwind: "$category", // Unwind the category array to make it an object
+    },
+    {
+      $lookup: {
+        from: "models",       // Lookup model collection
+        localField: "model",  
+        foreignField: "_id",    
+        as: "model",           
+      },
+    },
+    {
+      $unwind: "$model", // Unwind the model array to make it an object (optional if you expect only one result)
+    },
+    {
+      $project: {  // Project the fields you want to return, including name and model
+        name: 1,
+        description: 1,
+        price: 1,
+        "category.name": 1,
+        "category._id": 1,
+        "model.name": 1,  // Include model name
+        "model.model": 1, // Include model field
+      },
     },
   ]);
 
@@ -212,12 +185,8 @@ const searchProduct = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, product[0], "Product Found"));
+  return res.status(200).json(new ApiResponse(200, product[0], "Product Found"));
 });
-
-
 
 
 const allProducts = asyncHandler(async (req, res) => {
@@ -232,6 +201,28 @@ const allProducts = asyncHandler(async (req, res) => {
     },
     {
       $unwind: "$category", // Flatten the category array if needed
+    },
+    {
+      $lookup: {
+        from: "models", // Join with the 'models' collection (adjust collection name as necessary)
+        localField: "model", // Assuming 'model' is the field storing the reference to the 'models' collection
+        foreignField: "_id", // Foreign key is typically _id in the 'models' collection
+        as: "model", // The result will be stored in the 'model' field
+      },
+    },
+    {
+      $unwind: "$model", // Flatten the 'model' array (assuming it's a single model, this makes it an object)
+    },
+    {
+      $project: { // Optionally, you can specify the fields you want to return
+        name: 1,          // Product name
+        price: 1,         // Product price
+        description: 1,   // Product description
+        "category.name": 1, // Category name
+        "category._id": 1, // Category id
+        "model.name": 1,   // Model name
+        "model.model": 1,  // Model field (assuming this is what you want)
+      },
     },
   ]);
 
@@ -250,11 +241,12 @@ const allProducts = asyncHandler(async (req, res) => {
 });
 
 
+
 export {
   addProduct,
   removeProduct,
   updateProductInfo,
-  updateProductModel,
+  
   searchProduct,
   allProducts,
 };
