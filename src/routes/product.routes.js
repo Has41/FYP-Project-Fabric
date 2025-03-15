@@ -10,7 +10,7 @@ import {
 } from "../controllers/product.controller.js";
 
 const router = Router();
-router.use(verifyJwt);
+
 
 router.route("/add").post(adminOnly, addProduct);
 

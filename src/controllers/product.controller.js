@@ -170,6 +170,7 @@ const searchProduct = asyncHandler(async (req, res) => {
     },
     {
       $project: {  // Project the fields you want to return, including name and model
+        _id: 1,
         name: 1,
         description: 1,
         price: 1,
@@ -215,6 +216,7 @@ const allProducts = asyncHandler(async (req, res) => {
     },
     {
       $project: { // Optionally, you can specify the fields you want to return
+        _id: 1,
         name: 1,          // Product name
         price: 1,         // Product price
         description: 1,   // Product description
