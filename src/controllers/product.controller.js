@@ -1,25 +1,16 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import {
-  deleteFromCloudinary,
-  uploadOnCloudinary,
-} from "../utils/cloudinary.js";
 import { Product } from "../models/product.model.js";
 import mongoose from "mongoose";
 
 const addProduct = asyncHandler(async (req, res, next) => {
-  const { title, description, price, discount_price, quantity, category, model } =
+  const { title, description, price, discount_price, quantity, category, model, type } =
     req.body;
   const owner = req.user._id;
 
-  console.log(req.body);
-  console.log(title);
-  console.log(description);
-  console.log(price);
-
   // Validate required fields
-  if (!title || !description || !price || !quantity || !category || !model) {
+  if (!title || !description || !price || !quantity || !category || !model || !type) {
     throw new ApiError(400, "Required fields missing");
   }
   if (!mongoose.Types.ObjectId.isValid(category)) {
@@ -32,7 +23,6 @@ const addProduct = asyncHandler(async (req, res, next) => {
   try {
     // Validate and upload model file
     
-
     // Create and save the product
     const product = new Product({
       title,
@@ -43,6 +33,7 @@ const addProduct = asyncHandler(async (req, res, next) => {
       owner,
       category,
       model, 
+      type,
     });
 
     const savedProduct = await product.save();

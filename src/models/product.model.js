@@ -39,6 +39,10 @@ const productSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Model",
     },
+    type:{
+      type: String,
+      enum: ["Shirt","Bag","Shoes"]
+    }
   },
   {
     timestamps: true,
