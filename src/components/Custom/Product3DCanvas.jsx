@@ -1,11 +1,13 @@
 import { useRef } from "react"
 import { Canvas } from "@react-three/fiber"
-import { Environment, OrbitControls } from "@react-three/drei"
 import { Leva, useControls } from "leva"
+import { Text, TransformControls, Environment, OrbitControls } from "@react-three/drei"
 import ShirtModel from "../Models/ShirtModel"
 
-const Scene = ({ color, pattern }) => {
+const Scene = ({ color, pattern, shirtText, textColor, textFontSize, textPosition, setTextPosition }) => {
   const directionalLightRef = useRef()
+  const textRef = useRef()
+  const transformRef = useRef()
 
   const { lightColour, lightIntensity } = useControls({
     lightColour: "white",
@@ -23,25 +25,56 @@ const Scene = ({ color, pattern }) => {
     <>
       <directionalLight position={[5, 5, 5]} intensity={lightIntensity} ref={directionalLightRef} color={lightColour} />
       <ambientLight intensity={0.5} />
-      <ShirtModel position={modelPosition} scale={3.5} color={color} pattern={pattern} />
+      <ShirtModel
+        position={modelPosition}
+        scale={3.5}
+        color={color}
+        pattern={pattern}
+        shirtText={shirtText}
+        textColor={textColor}
+        textFontSize={textFontSize}
+        textPosition={textPosition}
+      />
+      {/* {shirtText && (
+        <TransformControls
+          ref={transformRef}
+          mode="translate"
+          onMouseUp={() => {
+            const [x, y, z] = textRef.current.position.toArray()
+            setTextPosition([x, y, z])
+          }}
+        >
+          <Text ref={textRef} position={textPosition} fontSize={textFontSize} color={textColor} anchorX="center" anchorY="middle">
+            {shirtText}
+          </Text>
+        </TransformControls>
+      )} */}
+
       <Environment preset="apartment" background={true} />
       <OrbitControls
         target={modelPosition}
         maxDistance={10}
         minDistance={2}
         enableZoom={false}
-        maxPolarAngle={Math.PI / 2}
-        minPolarAngle={Math.PI / 2}
+        // maxPolarAngle={Math.PI / 2}
+        // minPolarAngle={Math.PI / 2}
       />
     </>
   )
 }
 
-const Product3DCanvas = ({ color, pattern }) => {
+const Product3DCanvas = ({ color, pattern, shirtText, textColor, textFontSize, textPosition, setTextPosition }) => {
   return (
     <Canvas camera={{ position: [0, 0, 0] }} className="rounded-sm">
       <Leva hidden />
-      <Scene color={color} pattern={pattern} />
+      <Scene
+        color={color}
+        pattern={pattern}
+        shirtText={shirtText}
+        textColor={textColor}
+        textFontSize={textFontSize}
+        textPosition={textPosition}
+      />
     </Canvas>
   )
 }

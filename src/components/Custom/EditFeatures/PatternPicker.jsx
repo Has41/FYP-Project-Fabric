@@ -58,8 +58,8 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
     // staleTime: 24 * 60 * 60 * 1000
   })
 
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0]
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0]
 
     if (!file) {
       console.error("No file selected.")
@@ -75,7 +75,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
       return
     }
 
-    const convertApi = ConvertApi.auth("secret_aouYDaL3mZrr4saN")
+    const convertApi = ConvertApi.auth(import.meta.env.VITE_API_SVG_API_KEY_SECRET)
 
     try {
       let params = convertApi.createParams()
@@ -96,7 +96,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
         formData.append("pattren", convertedFile)
         formData.append("name", convertedFile.name)
         addCustomPattern(formData)
-        event.target.value = null
+        e.target.value = null
       } else {
         console.error("Conversion failed. No output files found.")
       }

@@ -14,6 +14,11 @@ const EditFabric = () => {
   const [subActiveOption, setSubActiveOption] = useState(null)
   const [color, setColor] = useState("#FFF")
   const [selectedPattern, setSelectedPattern] = useState(null)
+  const [shirtText, setShirtText] = useState("")
+  const [textColor, setTextColor] = useState("#000000")
+  const [textFontSize, setTextFontSize] = useState(0.2)
+  const [textPosition, setTextPosition] = useState([0, 0, 0.6])
+
   const closePopup = () => setSubActiveOption("")
   const containerRef = useRef(null)
 
@@ -200,6 +205,14 @@ const EditFabric = () => {
           closePopup={closePopup}
           isTextDragging={isTextDragging}
           textPickerRef={textPickerRef}
+          textValue={shirtText}
+          onTextChange={setShirtText}
+          textColor={textColor}
+          onTextColorChange={setTextColor}
+          fontSize={textFontSize}
+          onFontSizeChange={setTextFontSize}
+          position={textPosition}
+          onPositionChange={setTextPosition}
         />
 
         <GraphicsPicker
@@ -218,7 +231,15 @@ const EditFabric = () => {
 
         <div className="w-[85%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm z-0">
           <div className="flex justify-center items-center h-full">
-            <Product3DCanvas pattern={selectedPattern} color={color} />
+            <Product3DCanvas
+              shirtText={shirtText}
+              textColor={textColor}
+              textFontSize={textFontSize}
+              pattern={selectedPattern}
+              color={color}
+              textPosition={textPosition}
+              setTextPosition={setTextPosition}
+            />
           </div>
         </div>
       </section>

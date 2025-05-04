@@ -1,110 +1,170 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useMemo } from "react"
 import { useGLTF } from "@react-three/drei"
 import * as THREE from "three"
-import useProduct from "../../hooks/useProduct"
 
-const ShirtModel = ({ position, scale, color, pattern }) => {
-  const { productDetails } = useProduct()
-  console.log("Product Details:", productDetails)
-  if (!productDetails?.model) return null
-  const { scene } = useGLTF(productDetails.model)
-  const textureRef = useRef(null)
+export default function ShirtModel({ position, scale, color, pattern, shirtText, textColor, textFontSize }) {
+  const shirtRef = useRef()
+  const { scene } = useGLTF("/models/shirt/shirt.glb")
+
+  // useEffect(() => {
+  //   if (!scene) return
+
+  //   const applyPatternAndText = async () => {
+  //     const size = 1024
+  //     const canvas = document.createElement("canvas")
+  //     canvas.width = canvas.height = size
+  //     const ctx = canvas.getContext("2d")
+
+  //     ctx.fillStyle = "white"
+  //     ctx.fillRect(0, 0, size, size)
+
+  //     if (pattern) {
+  //       try {
+  //         const response = await fetch(pattern)
+  //         const svgText = await response.text()
+  //         const img = new Image()
+  //         img.src = `data:image/svg+xml;base64,${btoa(svgText)}`
+  //         await new Promise((res) => (img.onload = res))
+
+  //         const patternFill = ctx.createPattern(img, "repeat")
+  //         ctx.fillStyle = patternFill
+  //         ctx.fillRect(0, 0, size, size)
+  //       } catch (err) {
+  //         console.warn("Pattern load failed", err)
+  //       }
+  //     }
+
+  //     if (shirtText) {
+  //       ctx.fillStyle = textColor || "black"
+  //       ctx.font = `480px sans-serif`
+  //       ctx.fillStyle = "black"
+  //       ctx.fillText("TEST", size / 2, size / 2)
+  //       ctx.textAlign = "center"
+  //       ctx.textBaseline = "middle"
+  //     }
+
+  //     const finalTex = new THREE.CanvasTexture(canvas)
+  //     finalTex.wrapS = THREE.RepeatWrapping
+  //     finalTex.wrapT = THREE.RepeatWrapping
+  //     finalTex.repeat.set(20, 20)
+  //     finalTex.needsUpdate = true
+
+  //     scene.traverse((child) => {
+  //       if (child.isMesh) {
+  //         child.material = new THREE.MeshStandardMaterial({
+  //           map: finalTex,
+  //           color: new THREE.Color(color || "#ffffff"),
+  //           transparent: true
+  //         })
+  //         child.material.map.needsUpdate = true
+  //         child.material.needsUpdate = true
+  //       }
+  //     })
+  //   }
+
+  //   applyPatternAndText()
+  // }, [scene, pattern, shirtText, textColor, textFontSize])
 
   useEffect(() => {
-    const loadSVGAsTexture = async () => {
+    if (!scene) return
+
+    const applyPatternWithText = async () => {
+      const size = 1024
+      const canvas = document.createElement("canvas")
+      canvas.width = canvas.height = size
+      const ctx = canvas.getContext("2d")
+
+      ctx.fillStyle = "white"
+      ctx.fillRect(0, 0, size, size)
+
       if (pattern) {
-        const response = await fetch(pattern)
-        const svgText = await response.text()
-        const parser = new DOMParser()
-        const svgDoc = parser.parseFromString(svgText, "image/svg+xml")
-        const shapes = svgDoc.querySelectorAll("path")
-
-        shapes.forEach((shape) => {
-          if (!shape.getAttribute("stroke") || shape.getAttribute("stroke") === null) {
-            shape.setAttribute("stroke", "#000")
-          }
-          if (!shape.getAttribute("stroke-width" || shape.getAttribute("stroke-width") === null)) {
-            shape.setAttribute("stroke-width", "4")
-          }
-          if (shape.getAttribute("fill") === "none" || shape.getAttribute("fill") === null) {
-            shape.setAttribute("fill", "#000")
-          }
-        })
-
-        const canvas = document.createElement("canvas")
-        const ctx = canvas.getContext("2d")
-        const size = 1024
-        canvas.width = size
-        canvas.height = size
-
+        const resp = await fetch(pattern)
+        const svg = await resp.text()
         const img = new Image()
-        img.src = `data:image/svg+xml;base64,${btoa(svgText)}`
-        img.onload = () => {
-          ctx.clearRect(0, 0, size, size)
-          ctx.drawImage(img, 0, 0, size, size)
+        img.src = `data:image/svg+xml;base64,${btoa(svg)}`
+        await new Promise((r) => (img.onload = r))
 
-          const imageData = ctx.getImageData(0, 0, 1, 1)
-          const [r, g, b, a] = imageData.data
-
-          if (a === 0 || a === 255) {
-            ctx.fillStyle = "white"
-            ctx.fillRect(0, 0, size, size)
-            ctx.drawImage(img, 0, 0, size, size)
-          }
-
-          const texture = new THREE.CanvasTexture(canvas)
-          texture.wrapS = THREE.RepeatWrapping
-          texture.wrapT = THREE.RepeatWrapping
-          texture.repeat.set(20, 20)
-          textureRef.current = texture
-          applyTexture(texture)
-        }
-      } else {
-        resetTexture()
+        const pat = ctx.createPattern(img, "repeat")
+        ctx.fillStyle = pat
+        ctx.fillRect(0, 0, size, size)
       }
-    }
 
-    const resetTexture = () => {
-      if (scene) {
-        scene.traverse((child) => {
-          if (child.isMesh) {
-            child.material.map = null
-            child.material.needsUpdate = true
-          }
-        })
+      if (shirtText) {
+        //Backside
+        // const uMin = 0.073
+        // const uMax = 0.271
+        // const vMax = 0.836
+        // const vMin = 0.675
+        //Frontside
+        const uMin = 0.414
+        const uMax = 0.661 //Increase or decrease top
+        const vMax = 0.28 //Increase or decrease bottom
+        const vMin = 0.161
+
+        const x = uMin * size
+        const y = (1 - vMax) * size
+        const w = (uMax - uMin) * size
+        const h = (vMax - vMin) * size
+
+        // 2) Optional: draw a semitransparent box for contrast
+        // ctx.fillStyle = "rgba(255,255,255,0.1)"
+        ctx.fillRect(x, y, w, h)
+
+        // 3) Optional: debug border
+        ctx.strokeStyle = "red"
+        ctx.lineWidth = 4
+        ctx.strokeRect(x, y, w, h)
+
+        // 4) draw text centered, with proper orientation
+        ctx.save()
+
+        // move origin to bottom‐center of the box
+        ctx.translate(x + w / 2, y + h)
+        // flip Y so text is upright on the model
+        ctx.scale(1, -1)
+        // if you need rotation, do it *after* scale:
+        // ctx.rotate(Math.PI/180 * 10)  // 10° tilt
+
+        // draw! use a little Y offset if you want it lifted:
+        ctx.fillStyle = textColor || "black"
+        ctx.font = `40px sans-serif`
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.fillText(shirtText, 0, 25)
+
+        ctx.restore()
       }
-    }
 
-    const applyTexture = (texture) => {
-      if (scene || texture) {
-        scene.traverse((child) => {
-          if (child.isMesh) {
-            child.material.map = texture
-            child.material.transparent = false
-            child.material.opacity = 1
-            child.material.needsUpdate = true
-          }
-        })
-      }
-    }
+      const finalTex = new THREE.CanvasTexture(canvas)
+      finalTex.wrapS = finalTex.wrapT = THREE.ClampToEdgeWrapping
+      finalTex.needsUpdate = true
 
-    loadSVGAsTexture()
-  }, [pattern, scene, color])
-
-  useEffect(() => {
-    if (color) {
-      scene.traverse((child) => {
-        if (child.isMesh) {
-          child.material.color = new THREE.Color(color)
-          child.material.needsUpdate = true
+      scene.traverse((c) => {
+        if (c.isMesh) {
+          c.material.map = finalTex
+          c.material.needsUpdate = true
         }
       })
     }
-  }, [color])
+
+    applyPatternWithText()
+  }, [scene, pattern, shirtText, textColor, textFontSize])
+
+  useEffect(() => {
+    if (!scene || !color) return
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        child.material.color = new THREE.Color(color)
+        child.material.needsUpdate = true
+      }
+    })
+  }, [scene, color])
 
   if (!scene) return null
 
-  return <primitive object={scene} position={position} scale={scale} />
+  return (
+    <group position={position} scale={scale}>
+      <primitive ref={shirtRef} object={scene} />
+    </group>
+  )
 }
-
-export default ShirtModel
