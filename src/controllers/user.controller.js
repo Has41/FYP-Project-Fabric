@@ -393,13 +393,13 @@ const userProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
 
   if (!username?.trim()) {
-    throw new ApiError(400, "Username Not Found");
+    throw new ApiError(400, "Username is required");
   }
 
   const profile = await User.aggregate([
     {
       $match: {
-        username: username?.toLowerCase(),
+        username: username.toLowerCase(),
       },
     },
     {
@@ -410,18 +410,65 @@ const userProfile = asyncHandler(async (req, res) => {
         as: "designs",
       },
     },
-
+    {
+      $lookup: {
+        from: "orders",
+        localField: "_id",
+        foreignField: "orderBy",
+        as: "orders",
+      },
+    },
+    {
+      $addFields: {
+        totalOrders: { $size: "$orders" },
+        orderIds: {
+          $map: {
+            input: "$orders",
+            as: "order",
+            in: "$$order._id"
+          }
+        }
+      }
+    },
+    {
+      $lookup: {
+        from: "returnorders",
+        let: { userOrderIds: "$orderIds" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $in: ["$order", "$$userOrderIds"]
+              }
+            }
+          }
+        ],
+        as: "returnOrders"
+      }
+    },
+    {
+      $addFields: {
+        totalReturnOrders: { $size: "$returnOrders" }
+      }
+    },
     {
       $project: {
         refreshToken: 0,
         password: 0,
-      },
-    },
+        orders: 0,
+        returnOrders: 0,
+        orderIds: 0
+      }
+    }
   ]);
+
+  if (!profile || profile.length === 0) {
+    throw new ApiError(404, "User profile not found");
+  }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, profile, "profile Detail Fatched"));
+    .json(new ApiResponse(200, profile[0], "User profile fetched successfully"));
 });
 
 const adminProfile = asyncHandler(async (req, res) => {
@@ -434,12 +481,12 @@ const adminProfile = asyncHandler(async (req, res) => {
   const profile = await User.aggregate([
     {
       $match: {
-        username: username?.toLowerCase(),
+        username: username.toLowerCase(),
       },
     },
     {
       $lookup: {
-        from: "pattrens",
+        from: "defaultpattrens",
         localField: "_id",
         foreignField: "owner",
         as: "pattrens",
@@ -447,23 +494,13 @@ const adminProfile = asyncHandler(async (req, res) => {
     },
     {
       $lookup: {
-        from: "products",
+        from: "products", // ✅ fixed typo
         localField: "_id",
         foreignField: "owner",
         as: "products",
-        pipeline: [
-          {
-            $lookup: {
-              form: "categories",
-              localField: "category",
-              foreignField: "_id",
-              as: "categoryName",
-            },
-          },
-        ],
+        // Optional: remove the inner pipeline unless using MongoDB 5+ with $lookup + let/expr
       },
     },
-
     {
       $project: {
         refreshToken: 0,
@@ -472,14 +509,18 @@ const adminProfile = asyncHandler(async (req, res) => {
     },
   ]);
 
+  if (!profile || profile.length === 0) {
+    throw new ApiError(404, "Admin not found");
+  }
+
   return res
     .status(200)
-    .json(new ApiResponse(200, profile, "profile Detail Fatched"));
+    .json(new ApiResponse(200, profile[0], "Profile details fetched"));
 });
 
 const orderHistory = asyncHandler(async (req, res) => {
   try {
-    const orders = await User.aggregate([
+    const userOrders = await User.aggregate([
       {
         $match: {
           _id: new mongoose.Types.ObjectId(req.user._id),
@@ -494,34 +535,39 @@ const orderHistory = asyncHandler(async (req, res) => {
           pipeline: [
             {
               $lookup: {
-                from: "products",
-                localField: "products",
-                foreignField: "_id",
-                as: "Products",
+                from: "designs",
+                let: { designIds: "$designs" },
                 pipeline: [
                   {
+                    $match: {
+                      $expr: { $in: ["$_id", "$$designIds"] },
+                    },
+                  },
+                  // Optional nested lookups inside each design:
+                  {
                     $lookup: {
-                      from: "categories",
-                      localField: "category",
+                      from: "users",
+                      localField: "owner",
                       foreignField: "_id",
-                      as: "Category",
+                      as: "Owner",
                     },
                   },
                 ],
-              },
-            },
-            {
-              $lookup: {
-                from: "designs",
-                localField: "designs",
-                foreignField: "_id",
                 as: "Designs",
               },
             },
           ],
         },
       },
+      {
+        $project: {
+          ordersHistory: 1,
+          _id: 0,
+        },
+      },
     ]);
+
+    const orders = userOrders[0]?.ordersHistory || [];
 
     return res
       .status(200)
@@ -530,9 +576,11 @@ const orderHistory = asyncHandler(async (req, res) => {
     console.error(error);
     return res
       .status(500)
-      .json(new ApiError(500, "Error fetching order history")); // Provide a generic error message
+      .json(new ApiError(500, "Error fetching order history"));
   }
 });
+
+
 
 export {
   registerUser,
