@@ -1,27 +1,41 @@
 import multer from "multer";
+import path from "path";
+
+// Simplified MIME types with clear comments
+const allowedTypes = {
+  images: ['image/svg+xml', 'image/jpeg', 'image/png'],
+  models: [
+    'model/gltf-binary',  // .glb files
+    'application/octet-stream',  // Fallback for some GLB uploads
+    'model/gltf+json'
+  ]
+};
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    'image/svg+xml', 
-    'image/jpeg', 
-    'image/png', 
-    'model/gltf-binary' // MIME type for .glb files
-  ];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true); // Accept the file
+  const acceptedTypes = [...allowedTypes.images, ...allowedTypes.models];
+  
+  if (acceptedTypes.includes(file.mimetype)) {
+    cb(null, true);
   } else {
-    cb(new Error("Only SVG, JPG, PNG, and GLB files are allowed!"), false); // Reject the file
+    cb(new Error(`Invalid file type. Only ${acceptedTypes.join(', ')} are allowed`), false);
   }
 };
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: (req, file, cb) => {
     cb(null, "./public/temp");
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-';
-    cb(null, file.fieldname + '-' + uniqueSuffix + file.originalname);
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
   }
 });
 
-export const upload = multer({ storage, fileFilter });
+export const upload = multer({ 
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB
+  }
+});

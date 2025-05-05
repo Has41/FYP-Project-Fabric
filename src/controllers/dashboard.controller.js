@@ -5,7 +5,7 @@ import { Order } from "../models/order.model.js";
 import { Product } from "../models/product.model.js";
 import { User } from "../models/user.model.js";
 import { Design } from "../models/design.model.js";
-import { DefaultPattren } from "../models/defaulPattern.model.js";
+// import { DefaultPattren } from "../models/defaultPattren.model.js";
 import { Category } from "../models/category.model.js";
 import { Model } from "../models/models.model.js";
 
@@ -16,7 +16,7 @@ const getDashboardData = asyncHandler(async (req, res) => {
     productCount,
     userCount,
     designCount,
-    defaulPatternCount,
+    // defaulPatternCount,
     categoryCount,
     modelCount,
   ] = await Promise.all([
@@ -24,7 +24,7 @@ const getDashboardData = asyncHandler(async (req, res) => {
     Product.countDocuments(),
     User.countDocuments(),
     Design.countDocuments(),
-    DefaultPattren.countDocuments(),
+    // DefaultPattren.countDocuments(),
     Category.countDocuments(),
     Model.countDocuments(),
   ]);
@@ -39,7 +39,7 @@ const getDashboardData = asyncHandler(async (req, res) => {
           productCount,
           userCount,
           designCount,
-          defaulPatternCount,
+          // defaulPatternCount,
           categoryCount,
           modelCount,
         },

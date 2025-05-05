@@ -1,61 +1,72 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import { ApiError } from "../utils/ApiError.js";
 
-// Configuration
+// Robust configuration with timeout
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET, // Click 'View Credentials' below to copy your API secret
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+  timeout: 600000, // 60 seconds
 });
 
-const uploadOnCloudinary = async (localFilePath) => {
+const determineResourceType = (filePath) => {
+  const ext = filePath.split('.').pop().toLowerCase();
+  return ext === 'glb' || ext === 'gltf' ? 'raw' : 'auto';
+};
+
+export const uploadOnCloudinary = async (localFilePath) => {
   try {
-    if (!localFilePath) return null;
-
-    // Upload the file to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(localFilePath, {
-      resource_type: "auto",
-      media_metadata: true,
-    });
-
-    console.log(`File Path : ${uploadResult.url}`);
-
-    // Check if the file exists before deleting
-    if (fs.existsSync(localFilePath)) {
-     fs.unlinkSync(localFilePath);
+    if (!localFilePath || !fs.existsSync(localFilePath)) {
+      throw new ApiError(400, "File does not exist at the specified path");
     }
 
-    // Return the upload result
-    return uploadResult;
-  } catch (error) {
-    console.error("Error uploading to Cloudinary:", error);
+    const resourceType = determineResourceType(localFilePath);
+    console.log(`Uploading ${localFilePath} as resource type: ${resourceType}`);
 
-    // Attempt to delete the file if it exists, even if an error occurs
-    if (fs.existsSync(localFilePath)) {
+    const uploadOptions = {
+      resource_type: resourceType,
+      folder: "3d_models",
+      use_filename: true,
+      unique_filename: false,
+      overwrite: true
+    };
+
+    const result = await cloudinary.uploader.upload(localFilePath, uploadOptions);
+    
+    // Cleanup
+    fs.unlinkSync(localFilePath);
+    console.log(`Upload successful: ${result.secure_url}`);
+    
+    return result;
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    
+    // Attempt cleanup if file exists
+    if (localFilePath && fs.existsSync(localFilePath)) {
       fs.unlinkSync(localFilePath);
     }
-
-    // Return null in case of error
-    return null;
+    
+    throw new ApiError(500, `Cloudinary upload failed: ${error.message}`);
   }
 };
 
-
-const deleteFromCloudinary = async (public_id)=>{
+export const deleteFromCloudinary = async (publicId) => {
   try {
-    if(!public_id) return null;
-    const deleteResult = await cloudinary.uploader.destroy(public_id, function(error, result){
-      if (error) {
-        console.log("Error deleting file:", error);
-      } else {
-        console.log("File deleted successfully:", result);
-      }
-    })
-    return deleteResult
-  } catch (error) {
-    console.log("Error deleting file:", error);
-    return null;
-  }
-}
+    if (!publicId) throw new ApiError(400, "Public ID is required");
 
-export { uploadOnCloudinary , deleteFromCloudinary};
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: 'raw' // Important for 3D models
+    });
+
+    if (result.result !== 'ok') {
+      throw new ApiError(404, "File not found on Cloudinary");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Cloudinary deletion error:", error);
+    throw new ApiError(500, `Failed to delete from Cloudinary: ${error.message}`);
+  }
+};
