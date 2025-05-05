@@ -6,7 +6,7 @@ import { ReturnOrder } from "../models/returnOrder.model.js";
 import mongoose from "mongoose";
 
 const addOrder = asyncHandler(async (req, res) => {
-  const { products, designs, price, paymentStatus, deliveryStatus } = req.body;
+  const {  designs, price, paymentStatus, deliveryStatus } = req.body;
 
   const orderBy = req.user._id;
 
@@ -15,29 +15,19 @@ const addOrder = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Required fields must be provided");
   }
 
-  // Ensure at least one product or one design is selected
+  // Ensure at least one  or one design is selected
   if (
-    (!products || products.length === 0) &&
     (!designs || designs.length === 0)
   ) {
     throw new ApiError(
       400,
-      "You must select at least one product or one design."
+      "You must select at least  one design."
     );
   }
 
   // Check if ObjectId for user (orderBy) is valid
   if (!mongoose.Types.ObjectId.isValid(orderBy)) {
     throw new ApiError(400, "Invalid User ID");
-  }
-
-  // Validate Product IDs if products are provided
-  if (products && products.length > 0) {
-    products.forEach((product) => {
-      if (!mongoose.Types.ObjectId.isValid(product)) {
-        throw new ApiError(400, `Invalid Product ID: ${product}`);
-      }
-    });
   }
 
   // Validate Design IDs if designs are provided
@@ -52,8 +42,7 @@ const addOrder = asyncHandler(async (req, res) => {
   // Create a new order
   const newOrder = new Order({
     orderBy,
-    products: products || [], // Defaults to empty array if no products are provided
-    designs: designs || [], // Defaults to empty array if no designs are provided
+    designs: designs ,
     price,
     paymentStatus,
     deliveryStatus,
