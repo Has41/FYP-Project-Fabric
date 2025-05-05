@@ -25,8 +25,15 @@ const orderSchema = new Schema(
     deliveryStatus: {
       type: String,
       required: true,
-      enum : ["pending", "shipped", "delivered"]
+      enum : ["pending", "shipped", "delivered", "returned"]
     },
+    deliveredDate : {
+      type : Date
+    },
+    returned : {
+      type : Boolean,
+      default : false
+    }
   },
   {
     timestamps: true,

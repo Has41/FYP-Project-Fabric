@@ -70,24 +70,30 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     revenueMonth,
     totalUsers,
     lowStockProducts,
+    returnedOrdersToday,
+    returnedOrdersThisWeek,
+    returnedOrdersThisMonth,
   ] = await Promise.all([
-    Order.countDocuments({ createdAt: { $gte: startOfDay } }),
+    Order.countDocuments({ createdAt: { $gte: startOfDay }, returned: { $ne: true } }),
     Order.aggregate([
-      { $match: { createdAt: { $gte: startOfDay } } },
+      { $match: { createdAt: { $gte: startOfDay }, returned: { $ne: true } } }, // Exclude returned orders
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
-    Order.countDocuments({ createdAt: { $gte: startOfWeek } }),
+    Order.countDocuments({ createdAt: { $gte: startOfWeek }, returned: { $ne: true } }),
     Order.aggregate([
-      { $match: { createdAt: { $gte: startOfWeek } } },
+      { $match: { createdAt: { $gte: startOfWeek }, returned: { $ne: true } } }, // Exclude returned orders
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
-    Order.countDocuments({ createdAt: { $gte: startOfMonth } }),
+    Order.countDocuments({ createdAt: { $gte: startOfMonth }, returned: { $ne: true } }),
     Order.aggregate([
-      { $match: { createdAt: { $gte: startOfMonth } } },
+      { $match: { createdAt: { $gte: startOfMonth }, returned: { $ne: true } } }, // Exclude returned orders
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
     User.countDocuments(),
     Product.find({ quantity: { $lt: 10 } }).select("title quantity"),
+    Order.countDocuments({ createdAt: { $gte: startOfDay }, returned: true }),
+    Order.countDocuments({ createdAt: { $gte: startOfWeek }, returned: true }),
+    Order.countDocuments({ createdAt: { $gte: startOfMonth }, returned: true }),
   ]);
 
   const stats = {
@@ -99,6 +105,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     totalRevenueThisMonth: revenueMonth[0]?.total || 0,
     totalUsers,
     lowStockProducts,
+    returnedOrdersToday,
+    returnedOrdersThisWeek,
+    returnedOrdersThisMonth,
   };
 
   return res
@@ -106,48 +115,40 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, stats, "Dashboard stats fetched successfully."));
 });
 
-const getMostSoldDesign = asyncHandler(async (req, res) => {
-  // Aggregate orders to find the most sold design
-  const mostSoldDesign = await Order.aggregate([
-    { $unwind: "$designs" }, // Assuming the order has a 'designs' field that holds design references
-    {
-      $group: {
-        _id: "$designs", // Group by design (this assumes designs are stored in an array, adjust based on your model)
-        totalSales: { $sum: 1 }, // Count how many times each design is ordered
-      },
-    },
-    {
-      $lookup: {
-        from: "designs", // The collection name for designs in your database
-        localField: "_id", // The field we're using to join
-        foreignField: "_id", // The design collection's ID field
-        as: "designDetails", // Output the details of the design
-      },
-    },
-    {
-      $unwind: "$designDetails", // Flatten the design details
-    },
-    {
-      $sort: { totalSales: -1 }, // Sort by totalSales in descending order
-    },
-    { $limit: 1 }, // Limit to the most sold design
+// Revenue by Delivery Status (excluding returns)
+const getRevenueByDeliveryStatus = asyncHandler(async (req, res) => {
+  const [pendingRevenue, shippedRevenue, deliveredRevenue, returnedRevenue] = await Promise.all([
+    Order.aggregate([
+      { $match: { deliveryStatus: "pending", returned: { $ne: true } } }, // Exclude returned orders
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]),
+    Order.aggregate([
+      { $match: { deliveryStatus: "shipped", returned: { $ne: true } } }, // Exclude returned orders
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]),
+    Order.aggregate([
+      { $match: { deliveryStatus: "delivered", returned: { $ne: true } } }, // Exclude returned orders
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ]),
+    Order.aggregate([ // Subtract revenue of returned orders
+      { $match: { returned: true } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+    ])
   ]);
 
-  if (!mostSoldDesign.length) {
-    return res.status(404).json(new ApiError(404, "No sales data found"));
-  }
+  const stats = {
+    pendingRevenue: pendingRevenue[0]?.total || 0,
+    shippedRevenue: shippedRevenue[0]?.total || 0,
+    deliveredRevenue: deliveredRevenue[0]?.total || 0,
+    returnedRevenue: returnedRevenue[0]?.total || 0, // This will now show how much revenue was returned
+  };
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        mostSoldDesign[0],
-        "Most sold design fetched successfully."
-      )
-    );
+  return res.status(200).json(
+    new ApiResponse(200, stats, "Revenue by delivery status fetched successfully.")
+  );
 });
 
+// Other stats for Payment and Delivery Status
 const getPaymentStatusStats = asyncHandler(async (req, res) => {
   const [cashOnDeliveryCount, paidCount] = await Promise.all([
     Order.countDocuments({ paymentStatus: "Cash on Delivery" }),
@@ -161,33 +162,6 @@ const getPaymentStatusStats = asyncHandler(async (req, res) => {
 
   return res.status(200).json(
     new ApiResponse(200, stats, "Order payment status stats fetched successfully.")
-  );
-});
-
-const getRevenueByDeliveryStatus = asyncHandler(async (req, res) => {
-  const [pendingRevenue, shippedRevenue, deliveredRevenue] = await Promise.all([
-    Order.aggregate([
-      { $match: { deliveryStatus: "pending" } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-    ]),
-    Order.aggregate([
-      { $match: { deliveryStatus: "shipped" } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-    ]),
-    Order.aggregate([
-      { $match: { deliveryStatus: "delivered" } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } }
-    ])
-  ]);
-
-  const stats = {
-    pendingRevenue: pendingRevenue[0]?.total || 0,
-    shippedRevenue: shippedRevenue[0]?.total || 0,
-    deliveredRevenue: deliveredRevenue[0]?.total || 0,
-  };
-
-  return res.status(200).json(
-    new ApiResponse(200, stats, "Revenue by delivery status fetched successfully.")
   );
 });
 
@@ -209,13 +183,10 @@ const getDeliveryStatusStats = asyncHandler(async (req, res) => {
   );
 });
 
-
-
 export {
   getDashboardData,
   getDashboardStats,
-  getMostSoldDesign,
-  getDeliveryStatusStats,
+  getRevenueByDeliveryStatus,
   getPaymentStatusStats,
-  getRevenueByDeliveryStatus
+  getDeliveryStatusStats
 };
