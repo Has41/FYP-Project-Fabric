@@ -12,11 +12,11 @@ import {
 const router = Router();
 
 
-router.route("/add").post(adminOnly, addProduct);
+router.route("/add").post(verifyJwt,adminOnly, addProduct);
 
-router.route("/:productId").delete(adminOnly, removeProduct);
+router.route("/:productId").delete( verifyJwt, adminOnly, removeProduct);
 
-router.route("/update/:productId").put(adminOnly, updateProductInfo);
+router.route("/update/:productId").put( verifyJwt,adminOnly, updateProductInfo);
 
 router.get("/get/:productId", searchProduct);
 

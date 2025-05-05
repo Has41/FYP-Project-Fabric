@@ -1,3 +1,4 @@
+
 import mongoose, { Schema } from "mongoose";
 
 const orderSchema = new Schema(
@@ -6,29 +7,25 @@ const orderSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    products: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Product",
-      },
-    ],
     designs: [
       {
         type: Schema.Types.ObjectId,
         ref: "Design",
       },
     ],
-    price: {
-      type: String,
+    totalAmount: {
+      type: Number, // Sum of price of design price
       required: true,
     },
     paymentStatus: {
       type: String,
       required: true,
+      enum : ["Cash on Delivery", "Paid"]
     },
     deliveryStatus: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
+      enum : ["pending", "shipped", "delivered"]
     },
   },
   {

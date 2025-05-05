@@ -67,4 +67,25 @@ const addOrder = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, savedOrder, "Order created successfully"));
 });
 
-export { addOrder };
+const deleteOrder = asyncHandler(async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+
+    if (!orderId) {
+      throw new ApiError(404, "Order iD Not Found");
+    }
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw new ApiError(404, "order Not Found");
+    }
+    await Order.findByIdAndDelete(orderId);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, null, "Order Deleted Successfully"));
+  } catch (error) {
+    next(error);
+    throw new ApiError(400, error?.message || "Invalid access token");
+  }
+});
+
+export { addOrder, deleteOrder };

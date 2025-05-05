@@ -10,11 +10,6 @@ const designSchema = new Schema(
       type: String,
       required: true,
     },
-    model: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     product: {
       type: Schema.Types.ObjectId,
       ref: "Product",
