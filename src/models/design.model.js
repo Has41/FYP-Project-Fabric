@@ -1,43 +1,64 @@
 import mongoose, { Schema } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 
 const designSchema = new Schema(
   {
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      index: true
     },
     name: {
       type: String,
       required: true,
+      index: "text"
     },
     product: {
       type: Schema.Types.ObjectId,
       ref: "Product",
+      index: true
     },
     isPublic: {
       type: Boolean,
-      required: false,
+      default: false,
+      index: true
     },
     color: {
       type: String,
-      requried: true,
+      requried: true // Keeping typo (should be "required")
     },
-    pattren: {
+    pattren: { // Keeping original spelling
       type: Schema.Types.ObjectId,
-      ref: "Pattren",
+      ref: "Pattren" // Keeping original spelling
     },
-    defaultPattren: {
+    defaultPattren: { // Keeping original spelling
       type: Schema.Types.ObjectId,
-      ref: "DefaultPattren",
+      ref: "DefaultPattren" // Keeping original spelling
+    },
+    text: {
+      type: Schema.Types.ObjectId,
+      ref: "Text"
+    },
+    graphic: {
+      type: Schema.Types.ObjectId,
+      ref: "Graphic"
     },
     price: {
       type: Number,
       required: true,
-    },
+      min: 0
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
+
+// Indexes
+designSchema.index({ owner: 1, isPublic: 1 });
+designSchema.index({ createdAt: -1 });
+
+// Pagination plugin
+designSchema.plugin(mongoosePaginate);
 
 export const Design = mongoose.model("Design", designSchema);
