@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
-import bcript from "bcrypt";
+import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
   {
@@ -21,102 +21,75 @@ const userSchema = new Schema(
     },
     fullname: {
       type: String,
-      
       lowercase: true,
       trim: true,
       index: true,
     },
-
-    // Existing fields...
     isEmailVerified: {
       type: Boolean,
-      default: false, // By default, email is not verified
+      default: false,
     },
-    emailVerificationToken: {
-      type: String,
-    },
-    emailVerificationExpires: {
-      type: Date, // Expiration date for OTP
-    },
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
     role: {
       type: String,
       enum: ["user", "admin", "designer"],
       default: "user",
-      lowercase: true,
-      trim: true,
       index: true,
     },
     password: {
       type: String,
-      require: [true, "Please Enter Password"],
+      required: [true, "Password is required"],
     },
     phoneNumber: {
       type: String,
-      require: [true, "Please Enter Phone Number"],
+      required: [true, "Phone number is required"],
     },
-    address: {
-      type: String,
-      require: [true, "Please Enter Address"],
-    },
-    city: {
-      type: String,
-      require: [true, "Please Enter City Name"],
-    },
-    postalCode: {
-      type: String,
-    },
-    avatar: {
-      type: String,
-    },
-    refreshToken: {
-      type: String,
+    country: { type: String, required: [true, "Country is required"] },
+    address: { type: String, required: [true, "Address is required"] },
+    city: { type: String, required: [true, "City is required"] },
+
+    postalCode: String,
+    avatar: String,
+    refreshToken: String,
+    designerProfile: {
+      type: Schema.Types.ObjectId,
+      ref: "Designer",
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
+// Password hashing middleware
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next;
-  this.password = await bcript.hash(this.password, 10);
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
+// Password verification method
 userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcript.compare(password, this.password);
+  return await bcrypt.compare(password, this.password);
 };
 
+// Token generation methods
 userSchema.methods.generateAccessToken = function () {
-  try {
-    return jwt.sign(
-      {
-        _id: this._id,
-        username: this.username,
-        fullname: this.fullname,
-        email: this.email,
-      },
-      process.env.ACCESS_TOKEN_SECRET,
-      {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-      }
-    );
-  } catch (error) {
-    console.error("Error generating access token:", error);
-    throw error;
-  }
-};
-
-
-userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
       _id: this._id,
+      username: this.username,
+      email: this.email,
+      role: this.role,
     },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
-    }
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
   );
 };
+
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+  });
+};
+
 export const User = mongoose.model("User", userSchema);

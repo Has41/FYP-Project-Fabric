@@ -2,257 +2,295 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Order } from "../models/order.model.js";
-import { ReturnOrder } from "../models/returnOrder.model.js";
+import { Design } from "../models/design.model.js";
+import { Designer } from "../models/designer.model.js";
 import mongoose from "mongoose";
 
-const addOrder = asyncHandler(async (req, res) => {
-  const {  designs, price, paymentStatus, deliveryStatus } = req.body;
 
-  const orderBy = req.user._id;
-
-  // Validate required fields
-  if (!orderBy || !price || !paymentStatus || !deliveryStatus) {
-    throw new ApiError(400, "Required fields must be provided");
+const validateDesignForPurchase = (design, userId) => {
+  if (!design.isPublic && design.owner.toString() !== userId) {
+    throw new Error("Only the owner can purchase private designs");
   }
-
-  // Ensure at least one  or one design is selected
-  if (
-    (!designs || designs.length === 0)
-  ) {
-    throw new ApiError(
-      400,
-      "You must select at least  one design."
-    );
-  }
-
-  // Check if ObjectId for user (orderBy) is valid
-  if (!mongoose.Types.ObjectId.isValid(orderBy)) {
-    throw new ApiError(400, "Invalid User ID");
-  }
-
-  // Validate Design IDs if designs are provided
-  if (designs && designs.length > 0) {
-    designs.forEach((design) => {
-      if (!mongoose.Types.ObjectId.isValid(design)) {
-        throw new ApiError(400, `Invalid Design ID: ${design}`);
+};
+const prepareOrderItems = async (designIds, userId) => {
+  const designs = await Design.find({
+    _id: { $in: designIds },
+    $or: [
+      { isPublic: true, status: "published" }, // Public designs
+      { 
+        owner: userId, 
+        status: "published" // Owner's private purchasable designs
       }
-    });
-  }
-
-  // Create a new order
-  const newOrder = new Order({
-    orderBy,
-    designs: designs ,
-    price,
-    paymentStatus,
-    deliveryStatus,
+    ]
   });
 
-  // Save order to the database
-  const savedOrder = await newOrder.save();
+  // Check if all designs are valid
+  if (designs.length !== designIds.length) {
+    const invalidIds = designIds.filter(id => 
+      !designs.some(d => d._id.equals(id))
+    );
+    throw new ApiError(400, `Invalid or unauthorized designs: ${invalidIds.join(', ')}`);
+  }
 
-  // Return the saved order in the response
+  return designs.map(design => ({
+    design: design._id,
+    unitPrice: design.salePrice,
+    designerProfit: design.isPublic ? design.designerProfit || 0 : 0,
+    quantity: 1
+  }));
+};
+
+// Calculate order totals
+const calculateOrderTotals = (items) => {
+  const subtotal = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+  return {
+    subtotal,
+    totalAmount: subtotal, // Can add shipping/taxes here if needed
+    designerEarnings: items.reduce((sum, item) => sum + (item.designerProfit * item.quantity), 0)
+  };
+};
+
+// Record designer earnings (for public designs only)
+const recordDesignerEarnings = async (order) => {
+  if (order.designerEarningsRecorded) return;
+
+  await Promise.all(order.designs.map(async (item) => {
+    if (item.designerProfit > 0) { // Only for public designs
+      const design = await Design.findById(item.design);
+      await Designer.findOneAndUpdate(
+        { user: design.owner },
+        {
+          $inc: { 
+            totalEarnings: item.designerProfit * item.quantity,
+            pendingBalance: item.designerProfit * item.quantity
+          },
+          $addToSet: { sales: design._id }
+        }
+      );
+    }
+  }));
+
+  order.designerEarningsRecorded = true;
+  await order.save();
+};
+
+// Create a new order
+const addOrder = asyncHandler(async (req, res) => {
+  const { designIds } = req.body;
+  const userId = req.user._id;
+
+  // Validate input
+  if (!designIds || !Array.isArray(designIds)) {
+    throw new ApiError(400, "Design IDs must be provided as an array");
+  }
+  if (designIds.length === 0) {
+    throw new ApiError(400, "At least one design must be selected");
+  }
+
+  // Validate designs
+  await Promise.all(designIds.map(async (designId) => {
+    const design = await Design.findById(designId);
+    validateDesignForPurchase(design, userId);
+  }));
+  
+
+  // Prepare order items
+  const orderItems = await prepareOrderItems(designIds, userId);
+  const { subtotal, totalAmount, designerEarnings } = calculateOrderTotals(orderItems);
+
+  // Create the order
+  const order = await Order.create({
+    orderBy: userId,
+    designs: orderItems,
+    subtotal,
+    totalAmount,
+    designerEarnings,
+    paymentStatus: "pending",
+    deliveryStatus: "pending"
+  });
+
   return res
     .status(201)
-    .json(new ApiResponse(201, savedOrder, "Order created successfully"));
+    .json(new ApiResponse(201, order, "Order created successfully"));
 });
 
-const deleteOrder = asyncHandler(async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
+// Delete/cancel an order
+const deleteOrder = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const userId = req.user._id;
 
-    if (!orderId) {
-      throw new ApiError(404, "Order ID Not Found");
-    }
+  const order = await Order.findOne({
+    _id: orderId,
+    orderBy: userId
+  });
 
-    const order = await Order.findById(orderId);
-
-    if (!order) {
-      throw new ApiError(404, "Order Not Found");
-    }
-
-    // Check if the order is older than 2 days
-    const currentDate = new Date();
-    const orderDate = new Date(order.createdAt);
-    const differenceInTime = currentDate - orderDate;
-    const differenceInDays = differenceInTime / (1000 * 3600 * 24); // Convert time difference to days
-
-    if (differenceInDays > 2) {
-      throw new ApiError(
-        400,
-        "Order is older than 2 days and cannot be deleted."
-      );
-    }
-
-    // Check if the deliveryStatus is not "pending"
-    if (order.deliveryStatus !== "pending") {
-      throw new ApiError(
-        400,
-        "Order cannot be deleted as the delivery status is not 'pending'."
-      );
-    }
-
-    // If both conditions are satisfied, proceed with deletion
-    await Order.findByIdAndDelete(orderId);
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, null, "Order Deleted Successfully"));
-  } catch (error) {
-    next(error);
-    throw new ApiError(400, error?.message || "Invalid access token");
+  if (!order) {
+    throw new ApiError(404, "Order not found or not authorized");
   }
+
+  // Check if order can be cancelled (within 2 days and pending)
+  const orderAgeDays = (new Date() - order.createdAt) / (1000 * 60 * 60 * 24);
+  if (orderAgeDays > 2 || order.deliveryStatus !== "pending") {
+    throw new ApiError(400, "Order cannot be cancelled at this stage");
+  }
+
+  await Order.findByIdAndDelete(orderId);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Order cancelled successfully"));
 });
 
+// Get all orders (admin only)
 const getAllOrders = asyncHandler(async (req, res) => {
   const orders = await Order.find()
-    .populate("orderBy", "name email")
-    .populate("designs");
+    .populate("orderBy", "username email")
+    .populate("designs.design", "name salePrice isPublic");
 
-  res.status(200).json(new ApiResponse(200, orders, "All orders fetched."));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, orders, "Orders retrieved successfully"));
 });
 
+// Get order by ID
 const getOrderById = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.orderId)
-    .populate("orderBy", "name email")
-    .populate("designs");
-
-  if (!order) throw new ApiError(404, "Order not found");
-
-  res.status(200).json(new ApiResponse(200, order, "Order fetched."));
-});
-
-const updateDeliveryStatus = asyncHandler(async (req, res) => {
-  const { deliveryStatus } = req.body;
-
-  const order = await Order.findById(req.params.orderId);
-  if (!order) throw new ApiError(404, "Order not found");
-
-  if (deliveryStatus) {
-    order.deliveryStatus = deliveryStatus;
-  }
-  order.deliveredDate = new Date();
-  await order.save();
-
-  res.status(200).json(new ApiResponse(200, order, "Delivery status updated."));
-});
-
-const updatePaymentStatus = asyncHandler(async (req, res) => {
-  const { paymentStatus } = req.body;
-
-  const order = await Order.findById(req.params.orderId);
-  if (!order) throw new ApiError(404, "Order not found");
-
-  if (paymentStatus) {
-    order.paymentStatus = paymentStatus;
-  }
-
-  await order.save();
-
-  res.status(200).json(new ApiResponse(200, order, "Payment status updated."));
-});
-
-const returnedOrder = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
-  const { reason } = req.body; // Assuming the reason is passed in the request body
+  const userId = req.user._id;
 
-  // Find the order by ID
+  const order = await Order.findOne({
+    _id: orderId,
+    $or: [
+      { orderBy: userId }, // Owner can view
+      {} // Admin can view (handled by adminOnly middleware)
+    ]
+  })
+  .populate("orderBy", "username email")
+  .populate("designs.design", "name salePrice isPublic");
+
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, order, "Order retrieved successfully"));
+});
+
+// Update delivery status (admin only)
+const updateDeliveryStatus = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  const validStatuses = ["processing", "shipped", "delivered", "returned", "cancelled"];
+  if (!validStatuses.includes(status)) {
+    throw new ApiError(400, "Invalid delivery status");
+  }
+
   const order = await Order.findById(orderId);
   if (!order) {
     throw new ApiError(404, "Order not found");
   }
 
-  // Check if the order's delivery status is "delivered"
-  if (order.deliveryStatus !== "delivered") {
-    throw new ApiError(400, "Order is not delivered yet");
+  order.deliveryStatus = status;
+  
+  // Record designer earnings when order is delivered (for public designs)
+  if (status === "delivered") {
+    order.deliveredDate = new Date();
+    await recordDesignerEarnings(order);
   }
 
-  // Calculate the difference in days between the delivered date and the current date
-  const deliveredDate = new Date(order.deliveredDate);
-  const currentDate = new Date();
-  const timeDifference = currentDate - deliveredDate;
-  const daysDifference = timeDifference / (1000 * 3600 * 24); // Convert milliseconds to days
-
-  // Check if the order is not older than 3 days
-  if (daysDifference > 3) {
-    throw new ApiError(
-      400,
-      "Order cannot be returned. It is older than 3 days."
-    );
-  }
-
-  // Create a new return record in the "returns" collection
-  const returnData = new ReturnOrder({
-    order: order._id,
-    returnDate: currentDate,
-    reason,
-    status: "requested", // Initial status is "requested"
-  });
-
-  // Save the return record to the database
-  await returnData.save();
-
-  // Optionally, you can update the `order` to reflect that it's in a return process
-  // For example, you might add a "returnRequested" field or similar.
-  // order.returnStatus = "requested"; // If you want to track this in the order schema
-  // await order.save();
-
-  res
+  await order.save();
+  return res
     .status(200)
-    .json(
-      new ApiResponse(200, returnData, "Return request created successfully.")
-    );
+    .json(new ApiResponse(200, order, "Delivery status updated"));
 });
 
-const approveReturn = asyncHandler(async (req, res) => {
-  const { returnId } = req.params; // Get the return request ID
-  const { approvalStatus } = req.body; // The approval status from the request body (approved or rejected)
-  const validStatuses = ["approved", "rejected"]; // Define valid statuses for return approval
+// Update payment status (admin only)
+const updatePaymentStatus = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
 
-  // Check if the provided status is valid
-  if (!validStatuses.includes(approvalStatus)) {
-    throw new ApiError(
-      400,
-      "Invalid approval status. It must be 'approved' or 'rejected'."
-    );
+  const validStatuses = ["paid", "failed", "refunded"];
+  if (!validStatuses.includes(status)) {
+    throw new ApiError(400, "Invalid payment status");
   }
 
-  // Find the return request by ID
-  const returnRequest = await ReturnOrder.findById(returnId);
-  if (!returnRequest) {
-    throw new ApiError(404, "Return request not found.");
-  }
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    { paymentStatus: status },
+    { new: true }
+  );
 
-  // Find the associated order to update
-  const order = await Order.findById(returnRequest.order);
   if (!order) {
-    throw new ApiError(
-      404,
-      "Order associated with this return request not found."
-    );
+    throw new ApiError(404, "Order not found");
   }
 
-  // Update the return request status
-  returnRequest.status = approvalStatus;
-  await returnRequest.save();
-
-  // If the return is approved, update the order's delivery status or any other field as needed
-  if (approvalStatus === "approved") {
-    order.returned = true; // Mark the order as returned
-    order.deliveryStatus = "returned"; // Change delivery status to returned (optional)
-    await order.save();
-  }
-
-  // Respond with the updated return request and order
-  res
+  return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { returnRequest, order },
-        "Return request processed successfully."
-      )
-    );
+    .json(new ApiResponse(200, order, "Payment status updated"));
+});
+
+// Request return (customer)
+const requestReturn = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const { reason } = req.body;
+  const userId = req.user._id;
+
+  const order = await Order.findOne({
+    _id: orderId,
+    orderBy: userId,
+    deliveryStatus: "delivered"
+  });
+
+  if (!order) {
+    throw new ApiError(400, "Order not eligible for return");
+  }
+
+  // Check if within return window (3 days)
+  const returnDays = (new Date() - order.deliveredDate) / (1000 * 60 * 60 * 24);
+  if (returnDays > 3) {
+    throw new ApiError(400, "Return window has expired (3 days)");
+  }
+
+  order.returnRequested = true;
+  order.returnReason = reason;
+  await order.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, order, "Return requested successfully"));
+});
+
+// Process return (admin only)
+const processReturn = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+  const { action } = req.body; // 'approve' or 'reject'
+
+  if (!["approve", "reject"].includes(action)) {
+    throw new ApiError(400, "Action must be 'approve' or 'reject'");
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
+
+  if (!order.returnRequested) {
+    throw new ApiError(400, "No return requested for this order");
+  }
+
+  if (action === "approve") {
+    order.deliveryStatus = "returned";
+    order.returned = true;
+    // Here you would add logic to reverse designer earnings if needed
+  }
+
+  order.returnRequested = false;
+  order.returnProcessed = action;
+  await order.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, order, `Return ${action}d successfully`));
 });
 
 export {
@@ -262,6 +300,6 @@ export {
   getOrderById,
   updateDeliveryStatus,
   updatePaymentStatus,
-  returnedOrder,
-  approveReturn,
+  requestReturn,
+  processReturn
 };

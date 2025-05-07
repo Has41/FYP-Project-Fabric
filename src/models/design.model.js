@@ -6,17 +6,18 @@ const designSchema = new Schema(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
       index: true
     },
     name: {
       type: String,
       required: true,
-      index: "text"
+      trim: true
     },
     product: {
       type: Schema.Types.ObjectId,
       ref: "Product",
-      index: true
+      required: true
     },
     isPublic: {
       type: Boolean,
@@ -25,15 +26,15 @@ const designSchema = new Schema(
     },
     color: {
       type: String,
-      requried: true // Keeping typo (should be "required")
+      required: true
     },
-    pattren: { // Keeping original spelling
+    pattern: {
       type: Schema.Types.ObjectId,
-      ref: "Pattren" // Keeping original spelling
+      ref: "Pattern"
     },
-    defaultPattren: { // Keeping original spelling
+    defaultPattern: {
       type: Schema.Types.ObjectId,
-      ref: "DefaultPattren" // Keeping original spelling
+      ref: "DefaultPattern"
     },
     text: {
       type: Schema.Types.ObjectId,
@@ -43,11 +44,21 @@ const designSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Graphic"
     },
-    price: {
+    basePrice: {
       type: Number,
       required: true,
       min: 0
-    }
+    },
+    salePrice: {
+      type: Number,
+      min: 0
+    },
+    status: {
+      type: String,
+      enum: ["draft", "published", "archived"],
+      default: "draft"
+    },
+    
   },
   {
     timestamps: true
@@ -55,10 +66,18 @@ const designSchema = new Schema(
 );
 
 // Indexes
-designSchema.index({ owner: 1, isPublic: 1 });
-designSchema.index({ createdAt: -1 });
+designSchema.index({ owner: 1 });
+designSchema.index({ isPublic: 1 });
 
-// Pagination plugin
+
+// Set salePrice automatically for purchasable designs
+designSchema.pre("save", function(next) {
+  if ( !this.salePrice) {
+    this.salePrice = this.basePrice;
+  }
+  next();
+});
+
 designSchema.plugin(mongoosePaginate);
 
 export const Design = mongoose.model("Design", designSchema);

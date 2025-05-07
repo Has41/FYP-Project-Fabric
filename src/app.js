@@ -25,7 +25,10 @@ import defaultPattrenRouter from "./routes/defaultPattren.routes.js";
 import colorRouter from "./routes/color.routes.js";
 import modelRouter from "./routes/model.routes.js";
 import orderRouter from "./routes/order.routes.js";
-import dashboardRouter from "./routes/dashboard.routes.js";
+import designRouter from "./routes/design.routes.js";
+import adminDashboardRouter from "./routes/adminDashboard.routes.js";
+import designerRouter from "./routes/designer.routes.js";
+
 
 
 app.use("/api/v1/users", userRouter);
@@ -36,7 +39,10 @@ app.use("/api/v1/defaupattrens", defaultPattrenRouter);
 app.use("/api/v1/colors", colorRouter);
 app.use("/api/v1/models", modelRouter);
 app.use("/api/v1/orders", orderRouter);
-app.use("/api/v1/dashboard", dashboardRouter);
+app.use("/api/v1/dashboard", adminDashboardRouter);
+app.use("/api/v1/designs", designRouter);
+app.use("/api/v1/designers", designerRouter);
+
 
 
 app.use(errorHandler);

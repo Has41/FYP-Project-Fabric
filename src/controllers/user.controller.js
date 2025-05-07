@@ -1,6 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
+import { Designer } from "../models/designer.model.js";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
@@ -389,6 +390,43 @@ const updateUserAvtar = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Avatar Uploaded suceesfully"));
 });
 
+const getDesignerBankInfo = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Populate designer profile with account details
+    const user = await User.findById(userId)
+      .select("email country")
+      .populate({
+        path: "designerProfile",
+        select: "accountDetails",
+      });
+
+    if (!user || !user.designerProfile) {
+      return res.status(404).json({ message: "Designer not found" });
+    }
+
+    const { accountNumber, bankName, ifscCode, accountHolderName } =
+      user.designerProfile.accountDetails;
+
+    const response = {
+      account_number: accountNumber,
+      routing_number: ifscCode, // in Pakistan IFSC is equivalent to routing
+      account_holder_name: accountHolderName,
+      account_holder_type: "individual", // static unless you add org support
+      country: user.country,
+      currency: "PKR", // assuming Pakistani currency
+      bank_code: bankName,
+      email: user.email,
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching designer bank info:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const userProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
 
@@ -470,6 +508,39 @@ const userProfile = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, profile[0], "User profile fetched successfully"));
 });
+
+const getUserDashboardStats = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const stats = await Order.aggregate([
+    {
+      $match: { user: mongoose.Types.ObjectId(userId) },
+    },
+    {
+      $group: {
+        _id: "$orderStatus",
+        totalSpent: { $sum: "$totalAmount" },
+        totalOrders: { $sum: 1 },
+      },
+    },
+  ]);
+
+  // Format status breakdown
+  const statusCounts = stats.reduce(
+    (acc, item) => {
+      acc.totalOrders += item.totalOrders;
+      acc.totalSpent += item.totalSpent;
+      acc.statusBreakdown[item._id] = item.totalOrders;
+      return acc;
+    },
+    { totalOrders: 0, totalSpent: 0, statusBreakdown: {} }
+  );
+
+  res.status(200).json(
+    new ApiResponse(200, statusCounts, "User dashboard stats fetched successfully")
+  );
+});
+
 
 const adminProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
@@ -580,6 +651,53 @@ const orderHistory = asyncHandler(async (req, res) => {
   }
 });
 
+const changeRole = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  const {role,accountNumber,bankName,bankBranch,ifscCode,accountHolderName} = req.body;
+  if(!role){
+    throw new ApiError(400, "Role Not Found");
+  }
+  if(!accountNumber || accountNumber.length !== 12){
+    throw new ApiError(400, "Account Number Not Found");
+  }
+  if(!bankName){
+    throw new ApiError(400, "Bank Name Not Found");
+  }
+  if(!bankBranch){
+    throw new ApiError(400, "Bank Branch Not Found");
+  }
+  if(!ifscCode){
+    throw new ApiError(400, "IFSC Code Not Found");
+  }
+  if(!accountHolderName){
+    throw new ApiError(400, "Account Holder Name Not Found");
+  }
+
+  if (!username?.trim()) {
+    throw new ApiError(400, "Username Not Found");
+  }
+
+  const user = await User.findOneAndUpdate(
+    { username: username.toLowerCase() },
+    { role: role },
+    { new: true }
+  );
+
+  const Designer = await Designer.create({
+    designer: user._id,
+    accountNumber,
+    bankName,
+    bankBranch,
+    ifscCode,
+    accountHolderName,
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Role changed successfully"));
+});
+
+
 
 
 export {
@@ -595,4 +713,7 @@ export {
   adminProfile,
   orderHistory,
   verifyEmail,
+  changeRole,
+  getDesignerBankInfo,
+  getUserDashboardStats
 };

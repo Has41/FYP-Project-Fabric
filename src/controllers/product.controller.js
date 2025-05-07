@@ -9,6 +9,11 @@ const addProduct = asyncHandler(async (req, res, next) => {
     req.body;
   const owner = req.user._id;
 
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Unauthorized");
+  }
+  
+
   // Validate required fields
   if (!title || !description || !price || !quantity || !category || !model || !type) {
     throw new ApiError(400, "Required fields missing");
@@ -62,6 +67,10 @@ const removeProduct = asyncHandler(async (req, res, next) => {
       throw new ApiError(404, "Product not found");
     }
 
+    if (!product.owner.equals(req.user._id) && req.user.role !== "admin") {
+      throw new ApiError(403, "Unauthorized");
+    }
+    
     // Delete the model file from Cloudinary
    
 
@@ -94,6 +103,11 @@ const updateProductInfo = asyncHandler(async (req, res) => {
   if(!mongoose.Types.ObjectId.isValid(model)){
     throw new ApiError(400, "Invalid Model ID");
   }
+
+  if ( req.user.role !== "admin") {
+    throw new ApiError(403, "Unauthorized");
+  }
+  
 
   const updatedProduct = await Product.findByIdAndUpdate(
     productId,
@@ -208,7 +222,7 @@ const allProducts = asyncHandler(async (req, res) => {
     {
       $project: { // Optionally, you can specify the fields you want to return
         _id: 1,
-        name: 1,          // Product name
+        title: 1,          // Product name
         price: 1,         // Product price
         description: 1,   // Product description
         "category.name": 1, // Category name
@@ -239,7 +253,6 @@ export {
   addProduct,
   removeProduct,
   updateProductInfo,
-  
   searchProduct,
   allProducts,
 };

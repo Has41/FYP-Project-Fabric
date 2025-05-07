@@ -14,6 +14,8 @@ import {
   updateUserAvtar,
   userProfile,
   verifyEmail,
+  getDesignerBankInfo,
+  getUserDashboardStats
 } from "../controllers/user.controller.js";
 
 
@@ -45,5 +47,9 @@ router.route("/up/:username").get(verifyJwt, userProfile);
 router.route("/ap/:username").get(verifyJwt, adminProfile);
 
 router.route("/order-history").get(verifyJwt, orderHistory);
+
+router.route("/bank-info").get(verifyJwt, getDesignerBankInfo);
+
+router.route("/dashboard-stats").get(verifyJwt, getUserDashboardStats);
 
 export default router;

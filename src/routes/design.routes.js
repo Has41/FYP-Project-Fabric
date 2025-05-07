@@ -1,35 +1,39 @@
 import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
+import { designerOnly } from "../middleware/designer.middleware.js";
 import {
-  addDesign,
-  allDesign,
-  designById,
-  publicDesign,
-  publicDesignById,
-  publicDesignByUserId,
-  designByUserId,
-  privateDesignByUserId,
+  createDesign,
+  getMyDesigns,
+  getPublicDesignsByUser,
+  getDesignById,
   updateDesign,
+  toggleDesignPublicStatus,
+  updateDesignPurchasableStatus,
   deleteDesign,
+  getAllDesigns,
+  getAllPublicDesigns
 } from "../controllers/design.controller.js";
 
 const router = Router();
 
-// Admin-only routes
-router.route("/add").post(verifyJwt, adminOnly, addDesign);
-router.route("/:designId").delete(verifyJwt, adminOnly, deleteDesign);
-router.route("/update/:designId").put(verifyJwt, adminOnly, updateDesign);
+// Public routes
+router.get("/public", getAllPublicDesigns);
+router.get("/user/:userId/public", getPublicDesignsByUser);
 
-// Authenticated user routes (verifyJwt only)
-router.get("/my-designs", verifyJwt, designByUserId);
-router.get("/my-public-designs", verifyJwt, publicDesignByUserId);
-router.get("/my-private-designs", verifyJwt, privateDesignByUserId);
+// Authenticated routes
+router.use(verifyJwt);
 
-// Public routes (no auth required)
-router.get("/all", allDesign);
-router.get("/public", publicDesign);
-router.get("/public/:designId", publicDesignById);
-router.get("/:designId", designById);
+// User design management
+router.post("/",createDesign);
+router.get("/my-designs", getMyDesigns);
+router.get("/:designId", getDesignById);
+router.put("/:designId", updateDesign);
+router.put("/:designId/public", toggleDesignPublicStatus);
+router.put("/:designId/purchasable", updateDesignPurchasableStatus);
+router.delete("/:designId", deleteDesign);
+
+// Admin routes
+router.get("/", adminOnly, getAllDesigns);
 
 export default router;

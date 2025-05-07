@@ -2,29 +2,36 @@ import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
 import {
-  getAllOrders,
-  updateDeliveryStatus,
-  updatePaymentStatus,
-  getOrderById,
   addOrder,
   deleteOrder,
-  returnedOrder,
-  approveReturn,
+  getAllOrders,
+  getOrderById,
+  updateDeliveryStatus,
+  updatePaymentStatus,
+  requestReturn,
+  processReturn
 } from "../controllers/order.controller.js";
 
 const router = Router();
 
-// All routes below are protected for admins only
+// Apply JWT verification to all order routes
 router.use(verifyJwt);
 
-// routes/order.routes.js
-router.get("/", adminOnly, getAllOrders);
-router.post("/", addOrder);
-router.get("/:orderId", adminOnly, getOrderById);
-router.patch("/update-delivery/:orderId", adminOnly, updateDeliveryStatus);
-router.patch("/update-payment/:orderId", adminOnly, updatePaymentStatus);
-router.delete("/:orderId", adminOnly, deleteOrder);
-router.patch("/return/:orderId", returnedOrder);
-router.put("/approve-return/:returnId", adminOnly, verifyJwt, approveReturn);
+// Customer routes
+router.route("/")
+  .post(addOrder); // Create new order
+
+router.route("/:orderId")
+  .delete(deleteOrder); // Cancel order
+
+router.post("/:orderId/return", requestReturn); // Request return
+
+// Admin-only routes
+router.get("/", adminOnly, getAllOrders); // Get all orders
+router.get("/:orderId", adminOnly, getOrderById); // Get order details
+
+router.put("/:orderId/delivery", adminOnly, updateDeliveryStatus); // Update delivery status
+router.put("/:orderId/payment", adminOnly, updatePaymentStatus); // Update payment status
+router.put("/:orderId/process-return", adminOnly, processReturn); // Process return request
 
 export default router;
