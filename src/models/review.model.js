@@ -33,4 +33,5 @@ const reviewSchema = new mongoose.Schema(
 reviewSchema.index({ user: 1, product: 1 }, { unique: true, sparse: true });
 reviewSchema.index({ user: 1, design: 1 }, { unique: true, sparse: true });
 
-export default mongoose.model('Review', reviewSchema);
+
+export const Review = mongoose.model("Review", reviewSchema);
