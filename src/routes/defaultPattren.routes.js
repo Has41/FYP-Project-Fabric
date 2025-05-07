@@ -8,9 +8,9 @@ import {
 } from "../controllers/defaultPattren.controller.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
 const router = Router();
-router.use(verifyJwt, adminOnly);
+router.use(verifyJwt);
 
-router.post("/add", (req, res, next) => {
+router.post("/add",adminOnly, (req, res, next) => {
   upload.any()(req, res, (err) => { // `any()` handles single or multiple file uploads
     if (err) {
       return res.status(400).json({ message: err.message });
