@@ -228,7 +228,6 @@ export {
   getDesignById,
   updateDesign,
   toggleDesignPublicStatus,
-  updateDesignPurchasableStatus,
   deleteDesign,
   getAllDesigns,
   getAllPublicDesigns,

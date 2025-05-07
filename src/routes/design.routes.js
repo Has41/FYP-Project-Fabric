@@ -9,7 +9,6 @@ import {
   getDesignById,
   updateDesign,
   toggleDesignPublicStatus,
-  updateDesignPurchasableStatus,
   deleteDesign,
   getAllDesigns,
   getAllPublicDesigns
@@ -30,7 +29,6 @@ router.get("/my-designs", getMyDesigns);
 router.get("/:designId", getDesignById);
 router.put("/:designId", updateDesign);
 router.put("/:designId/public", toggleDesignPublicStatus);
-router.put("/:designId/purchasable", updateDesignPurchasableStatus);
 router.delete("/:designId", deleteDesign);
 
 // Admin routes

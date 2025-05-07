@@ -6,7 +6,7 @@ import {
   getTopSellingDesigns,
   getMonthlyRevenueTrend,
   getDesignerDashboardStats
-} from "../controllers/designer.controller.js";
+} from "../controllers/designerDashboard.controller.js";
 
 const router = Router();
 
