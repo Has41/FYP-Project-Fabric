@@ -15,8 +15,12 @@ import {
   userProfile,
   verifyEmail,
   getDesignerBankInfo,
-  getUserDashboardStats
+  getUserDashboardStats,
+  getAllUsers,
+  deleteUserById,
+  deleteUserByIdAdmin,
 } from "../controllers/user.controller.js";
+import { adminOnly } from "../middleware/admin.middleware.js";
 
 
 const router = Router();
@@ -36,6 +40,12 @@ router.route("/change-password").post(verifyJwt, currentPasswordChange);
 router.route("/update-details").patch(verifyJwt, updateAccountDetails);
 
 router.route("/get-user").get(verifyJwt,getCurrentUser);
+
+router.route("/all-users").get(verifyJwt,adminOnly,getAllUsers);
+
+router.route("/delete-user-admin/:userId").delete(verifyJwt,adminOnly,deleteUserByIdAdmin);
+
+router.route("/delete-user/:userId").delete(verifyJwt,deleteUserById);
 
 
 router
