@@ -45,9 +45,15 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Phone number is required"],
     },
-    country: { type: String, required: [true, "Country is required"] },
-    address: { type: String, required: [true, "Address is required"] },
-    city: { type: String, required: [true, "City is required"] },
+    country: { 
+      type: String,
+      required: [true, "Country is required"] },
+    address: {
+       type: String, 
+       required: [true, "Address is required"] },
+    city: { 
+       type: String, 
+       required: [true, "City is required"] },
 
     postalCode: String,
     avatar: String,

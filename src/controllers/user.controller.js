@@ -11,6 +11,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import { count } from "console";
 //import { log } from "console";
 
 const genrateAccessTokenAndRefreshToken = async (userId) => {
@@ -48,10 +49,11 @@ const registerUser = asyncHandler(async (req, res, next) => {
       address,
       city,
       postalCode,
+      country,
     } = req.body;
 
     if (
-      [fullname, username, email, password, phoneNumber, address, city].some(
+      [fullname, username, email, password, phoneNumber, address, city, country].some(
         (field) => field?.trim() === ""
       )
     ) {
@@ -65,14 +67,13 @@ const registerUser = asyncHandler(async (req, res, next) => {
       throw new ApiError(409, "Email or Username already registered");
     }
 
-    let avatarLocalPath;
+    let avatarLocalPath, avatar;
     if (req.file && req.file.path) {
       avatarLocalPath = req.file.path;
-    } else {
-      console.error("No file uploaded or incorrect file structure:", req.file);
-    }
+       avatar = await uploadOnCloudinary(avatarLocalPath);
+    } 
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    
 
     const user = await User.create({
       fullname,
@@ -84,6 +85,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
       postalCode,
       username: username.toLowerCase(),
       avatar: avatar?.url || "",
+      country
     });
 
     const userCreated = await User.findOne({ _id: user._id }).select(
@@ -250,13 +252,26 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const deleteUserById = asyncHandler(async (req, res) => {
   try {
-    // Remove the refreshToken from the database
+    const user = await User.findById(req.user._id);
+    
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    // Delete avatar from Cloudinary if exists
+    if (user.avatar) {
+      const public_id = user.avatar.split("/").pop().split(".")[0];
+      await deleteFromCloudinary(public_id);
+    }
+
+    // Delete user from database
     await User.findByIdAndDelete(req.user._id);
+    
     return res
       .status(200)
       .json(new ApiResponse(200, {}, "User deleted successfully"));
   } catch (error) {
-    throw new ApiError(500, "Server error occurred", error);
+    throw new ApiError(500, error.message || "Server error occurred");
   }
 });
 
@@ -264,14 +279,28 @@ const deleteUserByIdAdmin = asyncHandler(async (req, res) => {
   if (req.user.role !== "admin") {
     throw new ApiError(401, "Unauthorized");
   }
+  
   try {
-    // Remove the refreshToken from the database
-    await User.findByIdAndDelete(req.params.userId);
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    // Delete avatar from Cloudinary if exists
+    if (user.avatar) {
+      const public_id = user.avatar.split("/").pop().split(".")[0];
+      await deleteFromCloudinary(public_id);
+    }
+
+    // Delete user from database
+    const deletedUser = await User.findByIdAndDelete(req.params.userId);
+    
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "User deleted successfully"));
+      .json(new ApiResponse(200, deletedUser || {}, "User deleted successfully"));
   } catch (error) {
-    throw new ApiError(500, "Server error occurred", error);
+    throw new ApiError(500, error.message || "Server error occurred");
   }
 });
 
@@ -349,11 +378,11 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
-  const { fullname, username, email, phoneNumber, address, city, postalCode } =
+  const { fullname, username, email, phoneNumber, address, city, postalCode , country} =
     req.body;
 
   if (
-    [fullname, username, email, phoneNumber, address, city].some(
+    [fullname, username, email, phoneNumber, address, city, country].some(
       (field) => field?.trim() === ""
     )
   ) {
@@ -370,6 +399,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         phoneNumber,
         address,
         city,
+        country,
         postalCode: postalCode || "",
       },
     },
@@ -377,6 +407,10 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
       new: true,
     }
   ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
 
   return res.status(200).json(new ApiResponse(200, user, "Detaile Upadted"));
 });
@@ -738,52 +772,69 @@ const orderHistory = asyncHandler(async (req, res) => {
 });
 
 const changeRole = asyncHandler(async (req, res) => {
-  const { username } = req.params;
-  const {
-    role,
-    accountNumber,
-    bankName,
-    bankBranch,
-    ifscCode,
-    accountHolderName,
-  } = req.body;
+  const { userId } = req.params;
+  const { role, accountDetails } = req.body;
+
+  // Validate required fields
   if (!role) {
-    throw new ApiError(400, "Role Not Found");
-  }
-  if (!accountNumber || accountNumber.length !== 12) {
-    throw new ApiError(400, "Account Number Not Found");
-  }
-  if (!bankName) {
-    throw new ApiError(400, "Bank Name Not Found");
-  }
-  if (!bankBranch) {
-    throw new ApiError(400, "Bank Branch Not Found");
-  }
-  if (!ifscCode) {
-    throw new ApiError(400, "IFSC Code Not Found");
-  }
-  if (!accountHolderName) {
-    throw new ApiError(400, "Account Holder Name Not Found");
+    throw new ApiError(400, "Role is required");
   }
 
-  if (!username?.trim()) {
-    throw new ApiError(400, "Username Not Found");
+  if (role === 'designer') {
+    if (!accountDetails) {
+      throw new ApiError(400, "Account details are required for designer role");
+    }
+
+    const { 
+      accountNumber, 
+      bankName, 
+      bankBranch, 
+      ifscCode, 
+      accountHolderName 
+    } = accountDetails;
+
+    // Validate account details
+    if (!accountNumber || !/^\d{12}$/.test(accountNumber)) {
+      throw new ApiError(400, "Valid 12-digit account number is required");
+    }
+    if (!bankName?.trim()) {
+      throw new ApiError(400, "Bank name is required");
+    }
+    if (!bankBranch?.trim()) {
+      throw new ApiError(400, "Bank branch is required");
+    }
+    if (!ifscCode?.trim() || !/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(ifscCode)) {
+      throw new ApiError(400, "Valid IFSC code is required");
+    }
+    if (!accountHolderName?.trim()) {
+      throw new ApiError(400, "Account holder name is required");
+    }
   }
 
-  const user = await User.findOneAndUpdate(
-    { username: username.toLowerCase() },
-    { role: role },
+  if (!userId?.trim()) {
+    throw new ApiError(400, "User ID is required");
+  }
+
+  // Update user role and account details
+  const updateData = { role };
+  if (role === 'designer' && accountDetails) {
+    updateData.accountDetails = accountDetails;
+  }
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    updateData,
     { new: true }
   );
 
-  const Designer = await Designer.create({
-    designer: user._id,
-    accountNumber,
-    bankName,
-    bankBranch,
-    ifscCode,
-    accountHolderName,
-  });
+  // Create designer record if role is designer
+  if (role === 'designer') {
+    await Designer.findOneAndUpdate(
+      { designer: user._id },
+      { ...accountDetails },
+      { upsert: true, new: true }
+    );
+  }
 
   return res
     .status(200)

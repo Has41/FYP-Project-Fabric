@@ -5,8 +5,10 @@ import {
   addPattren,
   allPatterns,
   deletePattren,
+  getAllPatterns,
   getPattrenById
 } from "../controllers/pattren.controller.js";
+
 const router = Router();
 router.use(verifyJwt);
 
@@ -17,6 +19,8 @@ router.get("/", allPatterns);
 router.delete('/delete/:pattrenId', deletePattren);
 
 router.get("/:pattrenId", getPattrenById);
+
+router.get("/all", getAllPatterns);
 
 
 export default router;

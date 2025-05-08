@@ -56,7 +56,7 @@ const designSchema = new Schema(
     status: {
       type: String,
       enum: ["draft", "published", "archived"],
-      default: "draft"
+      default: "published"
     },
     
   },

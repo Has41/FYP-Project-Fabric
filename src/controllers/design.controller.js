@@ -15,8 +15,9 @@ const createDesign = asyncHandler(async (req, res) => {
     text,
     graphic,
     basePrice, // which is price in product
+    isPublic,
   } = req.body;
-
+  let salePrice;
   // Validation
   if (!name || !product || !color || !basePrice) {
     throw new ApiError(400, "Required fields are missing");
@@ -27,11 +28,11 @@ const createDesign = asyncHandler(async (req, res) => {
   }
 
   if (mongoose.Types.ObjectId.isValid(pattern) || mongoose.Types.ObjectId.isValid(defaultPattern) || mongoose.Types.ObjectId.isValid(text) || mongoose.Types.ObjectId.isValid(graphic)) {
-    basePrice = basePrice + 20;
+    salePrice = basePrice + 20;
   }
 
   if(color != "#ffffff" || color != "#FFFFFF") {
-    basePrice = basePrice + 10;
+    salePrice = basePrice + 10;
   }
 
   const design = await Design.create({
@@ -44,7 +45,8 @@ const createDesign = asyncHandler(async (req, res) => {
     text,
     graphic,
     basePrice,
-    isPublic: false, // Always private by default
+    salePrice,
+    isPublic: isPublic || false,
   });
 
   return res
@@ -207,7 +209,10 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
   const options = {
     page: parseInt(page),
     limit: parseInt(limit),
-    populate: "owner",
+    populate: {
+      path: 'owner',
+      select: 'username avatar fullname'
+    },
     lean: true,
   };
 

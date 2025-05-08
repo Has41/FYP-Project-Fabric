@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 const designerSchema = new Schema(
   {
-    user: {
+    designer: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,

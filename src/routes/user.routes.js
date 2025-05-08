@@ -19,6 +19,7 @@ import {
   getAllUsers,
   deleteUserById,
   deleteUserByIdAdmin,
+  changeRole
 } from "../controllers/user.controller.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
 
@@ -47,6 +48,7 @@ router.route("/delete-user-admin/:userId").delete(verifyJwt,adminOnly,deleteUser
 
 router.route("/delete-user/:userId").delete(verifyJwt,deleteUserById);
 
+router.route("/change-role/:userId").patch(verifyJwt,changeRole);
 
 router
   .route("/update-avatar")
