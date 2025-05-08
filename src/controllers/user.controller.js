@@ -248,6 +248,32 @@ const logoutUser = asyncHandler(async (req, res) => {
   }
 });
 
+const deleteUserById = asyncHandler(async (req, res) => {
+  try {
+    // Remove the refreshToken from the database
+    await User.findByIdAndDelete(req.user._id);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "User deleted successfully"));
+  } catch (error) {
+    throw new ApiError(500, "Server error occurred", error);
+  }
+});
+
+const deleteUserByIdAdmin = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(401, "Unauthorized");
+  }
+  try {
+    // Remove the refreshToken from the database
+    await User.findByIdAndDelete(req.params.userId);
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "User deleted successfully"));
+  } catch (error) {
+    throw new ApiError(500, "Server error occurred", error);
+  }
+});
 
 const refreshToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
@@ -395,12 +421,10 @@ const getDesignerBankInfo = async (req, res) => {
     const { userId } = req.params;
 
     // Populate designer profile with account details
-    const user = await User.findById(userId)
-      .select("email country")
-      .populate({
-        path: "designerProfile",
-        select: "accountDetails",
-      });
+    const user = await User.findById(userId).select("email country").populate({
+      path: "designerProfile",
+      select: "accountDetails",
+    });
 
     if (!user || !user.designerProfile) {
       return res.status(404).json({ message: "Designer not found" });
@@ -463,10 +487,10 @@ const userProfile = asyncHandler(async (req, res) => {
           $map: {
             input: "$orders",
             as: "order",
-            in: "$$order._id"
-          }
-        }
-      }
+            in: "$$order._id",
+          },
+        },
+      },
     },
     {
       $lookup: {
@@ -476,18 +500,18 @@ const userProfile = asyncHandler(async (req, res) => {
           {
             $match: {
               $expr: {
-                $in: ["$order", "$$userOrderIds"]
-              }
-            }
-          }
+                $in: ["$order", "$$userOrderIds"],
+              },
+            },
+          },
         ],
-        as: "returnOrders"
-      }
+        as: "returnOrders",
+      },
     },
     {
       $addFields: {
-        totalReturnOrders: { $size: "$returnOrders" }
-      }
+        totalReturnOrders: { $size: "$returnOrders" },
+      },
     },
     {
       $project: {
@@ -495,9 +519,9 @@ const userProfile = asyncHandler(async (req, res) => {
         password: 0,
         orders: 0,
         returnOrders: 0,
-        orderIds: 0
-      }
-    }
+        orderIds: 0,
+      },
+    },
   ]);
 
   if (!profile || profile.length === 0) {
@@ -506,7 +530,64 @@ const userProfile = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, profile[0], "User profile fetched successfully"));
+    .json(
+      new ApiResponse(200, profile[0], "User profile fetched successfully")
+    );
+});
+
+const getAllUsers = asyncHandler(async (req, res) => {
+  // Check if the requesting user is an admin
+  if (req.user?.role !== "admin") {
+    throw new ApiError(403, "Unauthorized: Only admin can access all users");
+  }
+
+  const { page = 1, limit = 10 } = req.query;
+
+  const users = await User.aggregate([
+    {
+      $lookup: {
+        from: "designs",
+        localField: "_id",
+        foreignField: "owner",
+        as: "designs",
+      },
+    },
+    {
+      $lookup: {
+        from: "orders",
+        localField: "_id",
+        foreignField: "orderBy",
+        as: "orders",
+      },
+    },
+    {
+      $addFields: {
+        designsCount: { $size: "$designs" },
+        ordersCount: { $size: "$orders" },
+      },
+    },
+    {
+      $project: {
+        refreshToken: 0,
+        password: 0,
+        designs: 0,
+        orders: 0,
+      },
+    },
+    {
+      $sort: { createdAt: -1 }, // Sort by newest first
+    },
+    {
+      $skip: (page - 1) * limit,
+    },
+    {
+      $limit: parseInt(limit),
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, users, "All users fetched successfully"));
 });
 
 const getUserDashboardStats = asyncHandler(async (req, res) => {
@@ -536,11 +617,16 @@ const getUserDashboardStats = asyncHandler(async (req, res) => {
     { totalOrders: 0, totalSpent: 0, statusBreakdown: {} }
   );
 
-  res.status(200).json(
-    new ApiResponse(200, statusCounts, "User dashboard stats fetched successfully")
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        statusCounts,
+        "User dashboard stats fetched successfully"
+      )
+    );
 });
-
 
 const adminProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
@@ -653,23 +739,30 @@ const orderHistory = asyncHandler(async (req, res) => {
 
 const changeRole = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  const {role,accountNumber,bankName,bankBranch,ifscCode,accountHolderName} = req.body;
-  if(!role){
+  const {
+    role,
+    accountNumber,
+    bankName,
+    bankBranch,
+    ifscCode,
+    accountHolderName,
+  } = req.body;
+  if (!role) {
     throw new ApiError(400, "Role Not Found");
   }
-  if(!accountNumber || accountNumber.length !== 12){
+  if (!accountNumber || accountNumber.length !== 12) {
     throw new ApiError(400, "Account Number Not Found");
   }
-  if(!bankName){
+  if (!bankName) {
     throw new ApiError(400, "Bank Name Not Found");
   }
-  if(!bankBranch){
+  if (!bankBranch) {
     throw new ApiError(400, "Bank Branch Not Found");
   }
-  if(!ifscCode){
+  if (!ifscCode) {
     throw new ApiError(400, "IFSC Code Not Found");
   }
-  if(!accountHolderName){
+  if (!accountHolderName) {
     throw new ApiError(400, "Account Holder Name Not Found");
   }
 
@@ -697,9 +790,6 @@ const changeRole = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Role changed successfully"));
 });
 
-
-
-
 export {
   registerUser,
   loginUser,
@@ -715,5 +805,8 @@ export {
   verifyEmail,
   changeRole,
   getDesignerBankInfo,
-  getUserDashboardStats
+  getUserDashboardStats,
+  deleteUserById,
+  deleteUserByIdAdmin,
+  getAllUsers,
 };

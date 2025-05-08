@@ -100,4 +100,20 @@ const allPatterns = asyncHandler(async (req, res, next) => {
   }
 });
 
-export { addPattren, deletePattren, allPatterns };
+const getPattrenById = asyncHandler(async (req, res, next) => {
+  try {
+    const { pattrenId } = req.params;
+    if (!pattrenId) {
+      throw new ApiError(400, "Pattren Id Not Found");
+    }
+    const pattren = await Pattren.findById(pattrenId);
+    if (!pattren) {
+      throw new ApiError(404, "Pattren Not Found");
+    }
+    return res.status(200).json(new ApiResponse(200, pattren, "Pattren Fetched Successfully"));
+  } catch (error) {
+    next(error);
+  }
+});
+
+export { addPattren, deletePattren, allPatterns, getPattrenById };
