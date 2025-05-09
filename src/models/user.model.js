@@ -45,22 +45,48 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Phone number is required"],
     },
-    country: { 
+    country: {
       type: String,
-      required: [true, "Country is required"] },
+      required: [true, "Country is required"],
+    },
     address: {
-       type: String, 
-       required: [true, "Address is required"] },
-    city: { 
-       type: String, 
-       required: [true, "City is required"] },
+      type: String,
+      required: [true, "Address is required"],
+    },
+    city: {
+      type: String,
+      required: [true, "City is required"],
+    },
 
     postalCode: String,
     avatar: String,
     refreshToken: String,
-    designerProfile: {
-      type: Schema.Types.ObjectId,
-      ref: "Designer",
+    accountDetails: {
+      accountNumber: {
+        type: String,
+        required: true,
+        validate: {
+          validator: (v) => /^\d{9,18}$/.test(v),
+          message: "Invalid account number",
+        },
+      },
+      bankName: {
+        type: String,
+      },
+      bankBranch: {
+        type: String,
+      },
+      ifscCode: {
+        type: String,
+
+        validate: {
+          validator: (v) => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v),
+          message: "Invalid IFSC code",
+        },
+      },
+      accountHolderName: {
+        type: String,
+      },
     },
   },
   { timestamps: true }

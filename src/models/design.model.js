@@ -53,6 +53,12 @@ const designSchema = new Schema(
       type: Number,
       min: 0
     },
+    designerProfit: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5
+    },
     status: {
       type: String,
       enum: ["draft", "published", "archived"],

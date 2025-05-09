@@ -3,7 +3,6 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Order } from "../models/order.model.js";
 import { Design } from "../models/design.model.js";
-import { Designer } from "../models/designer.model.js";
 import mongoose from "mongoose";
 
 
@@ -12,6 +11,59 @@ const validateDesignForPurchase = (design, userId) => {
     throw new Error("Only the owner can purchase private designs");
   }
 };
+
+const addOrder = asyncHandler(async (req, res) => {
+  if (req.user.role === "admin") {
+    throw new ApiError(403, "Only designers and users can purchase designs");
+  }
+
+  const { designIds } = req.body;
+  let { shippingFee } = req.body;
+  const userId = req.user._id;
+
+  // Validate input
+  if (!designIds || !Array.isArray(designIds)) {
+    throw new ApiError(400, "Design IDs must be provided as an array");
+  }
+  if (designIds.length === 0) {
+    throw new ApiError(400, "At least one design must be selected");
+  }
+  if (shippingFee < 0) {
+    throw new ApiError(400, "Shipping fee must be non-negative");
+  }
+  if (!shippingFee) {
+    shippingFee = 3; // Default shipping fee
+  }
+
+  // Validate designs
+  await Promise.all(designIds.map(async (designId) => {
+    const design = await Design.findById(designId);
+    validateDesignForPurchase(design, userId);
+  }));
+
+  // Prepare order items
+  const orderItems = await prepareOrderItems(designIds, userId);
+  const { subtotal, totalAmount, designerEarnings } = calculateOrderTotals(orderItems, shippingFee);
+
+  // Create the order
+  const order = await Order.create({
+    orderBy: userId,
+    designs: orderItems,
+    subtotal,
+    shippingFee,
+    totalAmount,
+    designerEarnings,
+    paymentStatus: "pending",
+    deliveryStatus: "pending"
+  });
+
+ 
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, order, "Order created successfully"));
+});
+
 const prepareOrderItems = async (designIds, userId) => {
   const designs = await Design.find({
     _id: { $in: designIds },
@@ -24,7 +76,6 @@ const prepareOrderItems = async (designIds, userId) => {
     ]
   });
 
-  // Check if all designs are valid
   if (designs.length !== designIds.length) {
     const invalidIds = designIds.filter(id => 
       !designs.some(d => d._id.equals(id))
@@ -40,104 +91,68 @@ const prepareOrderItems = async (designIds, userId) => {
   }));
 };
 
-// Calculate order totals
-const calculateOrderTotals = (items) => {
+// Updated to accept shippingFee as a parameter
+const calculateOrderTotals = (items, shippingFee) => {
   const subtotal = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+  const designerEarnings = items.reduce((sum, item) => sum + (item.designerProfit * item.quantity), 0);
+  
   return {
     subtotal,
-    totalAmount: subtotal, // Can add shipping/taxes here if needed
-    designerEarnings: items.reduce((sum, item) => sum + (item.designerProfit * item.quantity), 0)
+    totalAmount: subtotal + shippingFee + designerEarnings, // Shipping fee added here
+    designerEarnings
   };
 };
-
-// Record designer earnings (for public designs only)
-const recordDesignerEarnings = async (order) => {
-  if (order.designerEarningsRecorded) return;
-
-  await Promise.all(order.designs.map(async (item) => {
-    if (item.designerProfit > 0) { // Only for public designs
-      const design = await Design.findById(item.design);
-      await Designer.findOneAndUpdate(
-        { user: design.owner },
-        {
-          $inc: { 
-            totalEarnings: item.designerProfit * item.quantity,
-            pendingBalance: item.designerProfit * item.quantity
-          },
-          $addToSet: { sales: design._id }
-        }
-      );
-    }
-  }));
-
-  order.designerEarningsRecorded = true;
-  await order.save();
-};
-
-// Create a new order
-const addOrder = asyncHandler(async (req, res) => {
-  const { designIds } = req.body;
-  const userId = req.user._id;
-
-  // Validate input
-  if (!designIds || !Array.isArray(designIds)) {
-    throw new ApiError(400, "Design IDs must be provided as an array");
-  }
-  if (designIds.length === 0) {
-    throw new ApiError(400, "At least one design must be selected");
-  }
-
-  // Validate designs
-  await Promise.all(designIds.map(async (designId) => {
-    const design = await Design.findById(designId);
-    validateDesignForPurchase(design, userId);
-  }));
-  
-
-  // Prepare order items
-  const orderItems = await prepareOrderItems(designIds, userId);
-  const { subtotal, totalAmount, designerEarnings } = calculateOrderTotals(orderItems);
-
-  // Create the order
-  const order = await Order.create({
-    orderBy: userId,
-    designs: orderItems,
-    subtotal,
-    totalAmount,
-    designerEarnings,
-    paymentStatus: "pending",
-    deliveryStatus: "pending"
-  });
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, order, "Order created successfully"));
-});
 
 // Delete/cancel an order
 const deleteOrder = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const userId = req.user._id;
 
+  // Find and validate order
   const order = await Order.findOne({
     _id: orderId,
     orderBy: userId
-  });
+  }).populate('designs.design'); // Populate design details
 
   if (!order) {
     throw new ApiError(404, "Order not found or not authorized");
   }
 
-  // Check if order can be cancelled (within 2 days and pending)
+  // Check if order can be cancelled
   const orderAgeDays = (new Date() - order.createdAt) / (1000 * 60 * 60 * 24);
   if (orderAgeDays > 2 || order.deliveryStatus !== "pending") {
-    throw new ApiError(400, "Order cannot be cancelled at this stage");
+    throw new ApiError(400, 
+      orderAgeDays > 2 
+        ? "Order cancellation window has expired (2 days max)" 
+        : "Order cannot be cancelled after processing has begun"
+    );
   }
 
-  await Order.findByIdAndDelete(orderId);
-  return res
-    .status(200)
-    .json(new ApiResponse(200, null, "Order cancelled successfully"));
+  // Update order status to cancelled
+  const cancelledOrder = await Order.findByIdAndUpdate(
+    orderId,
+    {
+      $set: {
+        deliveryStatus: "cancelled",
+        
+        $push: {
+          statusHistory: {
+            status: "cancelled",
+            changedAt: new Date(),
+            changedBy: userId
+          }
+        }
+      }
+    },
+    { new: true }
+  ).select('-__v -statusHistory._id'); // Exclude unnecessary fields
+
+  // TODO: Add any refund processing logic here if payment was online
+  // This might involve calling your payment gateway API
+
+  return res.status(200).json(
+    new ApiResponse(200, cancelledOrder, "Order cancelled successfully")
+  );
 });
 
 // Get all orders (admin only)

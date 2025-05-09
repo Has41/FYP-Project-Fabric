@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
-import { designerOnly } from "../middleware/designer.middleware.js";
 import {
   createDesign,
   getMyDesigns,
@@ -11,7 +10,7 @@ import {
   toggleDesignPublicStatus,
   deleteDesign,
   getAllDesigns,
-  getAllPublicDesigns
+  getAllPublicDesigns,
 } from "../controllers/design.controller.js";
 
 const router = Router();

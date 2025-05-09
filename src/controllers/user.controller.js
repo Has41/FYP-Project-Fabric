@@ -1,7 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { Designer } from "../models/designer.model.js";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
@@ -53,9 +52,16 @@ const registerUser = asyncHandler(async (req, res, next) => {
     } = req.body;
 
     if (
-      [fullname, username, email, password, phoneNumber, address, city, country].some(
-        (field) => field?.trim() === ""
-      )
+      [
+        fullname,
+        username,
+        email,
+        password,
+        phoneNumber,
+        address,
+        city,
+        country,
+      ].some((field) => field?.trim() === "")
     ) {
       throw new ApiError(400, "All fields are required");
     }
@@ -70,10 +76,8 @@ const registerUser = asyncHandler(async (req, res, next) => {
     let avatarLocalPath, avatar;
     if (req.file && req.file.path) {
       avatarLocalPath = req.file.path;
-       avatar = await uploadOnCloudinary(avatarLocalPath);
-    } 
-
-    
+      avatar = await uploadOnCloudinary(avatarLocalPath);
+    }
 
     const user = await User.create({
       fullname,
@@ -85,7 +89,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
       postalCode,
       username: username.toLowerCase(),
       avatar: avatar?.url || "",
-      country
+      country,
     });
 
     const userCreated = await User.findOne({ _id: user._id }).select(
@@ -253,7 +257,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 const deleteUserById = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    
+
     if (!user) {
       throw new ApiError(404, "User not found");
     }
@@ -266,7 +270,7 @@ const deleteUserById = asyncHandler(async (req, res) => {
 
     // Delete user from database
     await User.findByIdAndDelete(req.user._id);
-    
+
     return res
       .status(200)
       .json(new ApiResponse(200, {}, "User deleted successfully"));
@@ -279,10 +283,10 @@ const deleteUserByIdAdmin = asyncHandler(async (req, res) => {
   if (req.user.role !== "admin") {
     throw new ApiError(401, "Unauthorized");
   }
-  
+
   try {
     const user = await User.findById(req.params.userId);
-    
+
     if (!user) {
       throw new ApiError(404, "User not found");
     }
@@ -295,10 +299,12 @@ const deleteUserByIdAdmin = asyncHandler(async (req, res) => {
 
     // Delete user from database
     const deletedUser = await User.findByIdAndDelete(req.params.userId);
-    
+
     return res
       .status(200)
-      .json(new ApiResponse(200, deletedUser || {}, "User deleted successfully"));
+      .json(
+        new ApiResponse(200, deletedUser || {}, "User deleted successfully")
+      );
   } catch (error) {
     throw new ApiError(500, error.message || "Server error occurred");
   }
@@ -378,8 +384,16 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
-  const { fullname, username, email, phoneNumber, address, city, postalCode , country} =
-    req.body;
+  const {
+    fullname,
+    username,
+    email,
+    phoneNumber,
+    address,
+    city,
+    postalCode,
+    country,
+  } = req.body;
 
   if (
     [fullname, username, email, phoneNumber, address, city, country].some(
@@ -450,40 +464,249 @@ const updateUserAvtar = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Avatar Uploaded suceesfully"));
 });
 
-const getDesignerBankInfo = async (req, res) => {
-  try {
-    const { userId } = req.params;
+const getDesignerBankInfo = asyncHandler(async (req, res) => {
+  // Extract the bank info from the user document
+  const bankInfo = {
+    accountNumber: req.user.accountDetails.accountNumber,
+    bankName: req.user.accountDetails.bankName,
+    bankBranch: req.user.accountDetails.bankBranch,
+    ifscCode: req.user.accountDetails.ifscCode,
+    accountHolderName: req.user.accountDetails.accountHolderName,
+  };
 
-    // Populate designer profile with account details
-    const user = await User.findById(userId).select("email country").populate({
-      path: "designerProfile",
-      select: "accountDetails",
-    });
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, bankInfo, "Designer bank info fetched successfully")
+    );
+});
 
-    if (!user || !user.designerProfile) {
-      return res.status(404).json({ message: "Designer not found" });
+const getUserBankInfoById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Authorization check - user can only view their own bank info unless they're admin
+  if (req.user.role !== "admin" && req.user._id.toString() !== id) {
+    throw new ApiError(403, "You can only view your own bank information");
+  }
+
+  // Fetch user with only necessary fields
+  const user = await User.findById(id).select(
+    "role accountDetails username email"
+  );
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (!user.accountDetails) {
+    throw new ApiError(404, "Bank details not found for this user");
+  }
+
+  // Prepare response data
+  const responseData = {
+    userInfo: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    },
+    bankInfo: {
+      accountNumber: user.accountDetails.accountNumber,
+      bankName: user.accountDetails.bankName,
+      bankBranch: user.accountDetails.bankBranch,
+      ifscCode: user.accountDetails.ifscCode,
+      accountHolderName: user.accountDetails.accountHolderName,
+    },
+  };
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        responseData,
+        "Bank information retrieved successfully"
+      )
+    );
+});
+
+const addBankInfo = asyncHandler(async (req, res) => {
+  const { accountNumber, bankName, bankBranch, ifscCode, accountHolderName } =
+    req.body;
+
+  // Validate required fields
+  if (!accountNumber || !ifscCode || !accountHolderName) {
+    throw new ApiError(
+      400,
+      "Account number, IFSC code, and account holder name are required"
+    );
+  }
+
+  // Validate account number format (9-18 digits)
+  if (!/^\d{9,18}$/.test(accountNumber)) {
+    throw new ApiError(400, "Invalid account number (must be 9-18 digits)");
+  }
+
+  // Validate IFSC code format
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)) {
+    throw new ApiError(400, "Invalid IFSC code format");
+  }
+
+  // Find and update user
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        accountDetails: {
+          accountNumber,
+          bankName: bankName || null,
+          bankBranch: bankBranch || null,
+          ifscCode,
+          accountHolderName,
+        },
+      },
+    },
+    { new: true, select: "accountDetails role username email" }
+  );
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          id: updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role,
+        },
+        bankInfo: updatedUser.accountDetails,
+      },
+      "Bank information updated successfully"
+    )
+  );
+});
+
+const updateBankInfo = asyncHandler(async (req, res) => {
+  const { 
+    accountNumber, 
+    bankName, 
+    bankBranch, 
+    ifscCode, 
+    accountHolderName 
+  } = req.body;
+
+  // Validate required fields
+  if (!accountNumber || !ifscCode || !accountHolderName) {
+    throw new ApiError(400, "Account number, IFSC code, and account holder name are required");
+  }
+
+  // Validate account number format
+  if (!/^\d{9,18}$/.test(accountNumber)) {
+    throw new ApiError(400, "Account number must be 9-18 digits");
+  }
+
+  // Validate IFSC code format
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)) {
+    throw new ApiError(400, "Invalid IFSC code format");
+  }
+
+  // Update bank info for the current user
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        accountDetails: {
+          accountNumber,
+          bankName: bankName || null,
+          bankBranch: bankBranch || null,
+          ifscCode,
+          accountHolderName
+        }
+      }
+    },
+    { 
+      new: true,
+      select: 'accountDetails role username email' // Return only necessary fields
+    }
+  );
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        user: {
+          id: updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role
+        },
+        bankInfo: updatedUser.accountDetails
+      },
+      "Bank information updated successfully"
+    )
+  );
+});
+
+const changeRole = asyncHandler(async (req, res) => {
+  const { role, accountDetails } = req.body;
+  const userId = req.user._id; // User can only change their own role
+
+  // 1. Block invalid role assignments
+  if (role === "admin") {
+    throw new ApiError(400, "Cannot self-assign admin role");
+  }
+
+  // 2. Validate allowed roles (only user ↔ designer)
+  if (!["user", "designer"].includes(role)) {
+    throw new ApiError(400, "Role can only be 'user' or 'designer'");
+  }
+
+  // 3. Special validation for designer role
+  if (role === "designer") {
+    if (!accountDetails?.accountNumber || 
+        !accountDetails?.ifscCode || 
+        !accountDetails?.accountHolderName) {
+      throw new ApiError(400, "Account details required for designer role");
     }
 
-    const { accountNumber, bankName, ifscCode, accountHolderName } =
-      user.designerProfile.accountDetails;
-
-    const response = {
-      account_number: accountNumber,
-      routing_number: ifscCode, // in Pakistan IFSC is equivalent to routing
-      account_holder_name: accountHolderName,
-      account_holder_type: "individual", // static unless you add org support
-      country: user.country,
-      currency: "PKR", // assuming Pakistani currency
-      bank_code: bankName,
-      email: user.email,
-    };
-
-    return res.status(200).json(response);
-  } catch (error) {
-    console.error("Error fetching designer bank info:", error);
-    res.status(500).json({ message: "Internal server error" });
+    // Validate bank details format
+    if (!/^\d{9,18}$/.test(accountDetails.accountNumber)) {
+      throw new ApiError(400, "Account number must be 9-18 digits");
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(accountDetails.ifscCode)) {
+      throw new ApiError(400, "Invalid IFSC code format");
+    }
   }
-};
+
+  // 4. Prepare update (keep existing bank details if not provided)
+  const updateData = { role };
+  if (role === "designer") {
+    updateData.accountDetails = accountDetails;
+  } 
+  // No else clause - retain existing accountDetails when switching to 'user'
+
+  // 5. Update role (and bank details if becoming designer)
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { 
+      new: true,
+      select: 'username email role accountDetails' // Safe fields only
+    }
+  );
+
+  return res.status(200).json(
+    new ApiResponse(200, updatedUser, "Role updated successfully")
+  );
+});
 
 const userProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
@@ -771,76 +994,6 @@ const orderHistory = asyncHandler(async (req, res) => {
   }
 });
 
-const changeRole = asyncHandler(async (req, res) => {
-  const { userId } = req.params;
-  const { role, accountDetails } = req.body;
-
-  // Validate required fields
-  if (!role) {
-    throw new ApiError(400, "Role is required");
-  }
-
-  if (role === 'designer') {
-    if (!accountDetails) {
-      throw new ApiError(400, "Account details are required for designer role");
-    }
-
-    const { 
-      accountNumber, 
-      bankName, 
-      bankBranch, 
-      ifscCode, 
-      accountHolderName 
-    } = accountDetails;
-
-    // Validate account details
-    if (!accountNumber || !/^\d{12}$/.test(accountNumber)) {
-      throw new ApiError(400, "Valid 12-digit account number is required");
-    }
-    if (!bankName?.trim()) {
-      throw new ApiError(400, "Bank name is required");
-    }
-    if (!bankBranch?.trim()) {
-      throw new ApiError(400, "Bank branch is required");
-    }
-    if (!ifscCode?.trim() || !/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/.test(ifscCode)) {
-      throw new ApiError(400, "Valid IFSC code is required");
-    }
-    if (!accountHolderName?.trim()) {
-      throw new ApiError(400, "Account holder name is required");
-    }
-  }
-
-  if (!userId?.trim()) {
-    throw new ApiError(400, "User ID is required");
-  }
-
-  // Update user role and account details
-  const updateData = { role };
-  if (role === 'designer' && accountDetails) {
-    updateData.accountDetails = accountDetails;
-  }
-
-  const user = await User.findByIdAndUpdate(
-    userId,
-    updateData,
-    { new: true }
-  );
-
-  // Create designer record if role is designer
-  if (role === 'designer') {
-    await Designer.findOneAndUpdate(
-      { designer: user._id },
-      { ...accountDetails },
-      { upsert: true, new: true }
-    );
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, user, "Role changed successfully"));
-});
-
 export {
   registerUser,
   loginUser,
@@ -860,4 +1013,7 @@ export {
   deleteUserById,
   deleteUserByIdAdmin,
   getAllUsers,
+  getUserBankInfoById,
+  addBankInfo,
+  updateBankInfo
 };

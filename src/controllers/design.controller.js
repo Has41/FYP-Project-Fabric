@@ -2,10 +2,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Design } from "../models/design.model.js";
+
 import mongoose from "mongoose";
 
 // Create a new design (private by default)
 const createDesign = asyncHandler(async (req, res) => {
+  
   const {
     name,
     product,
@@ -16,6 +18,7 @@ const createDesign = asyncHandler(async (req, res) => {
     graphic,
     basePrice, // which is price in product
     isPublic,
+    designerProfit
   } = req.body;
   let salePrice;
   // Validation
@@ -35,6 +38,13 @@ const createDesign = asyncHandler(async (req, res) => {
     salePrice = basePrice + 10;
   }
 
+  if(isPublic && req.user.role=="user"){
+    throw new ApiError(403, "Be a Designer for Public Designs");
+  }
+  if(req.user.role == "admin"){
+    throw new ApiError(403, "You are admin why you creating design you should add a product or model?");
+  }
+
   const design = await Design.create({
     owner: req.user._id,
     name,
@@ -44,10 +54,15 @@ const createDesign = asyncHandler(async (req, res) => {
     defaultPattern,
     text,
     graphic,
+    designerProfit,
     basePrice,
     salePrice,
     isPublic: isPublic || false,
   });
+
+  if (!design) {
+    throw new ApiError(500, "Failed to create design");
+  }
 
   return res
     .status(201)

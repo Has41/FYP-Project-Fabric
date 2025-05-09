@@ -19,7 +19,10 @@ import {
   getAllUsers,
   deleteUserById,
   deleteUserByIdAdmin,
-  changeRole
+  changeRole,
+  getUserBankInfoById,
+  addBankInfo,
+  updateBankInfo
 } from "../controllers/user.controller.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
 
@@ -49,6 +52,12 @@ router.route("/delete-user-admin/:userId").delete(verifyJwt,adminOnly,deleteUser
 router.route("/delete-user/:userId").delete(verifyJwt,deleteUserById);
 
 router.route("/change-role/:userId").patch(verifyJwt,changeRole);
+
+router.route("/bank-info/:userId").get(verifyJwt,getUserBankInfoById);
+
+router.route("/add-bank-info").post(verifyJwt,addBankInfo);
+
+router.route("/update-bank-info").patch(verifyJwt,updateBankInfo);
 
 router
   .route("/update-avatar")
