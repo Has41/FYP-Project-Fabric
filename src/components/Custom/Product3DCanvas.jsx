@@ -1,13 +1,23 @@
 import { useRef } from "react"
 import { Canvas } from "@react-three/fiber"
 import { Leva, useControls } from "leva"
-import { Text, TransformControls, Environment, OrbitControls } from "@react-three/drei"
+import { Environment, EnvironmentCube, OrbitControls } from "@react-three/drei"
 import ShirtModel from "../Models/ShirtModel"
 
-const Scene = ({ color, pattern, shirtText, textColor, textFontSize, textPosition, setTextPosition }) => {
+const Scene = ({
+  color,
+  pattern,
+  texts,
+  shirtText,
+  setTexts,
+  activeTextId,
+  setActiveTextId,
+  textColor,
+  textFontSize,
+  textPosition,
+  setTextPosition
+}) => {
   const directionalLightRef = useRef()
-  const textRef = useRef()
-  const transformRef = useRef()
 
   const { lightColour, lightIntensity } = useControls({
     lightColour: "white",
@@ -30,27 +40,19 @@ const Scene = ({ color, pattern, shirtText, textColor, textFontSize, textPositio
         scale={3.5}
         color={color}
         pattern={pattern}
+        texts={texts}
+        onSelectText={setActiveTextId}
+        onUpdateTextOffset={(id, offset) => {
+          setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, offset } : t)))
+        }}
         shirtText={shirtText}
+        activeTextId={activeTextId}
         textColor={textColor}
         textFontSize={textFontSize}
         textPosition={textPosition}
       />
-      {/* {shirtText && (
-        <TransformControls
-          ref={transformRef}
-          mode="translate"
-          onMouseUp={() => {
-            const [x, y, z] = textRef.current.position.toArray()
-            setTextPosition([x, y, z])
-          }}
-        >
-          <Text ref={textRef} position={textPosition} fontSize={textFontSize} color={textColor} anchorX="center" anchorY="middle">
-            {shirtText}
-          </Text>
-        </TransformControls>
-      )} */}
-
-      <Environment preset="apartment" background={true} />
+      <Environment files="/hdrs/apartment.hdr" background={true} />
+      {/* <Environment preset="apartment" background={true} /> */}
       <OrbitControls
         target={modelPosition}
         maxDistance={10}
@@ -63,7 +65,19 @@ const Scene = ({ color, pattern, shirtText, textColor, textFontSize, textPositio
   )
 }
 
-const Product3DCanvas = ({ color, pattern, shirtText, textColor, textFontSize, textPosition, setTextPosition }) => {
+const Product3DCanvas = ({
+  color,
+  pattern,
+  texts,
+  setTexts,
+  activeTextId,
+  setActiveTextId,
+  shirtText,
+  textColor,
+  textFontSize,
+  textPosition,
+  setTextPosition
+}) => {
   return (
     <Canvas camera={{ position: [0, 0, 0] }} className="rounded-sm">
       <Leva hidden />
@@ -71,6 +85,10 @@ const Product3DCanvas = ({ color, pattern, shirtText, textColor, textFontSize, t
         color={color}
         pattern={pattern}
         shirtText={shirtText}
+        activeTextId={activeTextId}
+        setActiveTextId={setActiveTextId}
+        texts={texts}
+        setTexts={setTexts}
         textColor={textColor}
         textFontSize={textFontSize}
         textPosition={textPosition}

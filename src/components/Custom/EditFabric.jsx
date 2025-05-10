@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import useDragger from "../../hooks/useDragger"
 import { menuOptions, toolOptions, clothOptions, saveOptions } from "../../utils/dynamicData"
 import Product3DCanvas from "./Product3DCanvas"
@@ -16,8 +16,14 @@ const EditFabric = () => {
   const [selectedPattern, setSelectedPattern] = useState(null)
   const [shirtText, setShirtText] = useState("")
   const [textColor, setTextColor] = useState("#000000")
-  const [textFontSize, setTextFontSize] = useState(0.2)
+  const [textFontSize, setTextFontSize] = useState(35)
   const [textPosition, setTextPosition] = useState([0, 0, 0.6])
+  const [texts, setTexts] = useState([])
+  const [activeTextId, setActiveTextId] = useState(null)
+
+  useEffect(() => {
+    console.log("Current texts:", texts)
+  }, [texts])
 
   const closePopup = () => setSubActiveOption("")
   const containerRef = useRef(null)
@@ -203,6 +209,9 @@ const EditFabric = () => {
         <TextTool
           subActiveOption={subActiveOption}
           closePopup={closePopup}
+          setActiveTextId={setActiveTextId}
+          texts={texts}
+          setTexts={setTexts}
           isTextDragging={isTextDragging}
           textPickerRef={textPickerRef}
           textValue={shirtText}
@@ -235,6 +244,10 @@ const EditFabric = () => {
               shirtText={shirtText}
               textColor={textColor}
               textFontSize={textFontSize}
+              activeTextId={activeTextId}
+              setActiveTextId={setActiveTextId}
+              texts={texts}
+              setTexts={setTexts}
               pattern={selectedPattern}
               color={color}
               textPosition={textPosition}
