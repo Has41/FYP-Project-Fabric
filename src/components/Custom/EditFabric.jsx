@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 import useDragger from "../../hooks/useDragger"
 import { menuOptions, toolOptions, clothOptions, saveOptions } from "../../utils/dynamicData"
 import Product3DCanvas from "./Product3DCanvas"
@@ -19,6 +19,7 @@ const EditFabric = () => {
   const [textFontSize, setTextFontSize] = useState(35)
   const [textPosition, setTextPosition] = useState([0, 0, 0.6])
   const [texts, setTexts] = useState([])
+  const [graphics, setGraphics] = useState([])
   const [activeTextId, setActiveTextId] = useState(null)
 
   useEffect(() => {
@@ -227,16 +228,18 @@ const EditFabric = () => {
         <GraphicsPicker
           subActiveOption={subActiveOption}
           closePopup={closePopup}
+          graphics={graphics}
+          setGraphics={setGraphics}
           isGraphicsDragging={isGraphicsDragging}
           graphicsPickerRef={graphicsPickerRef}
         />
 
-        <TexturePicker
+        {/* <TexturePicker
           subActiveOption={subActiveOption}
           closePopup={closePopup}
           isTextureDragging={isTextureDragging}
           texturePickerRef={texturePickerRef}
-        />
+        /> */}
 
         <div className="w-[85%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm z-0">
           <div className="flex justify-center items-center h-full">
@@ -247,6 +250,7 @@ const EditFabric = () => {
               activeTextId={activeTextId}
               setActiveTextId={setActiveTextId}
               texts={texts}
+              graphics={graphics}
               setTexts={setTexts}
               pattern={selectedPattern}
               color={color}

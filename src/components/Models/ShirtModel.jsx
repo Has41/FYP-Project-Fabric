@@ -2,15 +2,15 @@ import { useEffect, useRef } from "react"
 import { useGLTF } from "@react-three/drei"
 import * as THREE from "three"
 
-export default function ShirtModel({ position, scale, color, pattern, texts = [] }) {
+export default function ShirtModel({ position, scale, color, pattern, texts = [], graphics = [] }) {
   const shirtRef = useRef()
   const { scene } = useGLTF("/models/shirt/shirt.glb")
 
-  // Bake pattern + multiple texts onto a canvas texture
+  // Bake pattern + multiple texts + graphics onto a canvas texture
   useEffect(() => {
     if (!scene) return
 
-    const applyPatternWithTexts = async () => {
+    const applyPatternWithAssets = async () => {
       const size = 1024
       const canvas = document.createElement("canvas")
       canvas.width = canvas.height = size
@@ -23,30 +23,31 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
       // apply pattern
       if (pattern) {
         const resp = await fetch(pattern)
-        const svg = await resp.text()
-        const img = new Image()
-        img.src = `data:image/svg+xml;base64,${btoa(svg)}`
-        await new Promise((r) => (img.onload = r))
-        const pat = ctx.createPattern(img, "repeat")
+        const svgPat = await resp.text()
+        const imgPat = new Image()
+        imgPat.src = `data:image/svg+xml;base64,${btoa(svgPat)}`
+        await new Promise((r) => (imgPat.onload = r))
+        const pat = ctx.createPattern(imgPat, "repeat")
         ctx.fillStyle = pat
         ctx.fillRect(0, 0, size, size)
       }
 
-      // draw each text
-      for (const t of texts) {
-        // choose UV region based on front/back
-        const { isFront = true } = t
+      // helper to get UV region
+      const getRegion = (isFront) => {
         const uMin = isFront ? 0.414 : 0.073
         const uMax = isFront ? 0.661 : 0.271
         const vMax = isFront ? 0.28 : 0.836
         const vMin = isFront ? 0.161 : 0.675
-
         const regionX = uMin * size
         const regionY = (1 - vMax) * size
         const regionW = (uMax - uMin) * size
         const regionH = (vMax - vMin) * size
+        return { regionX, regionY, regionW, regionH }
+      }
 
-        // measure text
+      // draw each text
+      for (const t of texts) {
+        const { regionX, regionY, regionW, regionH } = getRegion(t.isFront)
         const fontSz = t.fontSize || 40
         ctx.font = `${fontSz}px sans-serif`
         const m = ctx.measureText(t.content)
@@ -55,12 +56,8 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
         const pad = 8
         const svgW = textW + pad * 2
         const svgH = textH + pad * 2
-
-        // compute position
         const x = regionX + (regionW - svgW) * 0.5 + (t.offset.x || 0)
         const y = regionY + (regionH - svgH) * 0.5 + (t.offset.y || 0)
-
-        // build SVG
         const ascent = m.actualBoundingBoxAscent
         const fg = t.color || "black"
         const bg = "white"
@@ -70,13 +67,6 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
           `<rect width=\"100%\" height=\"100%\" fill=\"${bg}\"/>` +
           `<text x=\"${pad}\" y=\"${pad + ascent}\" dominant-baseline=\"alphabetic\">${t.content}</text>` +
           `</svg>`
-
-        // optional debug outline
-        // ctx.strokeStyle = "red"
-        // ctx.lineWidth = 2
-        // ctx.strokeRect(x, y, svgW, svgH)
-
-        // render SVG
         const uri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
         await new Promise((res) => {
           const imgSVG = new Image()
@@ -94,6 +84,31 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
         })
       }
 
+      // draw each graphic as direct images
+      for (const g of graphics) {
+        const { regionX, regionY, regionW, regionH } = getRegion(g.isFront)
+        // size can be dynamic or user-controlled
+        const w = g.width || regionW * 0.5
+        const h = g.height || regionH * 0.5
+        const x = regionX + (regionW - w) * 0.5 + (g.offset.x || 0)
+        const y = regionY + (regionH - h) * 0.5 + (g.offset.y || 0)
+
+        await new Promise((res) => {
+          const img = new Image()
+          img.crossOrigin = "anonymous"
+          img.onload = () => {
+            ctx.save()
+            ctx.translate(x + w / 2, y + h / 2)
+            ctx.scale(1, -1)
+            ctx.drawImage(img, -w / 2, -h / 2, w, h)
+            ctx.restore()
+            res()
+          }
+          img.onerror = () => res()
+          img.src = g.url
+        })
+      }
+
       // create Three texture
       const tex = new THREE.CanvasTexture(canvas)
       tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping
@@ -108,8 +123,8 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
       })
     }
 
-    applyPatternWithTexts()
-  }, [scene, pattern, texts])
+    applyPatternWithAssets()
+  }, [scene, pattern, texts, graphics])
 
   // apply base color
   useEffect(() => {

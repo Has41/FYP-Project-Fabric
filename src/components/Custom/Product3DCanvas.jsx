@@ -10,6 +10,7 @@ const Scene = ({
   texts,
   shirtText,
   setTexts,
+  graphics,
   activeTextId,
   setActiveTextId,
   textColor,
@@ -41,6 +42,7 @@ const Scene = ({
         color={color}
         pattern={pattern}
         texts={texts}
+        graphics={graphics}
         onSelectText={setActiveTextId}
         onUpdateTextOffset={(id, offset) => {
           setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, offset } : t)))
@@ -69,6 +71,7 @@ const Product3DCanvas = ({
   color,
   pattern,
   texts,
+  graphics,
   setTexts,
   activeTextId,
   setActiveTextId,
@@ -88,6 +91,7 @@ const Product3DCanvas = ({
         activeTextId={activeTextId}
         setActiveTextId={setActiveTextId}
         texts={texts}
+        graphics={graphics}
         setTexts={setTexts}
         textColor={textColor}
         textFontSize={textFontSize}
