@@ -1,6 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
+import { Order } from "../models/order.model.js";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
@@ -848,41 +849,56 @@ const getAllUsers = asyncHandler(async (req, res) => {
 });
 
 const getUserDashboardStats = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
+  try {
+    const userId = req.user._id;
 
-  const stats = await Order.aggregate([
-    {
-      $match: { user: mongoose.Types.ObjectId(userId) },
-    },
-    {
-      $group: {
-        _id: "$orderStatus",
-        totalSpent: { $sum: "$totalAmount" },
-        totalOrders: { $sum: 1 },
+    const stats = await Order.aggregate([
+      {
+        $match: { 
+          user: new mongoose.Types.ObjectId(userId)  // Fixed: using 'new' keyword
+        },
       },
-    },
-  ]);
+      {
+        $group: {
+          _id: "$orderStatus",
+          totalSpent: { $sum: "$totalAmount" },
+          totalOrders: { $sum: 1 },
+        },
+      },
+    ]);
 
-  // Format status breakdown
-  const statusCounts = stats.reduce(
-    (acc, item) => {
-      acc.totalOrders += item.totalOrders;
-      acc.totalSpent += item.totalSpent;
-      acc.statusBreakdown[item._id] = item.totalOrders;
-      return acc;
-    },
-    { totalOrders: 0, totalSpent: 0, statusBreakdown: {} }
-  );
-
-  res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        statusCounts,
-        "User dashboard stats fetched successfully"
-      )
+    // Format status breakdown
+    const statusCounts = stats.reduce(
+      (acc, item) => {
+        acc.totalOrders += item.totalOrders;
+        acc.totalSpent += item.totalSpent;
+        acc.statusBreakdown[item._id] = item.totalOrders;
+        return acc;
+      },
+      { totalOrders: 0, totalSpent: 0, statusBreakdown: {} }
     );
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          statusCounts,
+          "User dashboard stats fetched successfully"
+        )
+      );
+  } catch (error) {
+    console.error("Error in getUserDashboardStats:", error);
+    return res
+      .status(500)
+      .json(
+        new ApiResponse(
+          500,
+          null,
+          error.message || "Internal server error"
+        )
+      );
+  }
 });
 
 const adminProfile = asyncHandler(async (req, res) => {
