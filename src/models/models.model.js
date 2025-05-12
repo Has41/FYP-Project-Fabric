@@ -11,7 +11,7 @@ const modelSchema = new Schema(
       required: true
     },
     model: {
-      type: String,  // Cloudinary URL
+      type: String,  
       required: true
     },
     public_id: {     // Only additional field you really need
