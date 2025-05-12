@@ -1,19 +1,21 @@
 import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
+import { upload } from "../middleware/multer.middleware.js";
+
 import {
   addGraphic,
-  deleteGraphic,
   updateGraphic,
-  searchGraphic,
-  allUserGraphics,
+  deleteGraphic,
+  getUserGraphics,
+  getGraphicById,
 } from "../controllers/graphic.controller.js";
 
 const router = Router();
 
-router.post("/add", verifyJwt, addGraphic);
-router.get("/search", verifyJwt, searchGraphic);
-router.get("/", verifyJwt, allUserGraphics);
-router.put("/update/:id", verifyJwt, updateGraphic);
+router.post("/add", verifyJwt, upload.array("images"), addGraphic);
+router.put("/update/:id", verifyJwt, upload.array("images"), updateGraphic);
 router.delete("/delete/:id", verifyJwt, deleteGraphic);
+router.get("/user", verifyJwt, getUserGraphics);
+router.get("/:id", verifyJwt, getGraphicById);
 
 export default router;

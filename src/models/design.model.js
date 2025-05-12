@@ -7,67 +7,70 @@ const designSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true
+      index: true,
     },
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     product: {
       type: Schema.Types.ObjectId,
       ref: "Product",
-      required: true
+      required: true,
     },
     isPublic: {
       type: Boolean,
       default: false,
-      index: true
+      index: true,
     },
     color: {
       type: String,
-      required: true
+      required: true,
     },
     pattern: {
       type: Schema.Types.ObjectId,
-      ref: "Pattern"
+      ref: "Pattern",
     },
     defaultPattern: {
       type: Schema.Types.ObjectId,
-      ref: "DefaultPattern"
+      ref: "DefaultPattern",
     },
-    text: [{
-      type: Schema.Types.ObjectId,
-      ref: "Text"
-    }],    
-    graphic: {
-      type: Schema.Types.ObjectId,
-      ref: "Graphic"
-    },
+    text: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Text",
+      },
+    ],
+    graphic: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Graphic",
+      },
+    ],
     basePrice: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
     salePrice: {
       type: Number,
-      min: 0
+      min: 0,
     },
     designerProfit: {
       type: Number,
       default: 0,
       min: 0,
-      max: 5
+      max: 5,
     },
     status: {
       type: String,
       enum: ["draft", "published", "archived"],
-      default: "published"
+      default: "published",
     },
-    
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
@@ -75,10 +78,9 @@ const designSchema = new Schema(
 designSchema.index({ owner: 1 });
 designSchema.index({ isPublic: 1 });
 
-
 // Set salePrice automatically for purchasable designs
-designSchema.pre("save", function(next) {
-  if ( !this.salePrice) {
+designSchema.pre("save", function (next) {
+  if (!this.salePrice) {
     this.salePrice = this.basePrice;
   }
   next();

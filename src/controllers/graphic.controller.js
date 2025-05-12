@@ -9,145 +9,122 @@ import {
 
 const addGraphic = asyncHandler(async (req, res, next) => {
   try {
-    let { width, height, offset, isFront } = req.body;
-    let graphicLocalPath;
-
-    if (req.file && req.file.path) {
-      graphicLocalPath = req.file.path;
-    } else {
-      throw new ApiError(400, "No file uploaded");
-    }
-
-    const uploadedGraphic = await uploadOnCloudinary(graphicLocalPath);
-
-    if (!uploadedGraphic) {
-      throw new ApiError(500, "Server Error");
-    }
-
+    const { width, height, offset, isFront } = req.body;
     const owner = req.user._id;
 
+    if (!req.files || req.files.length === 0) {
+      throw new ApiError(400, "No graphics uploaded.");
+    }
+
+    const uploadedImages = [];
+
+    for (const file of req.files) {
+      const result = await uploadOnCloudinary(file.path);
+      if (!result?.secure_url) {
+        throw new ApiError(500, "graphic upload failed");
+      }
+      uploadedImages.push(result.secure_url);
+    }
+
     const graphic = await Graphic.create({
-      image: uploadedGraphic.secure_url,
+      owner,
+      graphic: uploadedImages,
       width,
       height,
       offset,
       isFront,
-      owner,
     });
 
-    const createdGraphic = await Graphic.findById(graphic._id);
-
-    if (!createdGraphic) {
-      throw new ApiError(500, "Server Error");
-    }
-
     return res
-      .status(200)
-      .json(new ApiResponse(200, createdGraphic, "Graphic Added Successfully"));
+      .status(201)
+      .json(new ApiResponse(201, graphic, "Graphic created successfully"));
   } catch (error) {
     next(error);
-    throw new ApiError(400, error?.message || "Invalid access token");
   }
 });
 
-// Delete Graphic
 const deleteGraphic = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   const graphic = await Graphic.findById(id);
-  if (!graphic) {
-    throw new ApiError(404, "Graphic not found");
+  if (!graphic) throw new ApiError(404, "Graphic not found");
+
+  // Delete all graphics from Cloudinary
+  for (const url of graphic.graphic) {
+    await deleteFromCloudinary(url);
   }
 
-  // Remove from Cloudinary
-  const publicId = graphic.image.split("/").pop().split(".")[0];
-  await deleteFromCloudinary(publicId);
-
-  // Remove from DB
-  await Graphic.findByIdAndDelete(id);
+  await graphic.deleteOne();
 
   return res
     .status(200)
     .json(new ApiResponse(200, null, "Graphic deleted successfully"));
 });
 
-// Search Graphics (by image URL or owner name if populated)
-const searchGraphic = asyncHandler(async (req, res, next) => {
-  const { q } = req.query;
+const getGraphicById = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
 
-  if (!q) {
-    throw new ApiError(400, "Search query missing");
-  }
+  const graphic = await Graphic.findById(id);
+  if (!graphic) throw new ApiError(404, "Graphic not found");
 
-  const results = await Graphic.find({
-    image: { $regex: q, $options: "i" },
-  });
-
-  return res.status(200).json(new ApiResponse(200, results, "Search results"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, graphic, "Graphic retrieved successfully"));
 });
 
 // Get All Graphics by Authenticated User
-const allUserGraphics = asyncHandler(async (req, res, next) => {
+const getUserGraphics = asyncHandler(async (req, res, next) => {
   const owner = req.user._id;
-
-  const graphics = await Graphic.find({ owner }).sort({ createdAt: -1 });
+  const graphics = await Graphic.find({ owner });
 
   return res
     .status(200)
     .json(new ApiResponse(200, graphics, "User's graphics retrieved"));
 });
 
-// Update Graphic (delete old image from Cloudinary)
+// Update Graphic (delete old graphic from Cloudinary)
 const updateGraphic = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-  let { width, height, offset, isFront } = req.body;
-  let graphicLocalPath;
+  try {
+    const { id } = req.params;
+    const { width, height, offset, isFront } = req.body;
 
-  const existing = await Graphic.findById(id);
-  if (!existing) {
-    throw new ApiError(404, "Graphic not found");
-  }
+    const existing = await Graphic.findById(id);
+    if (!existing) throw new ApiError(404, "Graphic not found");
 
-  let newImageUrl = existing.image;
-
-  if (req.file && req.file.path) {
-    graphicLocalPath = req.file.path;
-
-    // Upload new image to Cloudinary
-    const uploaded = await uploadOnCloudinary(graphicLocalPath);
-    if (!uploaded) {
-      throw new ApiError(500, "Error uploading new image");
+    // Delete previous graphics from Cloudinary
+    for (const url of existing.graphic) {
+      await deleteFromCloudinary(url);
     }
 
-    // Delete old image from Cloudinary
-    const oldPublicId = existing.image.split("/").pop().split(".")[0];
-    await deleteFromCloudinary(oldPublicId);
+    const newImages = [];
+    for (const file of req.files) {
+      const result = await uploadOnCloudinary(file.path);
+      if (!result?.secure_url) {
+        throw new ApiError(500, "Failed to upload new graphic");
+      }
+      newImages.push(result.secure_url);
+    }
 
-    newImageUrl = uploaded.secure_url;
+    existing.graphic = newImages;
+    existing.width = width;
+    existing.height = height;
+    existing.offset = offset;
+    existing.isFront = isFront;
+
+    await existing.save();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, existing, "Graphic updated successfully"));
+  } catch (error) {
+    next(error);
   }
-
-  // Update document
-  const updated = await Graphic.findByIdAndUpdate(
-    id,
-    {
-      image: newImageUrl,
-      width,
-      height,
-      offset,
-      isFront,
-    },
-    { new: true }
-  );
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, updated, "Graphic updated successfully"));
 });
 
 export {
   addGraphic,
   deleteGraphic,
-  searchGraphic,
-  allUserGraphics,
+  getGraphicById,
+  getUserGraphics,
   updateGraphic,
 };

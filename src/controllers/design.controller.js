@@ -7,20 +7,21 @@ import mongoose from "mongoose";
 
 // Create a new design (private by default)
 const createDesign = asyncHandler(async (req, res) => {
-  
   const {
     name,
     product,
     color,
     pattern,
     defaultPattern,
-    text,
-    graphic,
+    text, // Now an array of objectIds
+    graphic, // Now an array of objectIds
     basePrice, // which is price in product
     isPublic,
-    designerProfit
+    designerProfit,
   } = req.body;
+
   let salePrice;
+
   // Validation
   if (!name || !product || !color || !basePrice) {
     throw new ApiError(400, "Required fields are missing");
@@ -30,19 +31,28 @@ const createDesign = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Base price must be positive");
   }
 
-  if (mongoose.Types.ObjectId.isValid(pattern) || mongoose.Types.ObjectId.isValid(defaultPattern) || mongoose.Types.ObjectId.isValid(text) || mongoose.Types.ObjectId.isValid(graphic)) {
+  if (
+    mongoose.Types.ObjectId.isValid(pattern) ||
+    mongoose.Types.ObjectId.isValid(defaultPattern) ||
+    mongoose.Types.ObjectId.isValid(text) ||
+    mongoose.Types.ObjectId.isValid(graphic)
+  ) {
     salePrice = basePrice + 20;
   }
 
-  if(color != "#ffffff" || color != "#FFFFFF") {
+  if (color !== "#ffffff" && color !== "#FFFFFF") {
     salePrice = basePrice + 10;
   }
 
-  if(isPublic && req.user.role=="user"){
+  if (isPublic && req.user.role === "user") {
     throw new ApiError(403, "Be a Designer for Public Designs");
   }
-  if(req.user.role == "admin"){
-    throw new ApiError(403, "You are admin why you creating design you should add a product or model?");
+
+  if (req.user.role === "admin") {
+    throw new ApiError(
+      403,
+      "You are an admin, you should add a product or model?"
+    );
   }
 
   const design = await Design.create({
@@ -52,8 +62,8 @@ const createDesign = asyncHandler(async (req, res) => {
     color,
     pattern,
     defaultPattern,
-    text,
-    graphic,
+    text, // Expecting an array of ObjectId references
+    graphic, // Expecting an array of ObjectId references
     designerProfit,
     basePrice,
     salePrice,
@@ -71,10 +81,9 @@ const createDesign = asyncHandler(async (req, res) => {
 
 // Get my designs
 const getMyDesigns = asyncHandler(async (req, res) => {
-  const {  isPublic } = req.query;
+  const { isPublic } = req.query;
   const query = { owner: req.user._id };
 
-  
   if (isPublic !== undefined) {
     query.isPublic = isPublic === "true";
   }
@@ -107,31 +116,295 @@ const getPublicDesignsByUser = asyncHandler(async (req, res) => {
 // Get design by ID (owner, public, or admin)
 const getDesignById = asyncHandler(async (req, res) => {
   const { designId } = req.params;
-  
+
   // Admins can access any design directly
-  if (req.user.role === 'admin') {
-    const design = await Design.findById(designId);
-    if (!design) throw new ApiError(404, "Design not found");
-    return res.status(200).json(new ApiResponse(200, design, "Design retrieved"));
+  if (req.user.role === "admin") {
+    const design = await Design.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(designId) } },
+
+      // Lookup for User to get username and fullname
+      {
+        $lookup: {
+          from: "users", // Assuming your User model's collection name is "users"
+          localField: "owner",
+          foreignField: "_id",
+          as: "ownerDetails",
+        },
+      },
+      {
+        $unwind: { path: "$ownerDetails", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $addFields: {
+          username: "$ownerDetails.username",
+          fullname: "$ownerDetails.fullname",
+        },
+      },
+
+      // Lookup for Product to get title, category, price, and model type
+      {
+        $lookup: {
+          from: "products", // Assuming your Product model's collection name is "products"
+          localField: "product",
+          foreignField: "_id",
+          as: "productDetails",
+        },
+      },
+      {
+        $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $addFields: {
+          productTitle: "$productDetails.title",
+          productCategory: "$productDetails.category",
+          productPrice: "$productDetails.price",
+          productModelType: "$productDetails.modelType",
+        },
+      },
+
+      // Lookup for Pattern to get name and image
+      {
+        $lookup: {
+          from: "patterns", // Assuming your Pattern model's collection name is "patterns"
+          localField: "pattern",
+          foreignField: "_id",
+          as: "patternDetails",
+        },
+      },
+      {
+        $unwind: { path: "$patternDetails", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $addFields: {
+          patternName: "$patternDetails.name",
+          patternImage: "$patternDetails.image",
+        },
+      },
+
+      // Lookup for DefaultPattern to get name and image
+      {
+        $lookup: {
+          from: "defaultpatterns", // Assuming your DefaultPattern model's collection name is "defaultpatterns"
+          localField: "defaultPattern",
+          foreignField: "_id",
+          as: "defaultPatternDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$defaultPatternDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          defaultPatternName: "$defaultPatternDetails.name",
+          defaultPatternImage: "$defaultPatternDetails.image",
+        },
+      },
+
+      // Lookup for Text to get necessary fields
+      {
+        $lookup: {
+          from: "texts", 
+          localField: "text",
+          foreignField: "_id",
+          as: "textDetails",
+        },
+      },
+
+      // Lookup for Graphic to get necessary fields
+      {
+        $lookup: {
+          from: "graphics", 
+          localField: "graphic",
+          foreignField: "_id",
+          as: "graphicDetails",
+        },
+      },
+
+      {
+        $project: {
+          owner: 1,
+          name: 1,
+          product: 1,
+          color: 1,
+          pattern: 1,
+          defaultPattern: 1,
+          textDetails: 1,
+          graphicDetails: 1,
+          basePrice: 1,
+          salePrice: 1,
+          designerProfit: 1,
+          status: 1,
+          username: 1,
+          fullname: 1,
+          productTitle: 1,
+          productCategory: 1,
+          productPrice: 1,
+          productModelType: 1,
+          patternName: 1,
+          patternImage: 1,
+          defaultPatternName: 1,
+          defaultPatternImage: 1,
+        },
+      },
+    ]);
+
+    if (!design || design.length === 0) {
+      throw new ApiError(404, "Design not found");
+    }
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, design[0], "Design retrieved"));
   }
 
   // Regular users have restricted access
-  const design = await Design.findOne({
-    _id: designId,
-    $or: [
-      { owner: req.user._id },
-      { isPublic: true },
-      {  owner: req.user._id }
-    ]
-  });
+  const design = await Design.aggregate([
+    {
+      $match: {
+        _id: mongoose.Types.ObjectId(designId),
+        $or: [{ owner: req.user._id }, { isPublic: true }],
+      },
+    },
 
-  if (!design) {
+    // Lookup for User to get username and fullname
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "ownerDetails",
+      },
+    },
+    {
+      $unwind: { path: "$ownerDetails", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $addFields: {
+        username: "$ownerDetails.username",
+        fullname: "$ownerDetails.fullname",
+      },
+    },
+
+    // Lookup for Product to get title, category, price, and model type
+    {
+      $lookup: {
+        from: "products",
+        localField: "product",
+        foreignField: "_id",
+        as: "productDetails",
+      },
+    },
+    {
+      $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $addFields: {
+        productTitle: "$productDetails.title",
+        productCategory: "$productDetails.category",
+        productPrice: "$productDetails.price",
+        productModelType: "$productDetails.modelType",
+      },
+    },
+
+    // Lookup for Pattern to get name and image
+    {
+      $lookup: {
+        from: "patterns",
+        localField: "pattern",
+        foreignField: "_id",
+        as: "patternDetails",
+      },
+    },
+    {
+      $unwind: { path: "$patternDetails", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $addFields: {
+        patternName: "$patternDetails.name",
+        patternImage: "$patternDetails.image",
+      },
+    },
+
+    // Lookup for DefaultPattern to get name and image
+    {
+      $lookup: {
+        from: "defaultpatterns",
+        localField: "defaultPattern",
+        foreignField: "_id",
+        as: "defaultPatternDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$defaultPatternDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        defaultPatternName: "$defaultPatternDetails.name",
+        defaultPatternImage: "$defaultPatternDetails.image",
+      },
+    },
+
+    // Lookup for Text to get necessary fields
+    {
+      $lookup: {
+        from: "texts",
+        localField: "text",
+        foreignField: "_id",
+        as: "textDetails",
+      },
+    },
+
+    // Lookup for Graphic to get necessary fields
+    {
+      $lookup: {
+        from: "graphics",
+        localField: "graphic",
+        foreignField: "_id",
+        as: "graphicDetails",
+      },
+    },
+
+    {
+      $project: {
+        owner: 1,
+        name: 1,
+        product: 1,
+        color: 1,
+        pattern: 1,
+        defaultPattern: 1,
+        textDetails: 1,
+        graphicDetails: 1,
+        basePrice: 1,
+        salePrice: 1,
+        designerProfit: 1,
+        status: 1,
+        username: 1,
+        fullname: 1,
+        productTitle: 1,
+        productCategory: 1,
+        productPrice: 1,
+        productModelType: 1,
+        patternName: 1,
+        patternImage: 1,
+        defaultPatternName: 1,
+        defaultPatternImage: 1,
+      },
+    },
+  ]);
+
+  if (!design || design.length === 0) {
     throw new ApiError(404, "Design not found or not authorized");
   }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, design, "Design retrieved successfully"));
+    .json(new ApiResponse(200, design[0], "Design retrieved successfully"));
 });
 
 // Update design (owner only)
@@ -142,6 +415,15 @@ const updateDesign = asyncHandler(async (req, res) => {
   // Prevent changing certain fields directly
   if ("owner" in updateData || "_id" in updateData) {
     throw new ApiError(400, "Cannot change design ownership or ID");
+  }
+
+  // Check if text and graphic are arrays and add the new elements to the design
+  if (updateData.text && !Array.isArray(updateData.text)) {
+    throw new ApiError(400, "Text must be an array of object IDs");
+  }
+
+  if (updateData.graphic && !Array.isArray(updateData.graphic)) {
+    throw new ApiError(400, "Graphic must be an array of object IDs");
   }
 
   const design = await Design.findOneAndUpdate(
@@ -187,7 +469,6 @@ const toggleDesignPublicStatus = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, design, "Design public status updated"));
 });
 
-
 // Delete design (owner or admin)
 const deleteDesign = asyncHandler(async (req, res) => {
   const { designId } = req.params;
@@ -225,8 +506,8 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
     page: parseInt(page),
     limit: parseInt(limit),
     populate: {
-      path: 'owner',
-      select: 'username avatar fullname'
+      path: "owner",
+      select: "username avatar fullname",
     },
     lean: true,
   };
@@ -235,6 +516,11 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
     { isPublic: true, status: "published" },
     options
   );
+
+  // Populate text and graphic arrays for public designs
+  for (let design of designs.docs) {
+    await design.populate("text").populate("graphic");
+  }
 
   return res
     .status(200)

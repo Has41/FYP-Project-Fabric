@@ -2,16 +2,14 @@ import mongoose, { Schema } from "mongoose";
 
 const textSchema = new Schema(
     {
+        owner: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        },
         text: {
             type: String,
             required: true,
             unique: true,
-            trim: true,
-            index: true,
-        },
-        category: {
-            type: String,
-            required: true,
             trim: true,
             index: true,
         },

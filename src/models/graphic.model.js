@@ -6,13 +6,13 @@ const graphicSchema = new Schema(
         type: Schema.Types.ObjectId,
         ref: "User",
     },
-    image: {
+    graphic: [{
       type: String,
       required: true,
       unique: true,
       trim: true,
       index: true,
-    },
+    }],
     width: {
       type: Number,
       required: true,
