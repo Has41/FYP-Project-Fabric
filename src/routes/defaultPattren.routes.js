@@ -27,6 +27,6 @@ router.post(
 
 router.get("/", allPattren);
 
-router.delete("/delete", deletePattren);
+router.delete("/:pattrenId", deletePattren);
 
 export default router;
