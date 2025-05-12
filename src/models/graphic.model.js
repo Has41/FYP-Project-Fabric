@@ -1,17 +1,38 @@
 import mongoose, { Schema } from "mongoose";
 
 const graphicSchema = new Schema(
-    {
-        image : {
-            type: String,
-            required: true,
-            unique: true,
-            trim: true,
-            index: true,
-        },
+  {
+    owner: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
     },
-    {
-        timestamps: true,
-    }
+    image: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true,
+    },
+    width: {
+      type: Number,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    height: {
+      type: Number,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    offset: {
+      x: { type: Number, default: 0 },
+      y: { type: Number, default: 0 },
+    },
+    isFront: { type: Boolean, default: true },
+  },
+  {
+    timestamps: true,
+  }
 );
 export const Graphic = mongoose.model("Graphic", graphicSchema);

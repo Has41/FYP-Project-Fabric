@@ -9,6 +9,24 @@ const textSchema = new Schema(
             trim: true,
             index: true,
         },
+        category: {
+            type: String,
+            required: true,
+            trim: true,
+            index: true,
+        },
+        fontSize: {
+            type: String,
+            required: true,
+            trim: true,
+            index: true,
+        },
+        offset: {
+            x: { type: Number, default: 0 },
+            y: { type: Number, default: 0 }
+          },
+          isFront: { type: Boolean, default: true }
+        
     },
     {
         timestamps: true,

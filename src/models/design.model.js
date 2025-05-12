@@ -36,10 +36,10 @@ const designSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "DefaultPattern"
     },
-    text: {
+    text: [{
       type: Schema.Types.ObjectId,
       ref: "Text"
-    },
+    }],    
     graphic: {
       type: Schema.Types.ObjectId,
       ref: "Graphic"
