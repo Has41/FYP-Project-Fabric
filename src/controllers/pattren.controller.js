@@ -9,106 +9,77 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 const addPattren = asyncHandler(async (req, res, next) => {
   try {
-    let { name } = req.body;
-    let pattrenLocalPath;
+    const { name } = req.body;
 
-    // Ensure that a file is uploaded and that it's an SVG
-    if (req.file && req.file.path) {
-      const fileMimeType = req.file.mimetype;
-
-      // Check if the uploaded file is an SVG
-      if (fileMimeType !== "image/svg+xml") {
-        return res
-          .status(400)
-          .json(new ApiResponse(400, null, "Only SVG files are allowed"));
-      }
-
-      pattrenLocalPath = req.file.path;
-    } else {
-      console.error("No file uploaded or incorrect file structure:", req.file);
-      return res
-        .status(400)
-        .json(new ApiResponse(400, null, "Only svg allowed"));
+    // Validate input
+    if (!name?.trim()) {
+      throw new ApiError(400, "pattren name is required");
     }
 
-    // Upload the SVG image to Cloudinary
-    const pattrenImage = await uploadOnCloudinary(pattrenLocalPath);
-
-    // Check if the upload was successful
-    if (!pattrenImage) {
-      return res
-        .status(500)
-        .json(
-          new ApiResponse(500, null, "Error uploading image to Cloudinary")
-        );
+    // Check file upload
+    if (!req.file?.path) {
+      throw new ApiError(400, "SVG file is required");
     }
 
-    const owner = req.user._id; // Assuming the user is authenticated and their ID is stored in `req.user._id`
+    // Validate file type
+    if (req.file.mimetype !== "image/svg+xml") {
+      throw new ApiError(400, "Only SVG files are allowed");
+    }
 
-    // Create the pattern in the database with the image URL from Cloudinary
+    // Upload to Cloudinary
+    const uploadResult = await uploadOnCloudinary(req.file.path);
+    if (!uploadResult?.secure_url || !uploadResult?.public_id) {
+      throw new ApiError(500, "Failed to upload pattren to Cloudinary");
+    }
+
+    // Create pattren document
     const pattren = await Pattren.create({
-      owner,
-      name: name || null,
-      image: pattrenImage.secure_url, // Use the Cloudinary URL of the uploaded image
+      owner: req.user._id,
+      name: name.trim(),
+      image: {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+      },
     });
 
-    const createdPattren = await Pattren.findById(pattren._id);
-
-    if (!createdPattren) {
-      throw new ApiError(500, "Server Error");
-    }
-
-    // Return success response with the created pattern
     return res
-      .status(200)
-      .json(new ApiResponse(200, createdPattren, "Pattren Added Successfully"));
+      .status(201)
+      .json(new ApiResponse(201, pattren, "pattren added successfully"));
   } catch (error) {
     next(error);
-    throw new ApiError(400, error?.message || "Invalid access token");
   }
 });
 
 const deletePattren = asyncHandler(async (req, res, next) => {
-  const { pattrenId } = req.params;
-
-  // Validate pattern ID
-  if (!pattrenId?.trim()) {
-    throw new ApiError(400, "Pattern ID is required");
-  }
-
   try {
-    // Find the pattern
-    const pattren = await Pattren.findById(pattrenId);
+    const { pattrenId } = req.params;
+
+    // Validate pattren ID
+    if (!mongoose.Types.ObjectId.isValid(pattrenId)) {
+      throw new ApiError(400, "Invalid pattren ID format");
+    }
+
+    // Find and delete pattren
+    const pattren = await Pattren.findByIdAndDelete(pattrenId);
     if (!pattren) {
-      throw new ApiError(404, "Pattern not found");
+      throw new ApiError(404, "pattren not found");
     }
 
-    // Delete from Cloudinary if image exists
-    if (pattren.image) {
-      try {
-        const publicId = pattren.image.split("/").pop().split(".")[0];
-        await deleteFromCloudinary(publicId);
-      } catch (cloudinaryError) {
-        console.warn("Cloudinary deletion warning:", cloudinaryError.message);
-        // Continue with deletion even if Cloudinary fails
-      }
+    // Delete from Cloudinary using public ID
+    try {
+      await deleteFromCloudinary(pattren.image.publicId);
+    } catch (cloudinaryError) {
+      console.error("Cloudinary deletion error:", cloudinaryError.message);
+      // Consider whether to proceed or throw error based on your requirements
     }
-
-    // Delete from database
-    await Pattren.findByIdAndDelete(pattrenId);
 
     return res
       .status(200)
-      .json(new ApiResponse(200, null, "Pattern deleted successfully"));
+      .json(new ApiResponse(200, null, "pattren deleted successfully"));
   } catch (error) {
-    // Handle specific error cases
-    if (error instanceof mongoose.Error.CastError) {
-      throw new ApiError(400, "Invalid pattern ID format");
-    }
     next(error);
   }
 });
-
 const allPatterns = asyncHandler(async (req, res, next) => {
   try {
     // Fetch patterns owned by the current user

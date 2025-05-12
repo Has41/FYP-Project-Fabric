@@ -6,75 +6,87 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import mongoose from "mongoose";
 
 const addPattren = asyncHandler(async (req, res, next) => {
   try {
     const { name } = req.body;
-    //const owner = req.user._id;
+
+    // Validate input
+    if (!name?.trim()) {
+      throw new ApiError(400, "Pattren name is required");
+    }
 
     let files = [];
-
-    // Handle single file or multiple files
     if (req.file) {
-      files = [req.file]; // Single file case
+      files = [req.file];
     } else if (req.files && Array.isArray(req.files)) {
-      files = req.files; // Multiple files case
+      files = req.files;
     } else {
       throw new ApiError(400, "No file uploaded");
     }
 
-    const createdPatterns = [];
+    const createdPattrens = [];
 
-    // Process each file
     for (const file of files) {
-      const pattrenLocalPath = file.path;
-
       // Upload to Cloudinary
-      const pattrenImage = await uploadOnCloudinary(pattrenLocalPath);
+      const uploadResult = await uploadOnCloudinary(file.path);
+      if (!uploadResult?.secure_url || !uploadResult?.public_id) {
+        throw new ApiError(500, "Failed to upload pattren to Cloudinary");
+      }
 
-      // Save to the database
+      // Create pattren document
       const pattren = await DefaultPattren.create({
-       
-        name: name || null,
-        image: pattrenImage.secure_url,
+        name: name.trim(),
+        image: {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id
+        }
       });
 
-      createdPatterns.push(pattren);
+      createdPattrens.push(pattren);
     }
 
-    // Return the response with all created patterns
     return res
-      .status(200)
-      .json(new ApiResponse(200, createdPatterns, "Patterns Added Successfully"));
+      .status(201)
+      .json(new ApiResponse(201, createdPattrens, "Pattren(s) added successfully"));
+
   } catch (error) {
     next(error);
-    throw new ApiError(400, error?.message || "Invalid access token");
   }
 });
-
-
 
 const deletePattren = asyncHandler(async (req, res, next) => {
   try {
     const { pattrenId } = req.params;
-    if (!pattrenId) {
-      throw new ApiError(400, "Pattren Id Not Found");
+
+    // Validate pattren ID
+    if (!mongoose.Types.ObjectId.isValid(pattrenId)) {
+      throw new ApiError(400, "Invalid pattren ID format");
     }
-    const pattren = await DefaultPattren.findById(pattrenId);
+
+    // Find and delete pattren
+    const pattren = await DefaultPattren.findByIdAndDelete(pattrenId);
     if (!pattren) {
-      throw new ApiError(404, "Pattren Not Found");
+      throw new ApiError(404, "Pattren not found");
     }
-    await deleteFromCloudinary(pattren.image);
-    await DefaultPattren.findByIdAndDelete(pattrenId);
+
+    // Delete from Cloudinary using public ID
+    try {
+      await deleteFromCloudinary(pattren.image.publicId);
+    } catch (cloudinaryError) {
+      console.error("Cloudinary deletion error:", cloudinaryError.message);
+      // You might want to handle this differently based on requirements
+    }
+
     return res
       .status(200)
-      .json(new ApiResponse(200, null, "Pattren Deleted Successfully"));
+      .json(new ApiResponse(200, null, "Pattren deleted successfully"));
+
   } catch (error) {
     next(error);
-    throw new ApiError(400, error?.message || "Invalid access token");
   }
 });
-
 const allPattren = asyncHandler(async (req, res, next) => {
   const patterns = await DefaultPattren.find();
   try {

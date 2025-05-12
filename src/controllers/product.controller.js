@@ -5,7 +5,7 @@ import { Product } from "../models/product.model.js";
 import mongoose from "mongoose";
 
 const addProduct = asyncHandler(async (req, res, next) => {
-  const { title, description, price, discount_price, quantity, category, model, type } =
+  const { title, description, price, discount_price, quantity, category, type, model } =
     req.body;
   const owner = req.user._id;
 
@@ -15,15 +15,13 @@ const addProduct = asyncHandler(async (req, res, next) => {
   
 
   // Validate required fields
-  if (!title || !description || !price || !quantity || !category || !model || !type) {
+  if (!title || !description || !price || !quantity || !category  || !type) {
     throw new ApiError(400, "Required fields missing");
   }
   if (!mongoose.Types.ObjectId.isValid(category)) {
     throw new ApiError(400, "Invalid Category ID");
   }
-  if(!mongoose.Types.ObjectId.isValid(model)){
-    throw new ApiError(400, "Invalid Model ID");
-  }
+  
 
   try {
     // Validate and upload model file
@@ -37,7 +35,7 @@ const addProduct = asyncHandler(async (req, res, next) => {
       quantity,
       owner,
       category,
-      model, 
+      model: model || null,
       type,
     });
 
@@ -91,7 +89,7 @@ const updateProductInfo = asyncHandler(async (req, res) => {
     req.body;
   const { productId } = req.params;
 
-  if (!title || !description || !price || !quantity || !category || !model) {
+  if (!title || !description || !price || !quantity || !category ) {
     throw new ApiError(400, "Required fields missing");
   }
   if (!mongoose.Types.ObjectId.isValid(category)) {
@@ -100,9 +98,7 @@ const updateProductInfo = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     throw new ApiError(400, "Invalid Category ID");
   }
-  if(!mongoose.Types.ObjectId.isValid(model)){
-    throw new ApiError(400, "Invalid Model ID");
-  }
+
 
   if ( req.user.role !== "admin") {
     throw new ApiError(403, "Unauthorized");
@@ -119,7 +115,7 @@ const updateProductInfo = asyncHandler(async (req, res) => {
         discount_price: discount_price || null,
         quantity,
         category,
-        model,
+        model: model || null,
       },
     },
     {
@@ -196,55 +192,28 @@ const searchProduct = asyncHandler(async (req, res) => {
 
 
 const allProducts = asyncHandler(async (req, res) => {
-  const aggregateQuery = Product.aggregate([
-    {
-      $lookup: {
-        from: "categories", // Join with the 'categories' collection
-        localField: "category",
-        foreignField: "_id",
-        as: "category",
-      },
-    },
-    {
-      $unwind: "$category", // Flatten the category array if needed
-    },
-    {
-      $lookup: {
-        from: "models", // Join with the 'models' collection (adjust collection name as necessary)
-        localField: "model", // Assuming 'model' is the field storing the reference to the 'models' collection
-        foreignField: "_id", // Foreign key is typically _id in the 'models' collection
-        as: "model", // The result will be stored in the 'model' field
-      },
-    },
-    {
-      $unwind: "$model", // Flatten the 'model' array (assuming it's a single model, this makes it an object)
-    },
-    {
-      $project: { // Optionally, you can specify the fields you want to return
-        _id: 1,
-        title: 1,          // Product name
-        price: 1,         // Product price
-        description: 1,   // Product description
-        "category.name": 1, // Category name
-        "category._id": 1, // Category id
-        "model.name": 1,   // Model name
-        "model.model": 1,  // Model field (assuming this is what you want)
-      },
-    },
-  ]);
+  try {
+    // Find all products and populate category and model fields
+    const products = await Product.find({})
+      .populate('category', 'name') // Only include category name
+      .select('-__v') // Exclude version key
+      .lean(); // Convert to plain JavaScript objects
 
-  // Execute the aggregate query directly
-  const products = await aggregateQuery.exec();
+    if (!products || products.length === 0) {
+      return res
+        .status(404)
+        .json(new ApiResponse(404, null, "No products found"));
+    }
 
-  if (!products || products.length === 0) {
     return res
-      .status(404)
-      .json(new ApiResponse(404, null, "No products found"));
+      .status(200)
+      .json(new ApiResponse(200, products, "Products fetched successfully"));
+  } catch (error) {
+    // Handle any errors that might occur
+    return res
+      .status(500)
+      .json(new ApiResponse(500, null, "Error fetching products"));
   }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, products, "Products Fetched Successfully"));
 });
 
 

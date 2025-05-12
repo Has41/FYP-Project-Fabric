@@ -6,13 +6,20 @@ const pattrenSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    name:{
-      type : String,
-      required : true
-    },
-    image: {
+    name: {
       type: String,
       required: true,
+      trim: true
+    },
+    image: {
+      url: {
+        type: String,
+        required: true,
+      },
+      publicId: {
+        type: String,
+        required: true,
+      }
     },
   },
   {
