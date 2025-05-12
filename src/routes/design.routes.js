@@ -11,6 +11,7 @@ import {
   deleteDesign,
   getAllDesigns,
   getAllPublicDesigns,
+  getDesignByIdSimple
 } from "../controllers/design.controller.js";
 
 const router = Router();
@@ -29,6 +30,9 @@ router.get("/:designId", getDesignById);
 router.put("/:designId", updateDesign);
 router.put("/:designId/public", toggleDesignPublicStatus);
 router.delete("/:designId", deleteDesign);
+
+// Simple routes
+router.get("/simple/:designId", getDesignByIdSimple);
 
 // Admin routes
 router.get("/", adminOnly, getAllDesigns);

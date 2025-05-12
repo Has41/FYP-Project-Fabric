@@ -407,6 +407,39 @@ const getDesignById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, design[0], "Design retrieved successfully"));
 });
 
+const getDesignByIdSimple = asyncHandler(async (req, res) => {
+  const { designId } = req.params;
+
+  // Admins can access any design directly
+  if (req.user.role === 'admin') {
+    const design = await Design.findById(designId)
+      .populate('text')   // Populating text
+      .populate('graphic'); // Populating graphic
+
+    if (!design) throw new ApiError(404, "Design not found");
+    return res.status(200).json(new ApiResponse(200, design, "Design retrieved"));
+  }
+
+  // Regular users have restricted access
+  const design = await Design.findOne({
+    _id: designId,
+    $or: [
+      { owner: req.user._id },
+      { isPublic: true },
+    ]
+  })
+    .populate('text')   // Populating text
+    .populate('graphic'); // Populating graphic
+
+  if (!design) {
+    throw new ApiError(404, "Design not found or not authorized");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, design, "Design retrieved successfully"));
+});
+
 // Update design (owner only)
 const updateDesign = asyncHandler(async (req, res) => {
   const { designId } = req.params;
@@ -537,4 +570,5 @@ export {
   deleteDesign,
   getAllDesigns,
   getAllPublicDesigns,
+  getDesignByIdSimple
 };
