@@ -31,4 +31,19 @@ const loginSchema = z.object({
   password: z.string().min(3, { message: "Password must be at least 6 characters long" })
 })
 
-export { registerSchema, loginSchema }
+const productSchema = z.object({
+  title: z.string().min(1, "Required"),
+  description: z.string().optional(),
+  price: z.string().refine((val) => !isNaN(Number(val)), { message: "Must be a number" }),
+  discount_price: z.string().optional(),
+  quantity: z.string().refine((val) => !isNaN(Number(val)), { message: "Must be a number" }),
+  category: z.string().min(1, "Required"),
+  type: z
+    .string()
+    .min(1, "Required")
+    .refine((val) => ["Shirt", "Bag", "Shoes"].includes(val), {
+      message: "Type must be either Shirt, Bag or Shoes"
+    })
+})
+
+export { registerSchema, loginSchema, productSchema }

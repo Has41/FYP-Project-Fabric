@@ -6,7 +6,6 @@ export const AuthContext = createContext()
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const { refetch, isLoading } = useQuery({
     queryKey: "/api/v1/users/get-user",
@@ -15,12 +14,11 @@ const AuthProvider = ({ children }) => {
       return data
     },
     onSuccess: (data) => {
+      console.log(data?.data)
       setUser(data?.data)
-      setIsAuthenticated(true)
     },
     onError: (error) => {
       console.error("Failed to fetch user data:", error)
-      setIsAuthenticated(false)
       setUser(null)
     },
     retry: false,
@@ -30,11 +28,7 @@ const AuthProvider = ({ children }) => {
     staleTime: 24 * 60 * 60 * 1000
   })
 
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated, setIsAuthenticated, refetch, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ user, setUser, refetch, isLoading }}>{children}</AuthContext.Provider>
 }
 
 export default AuthProvider

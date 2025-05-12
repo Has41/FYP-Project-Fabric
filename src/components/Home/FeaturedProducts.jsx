@@ -27,7 +27,7 @@ const FeaturedProducts = () => {
           Featured Products
         </h1>
       </div>
-      <div className="grid grid-cols-3 place-items-center">
+      <div className="grid grid-cols-3 gap-y-4 place-items-center">
         {products.map((product, _) => {
           return (
             <Link

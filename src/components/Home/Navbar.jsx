@@ -1,21 +1,24 @@
-import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { createPortal } from "react-dom"
 import useAuth from "../../hooks/useAuth"
 import { useMutation } from "react-query"
 import axiosInstance from "../../utils/axiosInstance"
+import { FiShoppingBag } from "react-icons/fi"
 
 const Navbar = () => {
+  const { user, setUser } = useAuth()
   const [dropdownVisible, setDropdownVisible] = useState(false)
-  const { isAuthenticated, setIsAuthenticated, user } = useAuth()
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const navigate = useNavigate()
 
-  const { mutate } = useMutation({
+  const { mutate: logout, isLoading: isLoggingOut } = useMutation({
     mutationFn: async () => {
       return await axiosInstance.post("/api/v1/users/logout")
     },
     onSuccess: () => {
+      setUser(null)
       setDropdownVisible(false)
-      setIsAuthenticated(false)
       navigate("/auth")
     },
     onError: (error) => {
@@ -25,6 +28,20 @@ const Navbar = () => {
 
   const toggleDropdown = () => {
     setDropdownVisible((prev) => !prev)
+  }
+
+  const handleLogoutClick = () => {
+    setDropdownVisible(false)
+    setShowLogoutModal(true)
+  }
+
+  const confirmLogout = () => {
+    logout()
+    setShowLogoutModal(false)
+  }
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false)
   }
 
   return (
@@ -45,7 +62,7 @@ const Navbar = () => {
           </ul>
         </div>
 
-        {/* Get Started Button */}
+        {/* Icons */}
         <div className="flex gap-x-4 relative">
           <div>
             <svg
@@ -64,9 +81,26 @@ const Navbar = () => {
             </svg>
           </div>
           <div className="relative">
-            {isAuthenticated && user ? (
-              user.avatar && user.avatar.length !== 0 ? (
-                <img src={user?.avatar} alt="" />
+            <div onClick={toggleDropdown} className="cursor-pointer">
+              {user ? (
+                user.avatar && user.avatar.length !== 0 ? (
+                  <img src={user?.avatar} className="size-8 rounded-full" alt="User Avatar" />
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="size-6 text-black/80"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                    />
+                  </svg>
+                )
               ) : (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -74,8 +108,7 @@ const Navbar = () => {
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="size-6 text-black/80 cursor-pointer"
-                  onClick={toggleDropdown}
+                  className="size-6 text-black/80"
                 >
                   <path
                     strokeLinecap="round"
@@ -83,56 +116,70 @@ const Navbar = () => {
                     d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
                   />
                 </svg>
-              )
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="size-6 text-black/80 cursor-pointer"
-                onClick={toggleDropdown}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                />
-              </svg>
-            )}
+              )}
+            </div>
 
-            {isAuthenticated ? (
-              <>
-                {dropdownVisible && (
-                  <div className="absolute right-0 mt-2 bg-white shadow-md rounded-lg w-20">
-                    <ul className="text-gray-600">
-                      <li onClick={mutate} className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
+            {dropdownVisible && (
+              <div className="absolute right-0 mt-2 bg-white shadow-md rounded-lg w-32 select-none z-50">
+                <ul className="text-gray-600">
+                  {user ? (
+                    <>
+                      <li className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
+                        <Link to="/user/orders" className="flex items-center gap-2">
+                          <FiShoppingBag className="h-4 w-4" />
+                          My Orders
+                        </Link>
+                      </li>
+                      <li onClick={handleLogoutClick} className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
                         Logout
                       </li>
-                    </ul>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {dropdownVisible && (
-                  <div className="absolute right-0 mt-2 bg-white shadow-md rounded-lg w-20">
-                    <ul className="text-gray-600">
-                      <li
-                        onClick={() => navigate("/auth")}
-                        className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm"
-                      >
-                        Login
-                      </li>
-                    </ul>
-                  </div>
-                )}
-              </>
+                    </>
+                  ) : (
+                    <li
+                      onClick={() => navigate("/auth")}
+                      className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm"
+                    >
+                      Login
+                    </li>
+                  )}
+                </ul>
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop with blur effect */}
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={cancelLogout} />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-lg p-6 shadow-xl max-w-sm w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Logout</h3>
+              <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelLogout}
+                  disabled={isLoggingOut}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  disabled={isLoggingOut}
+                  className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-md transition disabled:opacity-50"
+                >
+                  {isLoggingOut ? "Logging out..." : "Logout"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </nav>
   )
 }

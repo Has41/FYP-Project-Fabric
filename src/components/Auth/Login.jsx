@@ -5,13 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { loginSchema } from "../../utils/zodSchema"
 import LoadingSpinner from "../Shared/LoadingSpinner"
 import { useNavigate } from "react-router-dom"
-import useAuth from "../../hooks/useAuth"
 import { useMutation } from "react-query"
 import axiosInstance from "../../utils/axiosInstance"
+import useAuth from "../../hooks/useAuth"
 
 const Login = ({ onRegisterClick, setFormHeight }) => {
+  const { refetch } = useAuth()
   const [isFocused, setIsFocused] = useState(false)
-  const { setIsAuthenticated } = useAuth()
   const loginRef = useRef(null)
   const navigate = useNavigate()
   const {
@@ -40,9 +40,9 @@ const Login = ({ onRegisterClick, setFormHeight }) => {
       const { data } = await axiosInstance.post("/api/v1/users/login", credentials)
       return data
     },
-    onSuccess: () => {
-      setIsAuthenticated(true)
+    onSuccess: async () => {
       console.log("Logged in successfully")
+      await refetch()
       navigate("/")
     },
     onError: () => {

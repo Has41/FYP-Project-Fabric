@@ -8,7 +8,8 @@ export default {
         "button-color": "linear-gradient(15deg, #FFE259 0%, #FFA751 100%)"
       },
       backgroundColor: {
-        "custom-green": "#FFE259"
+        "custom-green": "#FFE259",
+        "custom-white": "#FAF9F6"
       },
       textColor: {
         "custom-text": "#FFA751"

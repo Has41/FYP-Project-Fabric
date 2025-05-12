@@ -1,4 +1,3 @@
-import React from "react"
 import Navbar from "../components/Home/Navbar"
 import HeroSection from "../components/Home/HeroSection"
 import FeaturedProducts from "../components/Home/FeaturedProducts"

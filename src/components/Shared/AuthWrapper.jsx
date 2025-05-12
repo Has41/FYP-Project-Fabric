@@ -3,13 +3,17 @@ import useAuth from "../../hooks/useAuth"
 import LoadingSpinner from "./LoadingSpinner"
 
 const AuthWrapper = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { user, isLoading } = useAuth()
 
   if (isLoading) {
     return <LoadingSpinner fill="fill-black" loading={isLoading} />
   }
 
-  if (isAuthenticated) {
+  if (user && user.role === "admin") {
+    return <Navigate to="/admin" replace />
+  }
+
+  if (user) {
     return <Navigate to="/" replace />
   }
 
