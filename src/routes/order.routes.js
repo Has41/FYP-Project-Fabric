@@ -9,7 +9,8 @@ import {
   updateDeliveryStatus,
   updatePaymentStatus,
   requestReturn,
-  processReturn
+  processReturn,
+  getOrderByIdPipeline
 } from "../controllers/order.controller.js";
 
 const router = Router();
@@ -28,8 +29,8 @@ router.post("/:orderId/return", requestReturn); // Request return
 
 // Admin-only routes
 router.get("/", adminOnly, getAllOrders); // Get all orders
-router.get("/:orderId", adminOnly, getOrderById); // Get order details
-
+router.get("/:orderId", getOrderById); // Get order details
+router.get("/:orderId/pipeline", getOrderByIdPipeline); // Get order details
 router.put("/:orderId/delivery", adminOnly, updateDeliveryStatus); // Update delivery status
 router.put("/:orderId/payment", adminOnly, updatePaymentStatus); // Update payment status
 router.put("/:orderId/process-return", adminOnly, processReturn); // Process return request
