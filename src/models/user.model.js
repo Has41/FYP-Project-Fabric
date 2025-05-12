@@ -64,7 +64,7 @@ const userSchema = new Schema(
     accountDetails: {
       accountNumber: {
         type: String,
-        required: true,
+        
         validate: {
           validator: (v) => /^\d{9,18}$/.test(v),
           message: "Invalid account number",
