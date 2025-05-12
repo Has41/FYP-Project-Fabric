@@ -36,8 +36,8 @@ const productSchema = new Schema(
       min: 1,
     },
     model: {
-      type: Schema.Types.ObjectId,
-      ref: "Model",
+      type: String,
+    
     },
     type:{
       type: String,

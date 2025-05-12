@@ -14,7 +14,7 @@ const modelSchema = new Schema(
       type: String,  
       required: true
     },
-    public_id: {     // Only additional field you really need
+    public_id: {     
       type: String,
       required: true
     }

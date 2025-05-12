@@ -3,27 +3,28 @@ import mongoose, { Schema } from "mongoose";
 const graphicSchema = new Schema(
   {
     owner: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
     graphic: [{
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      index: true,
+      url: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      publicId: {
+        type: String,
+        required: true,
+        trim: true,
+      }
     }],
     width: {
       type: Number,
       required: true,
-      trim: true,
-      index: true,
     },
     height: {
       type: Number,
       required: true,
-      trim: true,
-      index: true,
     },
     offset: {
       x: { type: Number, default: 0 },
@@ -35,4 +36,5 @@ const graphicSchema = new Schema(
     timestamps: true,
   }
 );
+
 export const Graphic = mongoose.model("Graphic", graphicSchema);
