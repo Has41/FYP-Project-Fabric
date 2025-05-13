@@ -29,6 +29,8 @@ import designRouter from "./routes/design.routes.js";
 import adminDashboardRouter from "./routes/adminDashboard.routes.js";
 import designerDashboardRouter from "./routes/designerDasboard.routes.js";
 import reviewRouter from "./routes/review.routes.js";
+import textRouter from "./routes/text.routes.js";
+import graphicRouter from "./routes/graphic.routes.js";
 
 
 
@@ -44,6 +46,8 @@ app.use("/api/v1/dashboard", adminDashboardRouter);
 app.use("/api/v1/designs", designRouter);
 app.use("/api/v1/designers", designerDashboardRouter);
 app.use("/api/v1/reviews", reviewRouter);
+app.use("/api/v1/texts", textRouter);
+app.use("/api/v1/graphics", graphicRouter);
 
 
 
