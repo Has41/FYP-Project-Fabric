@@ -2,6 +2,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Design } from "../models/design.model.js";
+import { Graphic } from "../models/graphic.model.js";
+import { Text } from "../models/text.model.js";
+import { Pattren } from "../models/pattren.model.js";
+import { Product } from "../models/product.model.js";
+import { User } from "../models/user.model.js";
+import { DefaultPattren } from "../models/defaultPattren.model.js";
 
 import mongoose from "mongoose";
 
@@ -533,41 +539,97 @@ const getAllDesigns = asyncHandler(async (req, res) => {
 
 // Get all public designs
 const getAllPublicDesigns = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  try {
+    const { page = 1, limit = 10, sortBy = "createdAt", sortOrder = -1 } = req.query;
 
-  const options = {
-    page: parseInt(page),
-    limit: parseInt(limit),
-    populate: [
-      {
-        path: "owner",
-        select: "username avatar fullname",
-      },
-      {
-        path: "text",
-      },
-      {
-        path: "graphic",
-      },
-      {
-        path: "pattren", 
-      },
-      {
-        path: "defaultPattren", 
-      }
-    ],
-    lean: true,
-  };
+    // Validate pagination parameters
+    const pageNumber = parseInt(page);
+    const limitNumber = parseInt(limit);
+    
+    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+      throw new ApiError(400, "Invalid pagination parameters");
+    }
 
-  const designs = await Design.paginate(
-    { isPublic: true, status: "published" },
-    options
-  );
+    // Configure options with less restrictive population
+    const options = {
+      page: pageNumber,
+      limit: limitNumber,
+      sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 },
+      populate: [
+        {
+          path: "owner",
+          select: "username avatar fullname",
+          model: User
+        },
+        {
+          path: "product",
+          model: Product,
+          select: "title price discount_price type"
+        },
+        {
+          path: "text",
+          model: Text,
+          options: { strictPopulate: false } // Allow missing texts
+        },
+        {
+          path: "graphic",
+          model: Graphic,
+          options: { strictPopulate: false } // Allow missing graphics
+        },
+        {
+          path: "pattern",
+          model: Pattren,
+          options: { strictPopulate: false } // Allow missing patterns
+        },
+        {
+          path: "defaultPattern",
+          model: DefaultPattren,
+          options: { strictPopulate: false } // Allow missing default patterns
+        }
+      ],
+      lean: true
+    };
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, designs, "Public designs retrieved"));
+    // Less restrictive query - only check isPublic and status
+    const designs = await Design.paginate(
+      { 
+        isPublic: true, 
+        status: "published"
+      },
+      options
+    );
+
+    // Format response safely
+    const formattedDesigns = {
+      ...designs,
+      docs: designs.docs.map(design => ({
+        ...design,
+        currentPrice: design.product?.discount_price ?? design.product?.price ?? 0,
+        originalPrice: design.product?.price ?? 0,
+        hasDiscount: design.product?.discount_price && 
+                   design.product.discount_price < design.product.price
+      }))
+    };
+
+    return res.status(200).json(
+      new ApiResponse(200, formattedDesigns, "Public designs retrieved successfully")
+    );
+
+  } catch (error) {
+    console.error("Error fetching public designs:", error);
+    
+    if (error instanceof mongoose.Error.ValidationError) {
+      throw new ApiError(400, "Validation error: " + error.message);
+    }
+    if (error.name === 'CastError') {
+      throw new ApiError(400, "Invalid ID format");
+    }
+    
+    throw new ApiError(500, error.message || "Failed to retrieve public designs");
+  }
 });
+
+
 
 export {
   createDesign,
