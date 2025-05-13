@@ -121,16 +121,22 @@ const getPaymentStatusStats = asyncHandler(async (req, res) => {
 
 // 5. Order delivery status stats
 const getDeliveryStatusStats = asyncHandler(async (req, res) => {
-  const [pending, shipped, delivered] = await Promise.all([
+  const [pending, shipped, delivered, processing, returned, canceled] = await Promise.all([
     Order.countDocuments({ deliveryStatus: "pending" }),
     Order.countDocuments({ deliveryStatus: "shipped" }),
     Order.countDocuments({ deliveryStatus: "delivered" }),
+    Order.countDocuments({ deliveryStatus: "processing" }),
+    Order.countDocuments({ deliveryStatus: "returned" }),
+    Order.countDocuments({ deliveryStatus: "canceled" }),
   ]);
 
   return res.status(200).json(new ApiResponse(200, {
     pendingCount: pending,
     shippedCount: shipped,
     deliveredCount: delivered,
+    processingCount: processing,
+    returnedCount: returned,
+    canceledCount: canceled,
   }, "Delivery status stats fetched successfully."));
 });
 
