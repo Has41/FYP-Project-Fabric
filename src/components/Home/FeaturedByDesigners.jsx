@@ -1,27 +1,18 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useQuery } from "react-query"
 import axiosInstance from "../../utils/axiosInstance"
 
-/**
- * FeaturedByDesigners component
- *
- * Fetches and displays public designs from designers.
- * Uses react-query to fetch paginated designs with owner info.
- */
 const FeaturedByDesigners = () => {
   const [designs, setDesigns] = useState([])
 
-  const { refetch } = useQuery({
+  useQuery({
     queryKey: ["publicDesigns", { page: 1, limit: 10 }],
     queryFn: async () => {
       const { data } = await axiosInstance.get("/api/v1/designs/public?page=1&limit=10")
       return data.data
     },
     onSuccess: (data) => {
-      console.log(data.docs)
-
-      // `data` contains pagination object with `docs` array
       setDesigns(data.docs)
     },
     onError: (error) => {
@@ -40,7 +31,7 @@ const FeaturedByDesigners = () => {
         {designs.map((design) => (
           <Link
             key={design._id}
-            to={`/design/${design._id}`}
+            to={`/view-design/${design._id}`}
             className="bg-white w-[330px] h-[420px] py-4 hover:shadow-md hover:border hover:border-gray-200 transition-all duration-500 cursor-pointer"
           >
             <div className="flex flex-col items-center justify-center gap-y-2">

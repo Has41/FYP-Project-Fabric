@@ -4,20 +4,7 @@ import { Leva, useControls } from "leva"
 import { Environment, EnvironmentCube, OrbitControls } from "@react-three/drei"
 import ShirtModel from "../Models/ShirtModel"
 
-const Scene = ({
-  color,
-  pattern,
-  texts,
-  shirtText,
-  setTexts,
-  graphics,
-  activeTextId,
-  setActiveTextId,
-  textColor,
-  textFontSize,
-  textPosition,
-  setTextPosition
-}) => {
+const Scene = ({ color, pattern, texts, setTexts, graphics, activeTextId, setActiveTextId, textColor, textFontSize }) => {
   const directionalLightRef = useRef()
 
   const { lightColour, lightIntensity } = useControls({
@@ -44,14 +31,9 @@ const Scene = ({
         texts={texts}
         graphics={graphics}
         onSelectText={setActiveTextId}
-        onUpdateTextOffset={(id, offset) => {
-          setTexts((prev) => prev.map((t) => (t.id === id ? { ...t, offset } : t)))
-        }}
-        shirtText={shirtText}
         activeTextId={activeTextId}
         textColor={textColor}
         textFontSize={textFontSize}
-        textPosition={textPosition}
       />
       <Environment files="/hdrs/apartment.hdr" background={true} />
       {/* <Environment preset="apartment" background={true} /> */}
@@ -75,11 +57,8 @@ const Product3DCanvas = ({
   setTexts,
   activeTextId,
   setActiveTextId,
-  shirtText,
   textColor,
-  textFontSize,
-  textPosition,
-  setTextPosition
+  textFontSize
 }) => {
   return (
     <Canvas camera={{ position: [0, 0, 0] }} className="rounded-sm">
@@ -87,7 +66,6 @@ const Product3DCanvas = ({
       <Scene
         color={color}
         pattern={pattern}
-        shirtText={shirtText}
         activeTextId={activeTextId}
         setActiveTextId={setActiveTextId}
         texts={texts}
@@ -95,7 +73,6 @@ const Product3DCanvas = ({
         setTexts={setTexts}
         textColor={textColor}
         textFontSize={textFontSize}
-        textPosition={textPosition}
       />
     </Canvas>
   )

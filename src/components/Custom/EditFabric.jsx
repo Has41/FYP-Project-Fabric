@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, Fragment } from "react"
 import useDragger from "../../hooks/useDragger"
 import { menuOptions, toolOptions, clothOptions, saveOptions } from "../../utils/dynamicData"
 import Product3DCanvas from "./Product3DCanvas"
@@ -6,25 +6,40 @@ import ColorPicker from "./EditFeatures/ColorPicker"
 import PatternPicker from "./EditFeatures/PatternPicker"
 import TextTool from "./EditFeatures/TextTool"
 import GraphicsPicker from "./EditFeatures/GraphicsPicker"
-import TexturePicker from "./EditFeatures/TexturePicker"
+// import TexturePicker from "./EditFeatures/TexturePicker"
 import { patternLibrary as patterns } from "../../utils/dynamicData"
+import SaveDesignModel from "../Shared/SaveDesignModel"
+import useAuth from "../../hooks/useAuth"
+import { useMutation, useQuery, useQueryClient } from "react-query"
+import { useParams } from "react-router-dom"
+import axiosInstance from "../../utils/axiosInstance"
 
 const EditFabric = () => {
+  const { user } = useAuth()
+  const { id, designerId } = useParams()
   const [activeOption, setActiveOption] = useState("Cloth-Option")
   const [subActiveOption, setSubActiveOption] = useState(null)
   const [color, setColor] = useState("#FFF")
   const [selectedPattern, setSelectedPattern] = useState(null)
-  const [shirtText, setShirtText] = useState("")
   const [textColor, setTextColor] = useState("#000000")
   const [textFontSize, setTextFontSize] = useState(35)
-  const [textPosition, setTextPosition] = useState([0, 0, 0.6])
   const [texts, setTexts] = useState([])
   const [graphics, setGraphics] = useState([])
   const [activeTextId, setActiveTextId] = useState(null)
+  const [isModalOpen, setModalOpen] = useState(false)
 
-  useEffect(() => {
-    console.log("Current texts:", texts)
-  }, [texts])
+  useQuery({
+    queryKey: ["designsById", designerId],
+    queryFn: () => axiosInstance.get(`/api/v1/designs/simple/${designerId}`).then((res) => res.data.data),
+    onSuccess: (data) => {
+      console.log(data)
+      setColor(data.color)
+      setTexts(data.text)
+      setGraphics(data.graphic)
+    },
+
+    enabled: !!designerId
+  })
 
   const closePopup = () => setSubActiveOption("")
   const containerRef = useRef(null)
@@ -43,10 +58,36 @@ const EditFabric = () => {
   const { isDragging: isPatternDragging } = useDragger(patternPickerRef, containerRef)
   const { isDragging: isTextDragging } = useDragger(textPickerRef, containerRef)
   const { isDragging: isGraphicsDragging } = useDragger(graphicsPickerRef, containerRef)
-  const { isDragging: isTextureDragging } = useDragger(texturePickerRef, containerRef)
+  // const { isDragging: isTextureDragging } = useDragger(texturePickerRef, containerRef)
+
+  const queryClient = useQueryClient()
+  const createDesign = useMutation((payload) => axiosInstance.post("/api/v1/designs", payload), {
+    onSuccess: () => queryClient.invalidateQueries("designs")
+  })
+
+  const handleSaveClick = () => setModalOpen(true)
+  const handleModalClose = () => setModalOpen(false)
+
+  const handleDesignSave = (isPublic, designName) => {
+    // gather payload
+    const payload = {
+      name: designName,
+      color,
+      pattern: selectedPattern?._id || null,
+      defaultPattern: selectedPattern?._id || null,
+      text: texts.map((t) => t.id),
+      graphic: graphics.map((g) => g.id),
+      basePrice: 100,
+      isPublic,
+      designerProfit: 0,
+      product: id
+    }
+    createDesign.mutate(payload)
+    setModalOpen(false)
+  }
 
   return (
-    <>
+    <Fragment>
       <section
         ref={containerRef}
         className="bg-slate-50 select-none flex items-center max-w-full w-[97%] h-[95%] rounded-md shadow-md overflow-none"
@@ -166,7 +207,11 @@ const EditFabric = () => {
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Upload/Save" ? "flex" : "hidden"}`}>
               {saveOptions?.map((save, index) => {
                 return (
-                  <div key={index} className="flex items-center bg-white shadow-sm py-2 px-2 rounded-lg cursor-pointer">
+                  <div
+                    onClick={handleSaveClick}
+                    key={index}
+                    className="flex items-center bg-white shadow-sm py-2 px-2 rounded-lg cursor-pointer"
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -215,14 +260,10 @@ const EditFabric = () => {
           setTexts={setTexts}
           isTextDragging={isTextDragging}
           textPickerRef={textPickerRef}
-          textValue={shirtText}
-          onTextChange={setShirtText}
           textColor={textColor}
           onTextColorChange={setTextColor}
           fontSize={textFontSize}
           onFontSizeChange={setTextFontSize}
-          position={textPosition}
-          onPositionChange={setTextPosition}
         />
 
         <GraphicsPicker
@@ -244,7 +285,6 @@ const EditFabric = () => {
         <div className="w-[85%] h-[90%] bg-gray-100 mr-5 rounded-md shadow-sm z-0">
           <div className="flex justify-center items-center h-full">
             <Product3DCanvas
-              shirtText={shirtText}
               textColor={textColor}
               textFontSize={textFontSize}
               activeTextId={activeTextId}
@@ -254,13 +294,12 @@ const EditFabric = () => {
               setTexts={setTexts}
               pattern={selectedPattern}
               color={color}
-              textPosition={textPosition}
-              setTextPosition={setTextPosition}
             />
           </div>
         </div>
+        <SaveDesignModel isOpen={isModalOpen} onClose={handleModalClose} userRole={user.role} onSave={handleDesignSave} />
       </section>
-    </>
+    </Fragment>
   )
 }
 

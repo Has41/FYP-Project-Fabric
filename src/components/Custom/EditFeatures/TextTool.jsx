@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
+import { useQuery, useMutation, useQueryClient } from "react-query"
+import axiosInstance from "../../../utils/axiosInstance"
 
 const TextTool = ({
   textPickerRef,
@@ -12,80 +14,101 @@ const TextTool = ({
   fontSize,
   onFontSizeChange
 }) => {
-  // Internal state for selected text and front/back
+  const queryClient = useQueryClient()
   const [selectedId, setSelectedId] = useState(null)
   const [inputValue, setInputValue] = useState("")
   const [isFront, setIsFront] = useState(true)
 
-  // Sync the form when selection changes
+  // 1️⃣ Fetch from API and sync local `texts` state
+  const { data: fetched = [], isLoading } = useQuery(
+    "texts",
+    () => axiosInstance.get("/api/v1/texts/user").then((res) => res.data.data),
+    {
+      onSuccess: (data) => {
+        // map API shape to local TextItem shape
+        const mapped = data.map((t) => ({
+          id: t._id,
+          content: t.text,
+          color: t.color || "#000000",
+          fontSize: t.fontSize,
+          offset: t.offset,
+          isFront: t.isFront
+        }))
+        setTexts(mapped)
+      }
+    }
+  )
+
+  // 2️⃣ Mutations
+  const addText = useMutation(
+    (payload) => axiosInstance.post("/api/v1/texts/add", payload),
+    {
+      onSuccess: () => queryClient.invalidateQueries("texts")
+    },
+    {
+      onError: (error) => {
+        console.error("Error adding text:", error)
+      }
+    }
+  )
+  const updateText = useMutation(({ id, ...body }) => axiosInstance.put(`/api/v1/texts/update/${id}`, body), {
+    onSuccess: () => queryClient.invalidateQueries("texts")
+  })
+  const deleteText = useMutation((id) => axiosInstance.delete(`/api/v1/texts/delete/${id}`), {
+    onSuccess: () => queryClient.invalidateQueries("texts")
+  })
+
+  // 3️⃣ Sync form with selection
   useEffect(() => {
     if (selectedId) {
-      const current = texts.find((t) => t.id === selectedId)
-      if (current) {
-        setInputValue(current.content || "")
-        onTextColorChange(current.color || "#000000")
-        onFontSizeChange(current.fontSize || 35)
-        setIsFront(current.isFront ?? true)
+      const cur = texts.find((t) => t.id === selectedId)
+      if (cur) {
+        setInputValue(cur.content)
+        onTextColorChange(cur.color)
+        onFontSizeChange(cur.fontSize)
+        setIsFront(cur.isFront)
       }
     } else {
       setInputValue("")
+      onTextColorChange("#000000")
+      onFontSizeChange(35)
       setIsFront(true)
     }
-  }, [selectedId, texts, onTextColorChange, onFontSizeChange])
+  }, [selectedId, texts])
 
-  // Handlers
-  const selectText = (id) => {
-    setSelectedId((prev) => (prev === id ? null : id))
-  }
+  // 4️⃣ Handlers call API and update offsets locally
+  const handleAdd = () => {
+    addText.mutate({
+      text: inputValue,
+      fontSize,
+      offset: { x: 0, y: 0 },
+      isFront
+    })
 
-  const handleOffsetChange = (dx, dy) => {
-    if (!selectedId) return
-    setTexts((prev) =>
-      prev.map((t) => (t.id === selectedId ? { ...t, offset: { x: (t.offset.x || 0) + dx, y: (t.offset.y || 0) + dy } } : t))
-    )
-  }
-
-  const handleUpdate = () => {
-    if (!selectedId) return
-    setTexts((prev) =>
-      prev.map((t) =>
-        t.id === selectedId
-          ? {
-              ...t,
-              content: inputValue,
-              color: textColor,
-              fontSize,
-              isFront
-            }
-          : t
-      )
-    )
-    onTextChange("")
     setSelectedId(null)
     // closePopup()
   }
-
-  const handleDelete = () => {
-    if (!selectedId) return
-    setTexts((prev) => prev.filter((t) => t.id !== selectedId))
+  const handleUpdate = () => {
+    updateText.mutate({
+      id: selectedId,
+      text: inputValue,
+      fontSize,
+      offset: texts.find((t) => t.id === selectedId).offset,
+      isFront
+    })
     setSelectedId(null)
+    // closePopup()
   }
+  const handleDelete = () => {
+    deleteText.mutate(selectedId)
+    // setSelectedId(null)
+  }
+  const selectText = (id) => setSelectedId((prev) => (prev === id ? null : id))
 
-  const handleAdd = () => {
-    const newId = Date.now()
-    setTexts((prev) => [
-      ...prev,
-      {
-        id: newId,
-        content: inputValue,
-        color: textColor,
-        fontSize,
-        offset: { x: 0, y: 0 },
-        isFront
-      }
-    ])
-    onTextChange("")
-    setSelectedId(newId)
+  // retain original offset-only change
+  const handleOffsetChange = (dx, dy) => {
+    if (!selectedId) return
+    setTexts((prev) => prev.map((t) => (t.id === selectedId ? { ...t, offset: { x: t.offset.x + dx, y: t.offset.y + dy } } : t)))
   }
 
   return (
@@ -103,66 +126,45 @@ const TextTool = ({
         </button>
       </div>
 
-      {/* Front/Back selector */}
-      <div className="flex items-center gap-4 mb-4">
-        <label className="flex items-center gap-1">
-          <input type="radio" checked={isFront} onChange={() => setIsFront(true)} />
-          Front
-        </label>
-        <label className="flex items-center gap-1">
-          <input type="radio" checked={!isFront} onChange={() => setIsFront(false)} />
-          Back
-        </label>
-      </div>
+      {isLoading && <p>Loading...</p>}
 
-      {/* List of existing texts */}
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold mb-1">Texts ({texts.length})</h3>
-        <ul className="space-y-1 max-h-32 overflow-auto">
-          {texts.map((t) => (
-            <li
-              key={t.id}
-              onClick={() => selectText(t.id)}
-              className={`px-2 py-1 rounded cursor-pointer truncate ${
-                t.id === selectedId ? "bg-button-color font-medium" : "hover:bg-gray-100"
-              }`}
-            >
-              {t.content} ({t.isFront ? "Front" : "Back"})
-            </li>
-          ))}
-        </ul>
-      </div>
+      <ul className="space-y-1 max-h-32 overflow-auto mb-4">
+        {texts.map((t) => (
+          <li
+            key={t.id}
+            onClick={() => selectText(t.id)}
+            className={`px-2 py-1 rounded cursor-pointer truncate ${
+              t.id === selectedId ? "bg-button-color font-medium" : "hover:bg-gray-100"
+            }`}
+          >
+            {t.content} ({t.isFront ? "Front" : "Back"})
+          </li>
+        ))}
+      </ul>
 
-      {/* Position controls */}
       {selectedId && (
         <div className="flex justify-center items-center mb-4 gap-2">
           <button onClick={() => handleOffsetChange(0, 5)} className="p-1 border rounded">
             ↑
           </button>
-          <div className="flex gap-2">
-            <button onClick={() => handleOffsetChange(-5, 0)} className="p-1 border rounded">
-              ←
-            </button>
-            <button onClick={() => handleOffsetChange(5, 0)} className="p-1 border rounded">
-              →
-            </button>
-          </div>
+          <button onClick={() => handleOffsetChange(-5, 0)} className="p-1 border rounded">
+            ←
+          </button>
+          <button onClick={() => handleOffsetChange(5, 0)} className="p-1 border rounded">
+            →
+          </button>
           <button onClick={() => handleOffsetChange(0, -5)} className="p-1 border rounded">
             ↓
           </button>
         </div>
       )}
 
-      {/* Edit/Add form */}
       <div className="flex flex-col gap-3">
         <label className="text-sm font-medium">Text</label>
         <input
           type="text"
           value={inputValue}
-          onChange={(e) => {
-            onTextChange(e.target.value)
-            setInputValue(e.target.value)
-          }}
+          onChange={(e) => setInputValue(e.target.value)}
           className="border p-1 rounded text-sm"
           placeholder="Type here..."
         />
@@ -171,15 +173,16 @@ const TextTool = ({
         <input type="color" value={textColor} onChange={(e) => onTextColorChange(e.target.value)} className="h-6 w-full" />
 
         <label className="text-sm font-medium">Font Size</label>
-        <input
-          type="range"
-          min="35"
-          max="50"
-          step="1"
-          value={fontSize}
-          onChange={(e) => onFontSizeChange(parseInt(e.target.value))}
-        />
-        <span className="text-xs text-gray-500">{fontSize}px</span>
+        <input type="range" min={35} max={50} step={1} value={fontSize} onChange={(e) => onFontSizeChange(+e.target.value)} />
+
+        <div className="flex items-center gap-4 mb-4">
+          <label>
+            <input type="radio" checked={isFront} onChange={() => setIsFront(true)} /> Front
+          </label>
+          <label>
+            <input type="radio" checked={!isFront} onChange={() => setIsFront(false)} /> Back
+          </label>
+        </div>
 
         <div className="flex justify-between mt-3">
           {selectedId ? (

@@ -1,13 +1,14 @@
-import React from "react"
-import { useQuery } from "react-query"
+import React, { useState } from "react"
+import { useMutation, useQuery } from "react-query"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "../../../utils/axiosInstance"
 import { Pie } from "react-chartjs-2"
 import "chart.js/auto"
-import { FiArrowLeft } from "react-icons/fi"
+import { FiArrowLeft, FiTrash2 } from "react-icons/fi"
 
 const UserOrders = () => {
   const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState("details")
 
   const {
     data: statsData,
@@ -18,39 +19,44 @@ const UserOrders = () => {
     return data.data
   })
 
-  // Ensure default stats shape
+  const { data: designs } = useQuery("myDesigns", async () => {
+    const { data } = await axiosInstance.get("/api/v1/designs/my-designs")
+    return data.data
+  })
+
+  const deleteMutation = useMutation(
+    async (id) => {
+      const { data } = await axiosInstance.delete(`/api/v1/designs/${id}`)
+      return data.data
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries("myDesigns")
+      }
+    }
+  )
+
   const stats = {
     totalOrders: statsData?.totalOrders ?? 0,
     totalSpent: statsData?.totalSpent ?? 0,
     statusBreakdown: statsData?.statusBreakdown ?? {}
   }
 
-  // Fetch order history
   const {
     data: orders = [],
     isLoading: ordersLoading,
     error: ordersError
-  } = useQuery(
-    "orderHistory",
-    async () => {
-      const { data } = await axiosInstance.get("/api/v1/users/order-history")
-      return data.data
-    },
-    {
-      onSuccess: (data) => {
-        console.log("Dashboard Stats:", data)
-      }
-    }
-  )
+  } = useQuery("orderHistory", async () => {
+    const { data } = await axiosInstance.get("/api/v1/users/order-history")
+    return data.data
+  })
 
   if (statsLoading || ordersLoading) return <div>Loading...</div>
   if (statsError || ordersError) return <div>Error loading data</div>
 
-  // Prepare chart data for status breakdown
-  const breakdown = stats.statusBreakdown || {}
+  const breakdown = stats.statusBreakdown
   const statusLabels = Object.keys(breakdown)
   const statusCounts = Object.values(breakdown)
-
   const pieData = {
     labels: statusLabels,
     datasets: [
@@ -63,51 +69,126 @@ const UserOrders = () => {
   }
 
   return (
-    <div className="p-6 space-y-8 font-poppins max-w-[80%] mx-auto">
-      <button onClick={() => navigate("/")} className="flex items-center gap-1 text-gray-600 hover:text-gray-800 mb-4">
-        <FiArrowLeft className="h-4 w-4" />
-        Back
-      </button>
-      <h1 className="text-2xl font-semibold">Dashboard Stats</h1>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white shadow rounded p-4">
-          <h2 className="font-medium">Total Orders</h2>
-          <p className="text-3xl">{stats.totalOrders}</p>
-        </div>
-        <div className="bg-white shadow rounded p-4">
-          <h2 className="font-medium">Total Spent</h2>
-          <p className="text-3xl">${stats.totalSpent.toFixed(2)}</p>
-        </div>
-      </div>
+    <div className="flex font-poppins max-w-full mx-auto h-full">
+      {/* Side Panel */}
+      <nav className="w-1/4 bg-white shadow h-full p-4 m-4">
+        <ul className="space-y-2">
+          <li>
+            <button
+              onClick={() => setActiveTab("details")}
+              className={`w-full text-left px-3 py-2 rounded ${
+                activeTab === "details" ? "bg-button-color font-medium" : "hover:bg-gray-100"
+              }`}
+            >
+              Order Details
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => setActiveTab("designs")}
+              className={`w-full text-left px-3 py-2 rounded ${
+                activeTab === "designs" ? "bg-button-color font-medium" : "hover:bg-gray-100"
+              }`}
+            >
+              Your Designs
+            </button>
+          </li>
+        </ul>
+      </nav>
 
-      <div className="bg-white shadow rounded p-4">
-        <h2 className="font-medium mb-4">Order Status Breakdown</h2>
-        {statusLabels.length > 0 ? <Pie data={pieData} /> : <p>No status data available</p>}
-      </div>
+      {/* Main Content */}
+      <div className="flex-1 p-6 space-y-8 overflow-auto">
+        <button onClick={() => navigate("/")} className="flex items-center gap-1 text-gray-600 hover:text-gray-800 mb-4">
+          <FiArrowLeft className="h-4 w-4" />
+          Back
+        </button>
 
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Order History</h2>
-        {orders.length > 0 ? (
-          <ul className="space-y-4">
-            {orders.map((order, index) => (
-              <li key={order._id} className="bg-white shadow rounded p-4 flex flex-col space-y-2">
-                <span>
-                  <strong>Order #:</strong> {index + 1}
-                </span>
-                <span>
-                  <strong>Status:</strong> {order.deliveryStatus}
-                </span>
-                <span>
-                  <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
-                </span>
-                <span>
-                  <strong>Date:</strong> {new Date(order.createdAt).toLocaleString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No orders found.</p>
+        {activeTab === "details" && (
+          <>
+            <h1 className="text-2xl font-semibold">Dashboard Stats</h1>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="bg-white shadow rounded p-4">
+                <h2 className="font-medium">Total Orders</h2>
+                <p className="text-3xl">{stats.totalOrders}</p>
+              </div>
+              <div className="bg-white shadow rounded p-4">
+                <h2 className="font-medium">Total Spent</h2>
+                <p className="text-3xl">${stats.totalSpent.toFixed(2)}</p>
+              </div>
+            </div>
+
+            <div className="bg-white shadow rounded p-4">
+              <h2 className="font-medium mb-4">Order Status Breakdown</h2>
+              {statusLabels.length > 0 ? <Pie data={pieData} /> : <p>No status data available</p>}
+            </div>
+
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Order History</h2>
+              {orders.length > 0 ? (
+                <ul className="space-y-4">
+                  {orders.map((order, index) => (
+                    <li key={order._id} className="bg-white shadow rounded p-4 flex flex-col space-y-2">
+                      <span>
+                        <strong>Order #:</strong> {index + 1}
+                      </span>
+                      <span>
+                        <strong>Status:</strong> {order.deliveryStatus}
+                      </span>
+                      <span>
+                        <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
+                      </span>
+                      <span>
+                        <strong>Date:</strong> {new Date(order.createdAt).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No orders found.</p>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === "designs" && (
+          <>
+            <h1 className="text-2xl font-semibold">Your Designs</h1>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm lg:text-base bg-white">
+                <thead className="bg-button-color text-white">
+                  <tr>
+                    <th className="p-3 text-center">#</th>
+                    <th className="p-3">Title</th>
+                    <th className="p-3 text-center">Public</th>
+                    <th className="p-3 text-center">Created At</th>
+                    <th className="p-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {designs.map((design, idx) => (
+                    <tr key={design._id} className="border-b hover:bg-gray-50 transition">
+                      <td className="p-3 text-center">{idx + 1}</td>
+                      <td className="p-3 text-center">{design.title || design.name}</td>
+                      <td className="p-3 text-center">
+                        {design.isPublic ? <span className="text-green-600">Yes</span> : <span className="text-red-600">No</span>}
+                      </td>
+                      <td className="p-3 text-center">{new Date(design.createdAt).toLocaleDateString()}</td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => deleteMutation.mutate(design._id)}
+                          disabled={deleteMutation.isLoading}
+                          className="p-2 hover:bg-red-100 rounded"
+                          title="Delete Design"
+                        >
+                          <FiTrash2 size={18} className="text-red-600" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

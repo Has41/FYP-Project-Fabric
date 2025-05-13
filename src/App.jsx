@@ -16,6 +16,7 @@ import OrderDetails from "./components/Admin/PanelOptions/OrderDetails"
 import AdminRoutes from "./components/Shared/AdminRoutes"
 import UserOrders from "./components/Home/UserOptions/UserOrders"
 import DesignerStats from "./components/Home/DesignerOptions/DesignerStats"
+import EditFabric from "./components/Custom/EditFabric"
 
 const App = () => {
   return (
@@ -34,6 +35,16 @@ const App = () => {
           element={
             <ProtectedRoute>
               <EditPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/view-design/:designerId"
+          element={
+            <ProtectedRoute>
+              <main className="bg-black/80 h-screen flex items-center justify-center">
+                <EditFabric />
+              </main>
             </ProtectedRoute>
           }
         />
@@ -61,7 +72,7 @@ const App = () => {
           <Route path="products" element={<ProductDetails />} />
           <Route path="orders" element={<OrderDetails />} />
         </Route>
-        <Route path="/user/orders" element={<UserOrders />} />
+        <Route path="/user/more" element={<UserOrders />} />
         <Route path="/design/stats" element={<DesignerStats />} />
       </Routes>
     </>

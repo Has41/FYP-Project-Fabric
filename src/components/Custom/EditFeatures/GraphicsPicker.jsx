@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from "react"
+import { useQuery, useMutation, useQueryClient } from "react-query"
+import axiosInstance from "../../../utils/axiosInstance"
 
 export default function GraphicsTool({
   graphicsPickerRef,
@@ -8,51 +10,92 @@ export default function GraphicsTool({
   closePopup,
   isGraphicsDragging
 }) {
-  // internal selection state
+  const queryClient = useQueryClient()
   const [selectedId, setSelectedId] = useState(null)
   const [isFront, setIsFront] = useState(true)
   const fileInputRef = useRef()
 
-  // Sync isFront when selecting existing graphic
+  // 1️⃣ Fetch user graphics
+  const { data: fetched = [], isLoading } = useQuery(
+    "userGraphics",
+    () => axiosInstance.get("/api/v1/graphics/user").then((res) => res.data.data),
+    {
+      onSuccess: (data) => {
+        const mapped = data.map((g) => ({
+          id: g._id,
+          url: g.graphic[0].url,
+          width: g.width,
+          height: g.height,
+          offset: g.offset,
+          isFront: g.isFront
+        }))
+        setGraphics(mapped)
+      }
+    }
+  )
+
+  // 2️⃣ Mutations
+  const addGraphic = useMutation((formData) => axiosInstance.post("/api/v1/graphics/add", formData), {
+    onSuccess: () => queryClient.invalidateQueries("userGraphics")
+  })
+  const updateGraphic = useMutation(
+    ({ id, width, height, offset, isFront }) =>
+      axiosInstance.put(`/api/v1/graphics/update/${id}`, { width, height, offset, isFront }),
+    { onSuccess: () => queryClient.invalidateQueries("userGraphics") }
+  )
+  const deleteGraphic = useMutation((id) => axiosInstance.delete(`/api/v1/graphics/delete/${id}`), {
+    onSuccess: () => queryClient.invalidateQueries("userGraphics")
+  })
+
+  // Sync isFront when selecting
   useEffect(() => {
     if (selectedId) {
-      const current = graphics.find((g) => g.id === selectedId)
-      if (current) {
-        setIsFront(current.isFront ?? true)
-      }
+      const cur = graphics.find((g) => g.id === selectedId)
+      if (cur) setIsFront(cur.isFront)
     } else {
       setIsFront(true)
     }
   }, [selectedId, graphics])
 
-  // handlers
+  // Handlers
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (!file || !file.type.startsWith("image/")) return
-    const url = URL.createObjectURL(file)
-    const id = Date.now()
-    setGraphics((prev) => [...prev, { id, url, offset: { x: 0, y: 0 }, width: 100, height: 100, isFront }])
-    setSelectedId(id)
+    const form = new FormData()
+    form.append("images", file)
+    form.append("width", 100)
+    form.append("height", 100)
+    form.append("offset", JSON.stringify({ x: 0, y: 0 }))
+    form.append("isFront", isFront)
+    addGraphic.mutate(form)
+    setSelectedId(null)
     e.target.value = null
   }
 
-  const selectGraphic = (id) => {
-    setSelectedId((prev) => (prev === id ? null : id))
-  }
-
+  const selectGraphic = (id) => setSelectedId((prev) => (prev === id ? null : id))
   const handleOffset = (dx, dy) => {
     if (!selectedId) return
     setGraphics((prev) =>
       prev.map((g) => (g.id === selectedId ? { ...g, offset: { x: g.offset.x + dx, y: g.offset.y + dy } } : g))
     )
   }
-
-  const handleDelete = () => {
+  const handleUpdate = () => {
     if (!selectedId) return
-    setGraphics((prev) => prev.filter((g) => g.id !== selectedId))
+    const graphic = graphics.find((g) => g.id === selectedId)
+    updateGraphic.mutate({
+      id: selectedId,
+      width: graphic.width,
+      height: graphic.height,
+      offset: graphic.offset,
+      isFront: graphic.isFront
+    })
     setSelectedId(null)
   }
-
+  const handleDelete = () => {
+    if (!selectedId) return
+    deleteGraphic.mutate(selectedId)
+    setSelectedId(null)
+  }
   const handleSizeChange = (field, value) => {
     if (!selectedId) return
     setGraphics((prev) => prev.map((g) => (g.id === selectedId ? { ...g, [field]: parseInt(value, 10) } : g)))
@@ -72,6 +115,8 @@ export default function GraphicsTool({
           ✕
         </button>
       </div>
+
+      {isLoading && <p>Loading...</p>}
 
       {/* Upload */}
       <div className="mb-4">
@@ -115,14 +160,12 @@ export default function GraphicsTool({
           <button onClick={() => handleOffset(0, 5)} className="p-1 border rounded">
             ↑
           </button>
-          <div className="flex gap-2">
-            <button onClick={() => handleOffset(-5, 0)} className="p-1 border rounded">
-              ←
-            </button>
-            <button onClick={() => handleOffset(5, 0)} className="p-1 border rounded">
-              →
-            </button>
-          </div>
+          <button onClick={() => handleOffset(-5, 0)} className="p-1 border rounded">
+            ←
+          </button>
+          <button onClick={() => handleOffset(5, 0)} className="p-1 border rounded">
+            →
+          </button>
           <button onClick={() => handleOffset(0, -5)} className="p-1 border rounded">
             ↓
           </button>
@@ -135,18 +178,18 @@ export default function GraphicsTool({
           <label className="text-sm font-medium">Width</label>
           <input
             type="range"
-            min="20"
-            max="size * 0.9"
-            step="1"
+            min={20}
+            max={500}
+            step={1}
             value={graphics.find((g) => g.id === selectedId)?.width || 100}
             onChange={(e) => handleSizeChange("width", e.target.value)}
           />
           <label className="text-sm font-medium">Height</label>
           <input
             type="range"
-            min="20"
-            max="size * 0.9"
-            step="1"
+            min={20}
+            max={500}
+            step={1}
             value={graphics.find((g) => g.id === selectedId)?.height || 100}
             onChange={(e) => handleSizeChange("height", e.target.value)}
           />
@@ -155,9 +198,14 @@ export default function GraphicsTool({
 
       {/* Delete */}
       {selectedId && (
-        <button onClick={handleDelete} className="px-3 py-1 rounded bg-red-500 text-white text-sm">
-          Delete Image
-        </button>
+        <div className="flex flex-col gap-y-4 justify-between mt-2">
+          <button onClick={handleDelete} className="px-3 py-1 rounded bg-red-500 text-white text-sm">
+            Delete Image
+          </button>
+          <button onClick={handleUpdate} className="px-3 py-1 rounded bg-blue-600 text-white text-sm">
+            Update Image
+          </button>
+        </div>
       )}
     </div>
   )

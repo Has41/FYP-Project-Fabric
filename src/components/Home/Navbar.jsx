@@ -130,9 +130,9 @@ const Navbar = () => {
                         </li>
                       )}
                       <li className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
-                        <Link to="/user/orders" className="flex items-center gap-2">
+                        <Link to="/user/more" className="flex items-center gap-2">
                           <FiShoppingBag className="h-4 w-4" />
-                          My Orders
+                          More Options
                         </Link>
                       </li>
                       <li
