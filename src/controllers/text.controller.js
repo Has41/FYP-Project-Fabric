@@ -4,10 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { Text } from "../models/text.model";
 import mongoose from "mongoose";
 
-import { Text } from "../models/text.model.js";
-import asyncHandler from "../utils/asyncHandler.js";
-import ApiError from "../utils/ApiError.js";
-import ApiResponse from "../utils/ApiResponse.js";
+
 
 // Add Text
 const addText = asyncHandler(async (req, res, next) => {
