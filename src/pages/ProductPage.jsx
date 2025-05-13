@@ -8,7 +8,7 @@ import blackImg from "../assets/test1.png"
 const ProductPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { user } = useAuth()
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   const {
@@ -26,7 +26,7 @@ const ProductPage = () => {
   })
 
   const handleEditProduct = () => {
-    if (isAuthenticated) {
+    if (user) {
       navigate(`/edit-product/${id}`)
     } else {
       setShowLoginPrompt(true)

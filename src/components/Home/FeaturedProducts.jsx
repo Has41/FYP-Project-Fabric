@@ -14,6 +14,8 @@ const FeaturedProducts = () => {
       return data
     },
     onSuccess: (data) => {
+      console.log(data?.data)
+
       setProducts(data?.data)
     },
     onError: (error) => {
