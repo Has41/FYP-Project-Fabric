@@ -11,12 +11,12 @@ const addText = asyncHandler(async (req, res, next) => {
   try {
     const { text, fontSize, offset, isFront } = req.body;
 
-    if (!Array.isArray(text) || text.length === 0 || !fontSize) {
+    if (!text || typeof text !== 'string' || !fontSize) {
       throw new ApiError(400, "Missing or invalid required fields.");
     }
 
     const newText = await Text.create({
-      text, // an array like ["Hello", "World"]
+      text, // now a single string
       owner: req.user._id,
       fontSize,
       offset,
@@ -99,13 +99,40 @@ const searchById = asyncHandler(async (req, res, next) => {
 // Get All Texts
 const allText = asyncHandler(async (req, res, next) => {
   try {
-    const texts = await Text.find().sort({ createdAt: -1 });
+    // Optionally add filters based on owner/other criteria
+    const filter = {};
+    
+    // If you want only the current user's texts
+    // filter.owner = req.user._id;
+    
+    const texts = await Text.find(filter).sort({ createdAt: -1 });
+    
     return res
       .status(200)
-      .json(new ApiResponse(200, texts, "All texts retrieved."));
+      .json(new ApiResponse(200, texts, "All texts retrieved successfully."));
   } catch (error) {
     next(error);
   }
 });
 
-export { addText, searchByUser, updateText, deleteText, searchById, allText };
+const getUserTexts = asyncHandler(async (req, res, next) => {
+  try {
+    // Get texts belonging to the authenticated user
+    const texts = await Text.find({ owner: req.user._id })
+      .sort({ createdAt: -1 });
+    
+    if (!texts || texts.length === 0) {
+      return res.status(200).json(
+        new ApiResponse(200, [], "No texts found for this user.")
+      );
+    }
+
+    return res.status(200).json(
+      new ApiResponse(200, texts, "User texts retrieved successfully.")
+    );
+  } catch (error) {
+    next(error);
+  }
+});
+
+export { addText, searchByUser, updateText, deleteText, searchById, allText, getUserTexts };
