@@ -855,8 +855,9 @@ const getUserDashboardStats = asyncHandler(async (req, res) => {
     const stats = await Order.aggregate([
       {
         $match: { 
-          user: new mongoose.Types.ObjectId(userId)  // Fixed: using 'new' keyword
-        },
+          orderBy: new mongoose.Types.ObjectId(userId) 
+        }
+        
       },
       {
         $group: {
