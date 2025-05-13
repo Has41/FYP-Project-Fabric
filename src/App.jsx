@@ -15,6 +15,7 @@ import ProductDetails from "./components/Admin/PanelOptions/ProductDetails"
 import OrderDetails from "./components/Admin/PanelOptions/OrderDetails"
 import AdminRoutes from "./components/Shared/AdminRoutes"
 import UserOrders from "./components/Home/UserOptions/UserOrders"
+import DesignerStats from "./components/Home/DesignerOptions/DesignerStats"
 
 const App = () => {
   return (
@@ -61,6 +62,7 @@ const App = () => {
           <Route path="orders" element={<OrderDetails />} />
         </Route>
         <Route path="/user/orders" element={<UserOrders />} />
+        <Route path="/design/stats" element={<DesignerStats />} />
       </Routes>
     </>
   )

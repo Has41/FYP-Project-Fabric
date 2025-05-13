@@ -22,12 +22,19 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
 
       // apply pattern
       if (pattern) {
-        const resp = await fetch(pattern)
+        const resp = await fetch(pattern?.image?.url)
         const svgPat = await resp.text()
         const imgPat = new Image()
         imgPat.src = `data:image/svg+xml;base64,${btoa(svgPat)}`
         await new Promise((r) => (imgPat.onload = r))
+
+        // Create pattern
         const pat = ctx.createPattern(imgPat, "repeat")
+
+        const scaleFactor = size / (imgPat.width * 25)
+        const patternScale = new DOMMatrix().scale(scaleFactor, scaleFactor)
+        pat.setTransform(patternScale)
+
         ctx.fillStyle = pat
         ctx.fillRect(0, 0, size, size)
       }

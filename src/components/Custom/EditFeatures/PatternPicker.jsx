@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { useMutation, useQuery } from "react-query"
 import axiosInstance from "../../../utils/axiosInstance"
 import ConvertApi from "convertapi-js"
@@ -27,7 +27,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
     },
     onSuccess: (data) => {
       setDefaultPatterns(data?.data)
-      // console.log(data?.data)
+      console.log(data?.data)
     },
     onError: (error) => {
       console.error(error)
@@ -107,7 +107,8 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
 
   const handlePatternSelect = (pattern) => {
     setSelectedPatternState(pattern)
-    setSelectedPattern(pattern?.image)
+    setSelectedPattern(pattern)
+    console.log(pattern)
   }
 
   return (
@@ -144,7 +145,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
                 selectedPattern?.image === svg.image ? "shadow-black" : ""
               } rounded-full shadow-md hover:shadow-2xl transition-shadow duration-500`}
               style={{
-                backgroundImage: `url(${svg.image})`
+                backgroundImage: `url(${svg.image?.url})`
               }}
             />
           </div>

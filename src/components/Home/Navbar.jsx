@@ -4,7 +4,7 @@ import { createPortal } from "react-dom"
 import useAuth from "../../hooks/useAuth"
 import { useMutation } from "react-query"
 import axiosInstance from "../../utils/axiosInstance"
-import { FiShoppingBag } from "react-icons/fi"
+import { FiActivity, FiLogIn, FiLogOut, FiShoppingBag } from "react-icons/fi"
 
 const Navbar = () => {
   const { user, setUser } = useAuth()
@@ -47,12 +47,10 @@ const Navbar = () => {
   return (
     <nav className="bg-white font-poppins">
       <div className="container mx-auto flex justify-between items-center py-4">
-        {/* Logo */}
         <div className="text-2xl font-bold text-gray-800">
           <h1 className="uppercase font-bold">Fabric</h1>
         </div>
 
-        {/* Menu Links */}
         <div className="hidden md:flex space-x-8">
           <ul className="flex space-x-6 text-gray-600">
             <li className="hover:text-custom-text cursor-pointer">Home</li>
@@ -62,7 +60,6 @@ const Navbar = () => {
           </ul>
         </div>
 
-        {/* Icons */}
         <div className="flex gap-x-4 relative">
           <div>
             <svg
@@ -120,25 +117,38 @@ const Navbar = () => {
             </div>
 
             {dropdownVisible && (
-              <div className="absolute right-0 mt-2 bg-white shadow-md rounded-lg w-32 select-none z-50">
+              <div className="absolute right-0 mt-2 bg-white shadow-md rounded-lg w-36 select-none z-50">
                 <ul className="text-gray-600">
                   {user ? (
                     <>
+                      {user.role === "designer" && (
+                        <li className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
+                          <Link to="/design/stats" className="flex items-center gap-2">
+                            <FiActivity className="h-4 w-4" />
+                            My Designs
+                          </Link>
+                        </li>
+                      )}
                       <li className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
                         <Link to="/user/orders" className="flex items-center gap-2">
                           <FiShoppingBag className="h-4 w-4" />
                           My Orders
                         </Link>
                       </li>
-                      <li onClick={handleLogoutClick} className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm">
+                      <li
+                        onClick={handleLogoutClick}
+                        className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm flex items-center gap-2"
+                      >
+                        <FiLogOut className="h-4 w-4" />
                         Logout
                       </li>
                     </>
                   ) : (
                     <li
                       onClick={() => navigate("/auth")}
-                      className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm"
+                      className="px-4 py-2 hover:bg-gray-100 rounded-lg cursor-pointer text-sm flex items-center gap-2"
                     >
+                      <FiLogIn className="h-4 w-4" />
                       Login
                     </li>
                   )}

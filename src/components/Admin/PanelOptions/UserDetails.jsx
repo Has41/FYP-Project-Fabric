@@ -7,17 +7,23 @@ const UserDetails = () => {
   const queryClient = useQueryClient()
   const [deletingId, setDeletingId] = useState(null)
 
-  // Fetch all users
   const {
     data: users = [],
     isLoading,
     isError
-  } = useQuery(["users"], async () => {
-    const res = await axiosInstance.get("/api/v1/users/all-users")
-    return res.data.data
-  })
+  } = useQuery(
+    ["users"],
+    async () => {
+      const res = await axiosInstance.get("/api/v1/users/all-users")
+      return res.data.data
+    },
+    {
+      onSuccess: (data) => {
+        console.log(data)
+      }
+    }
+  )
 
-  // Delete user mutation
   const deleteMutation = useMutation(
     async (id) => {
       const res = await axiosInstance.delete(`/api/v1/users/delete-user-admin/${id}`)
@@ -50,6 +56,7 @@ const UserDetails = () => {
               <th className="border border-custom-border px-4 py-2">#</th>
               <th className="border border-custom-border px-4 py-2">Name</th>
               <th className="border border-custom-border px-4 py-2">Email</th>
+              <th className="border border-custom-border px-4 py-2">Role</th>
               <th className="border border-custom-border px-4 py-2">Designs</th>
               <th className="border border-custom-border px-4 py-2">Orders</th>
               <th className="border border-custom-border px-4 py-2">Joined</th>
@@ -62,6 +69,7 @@ const UserDetails = () => {
                 <td className="border px-4 py-2">{index + 1}</td>
                 <td className="border px-4 py-2">{user.fullname}</td>
                 <td className="border px-4 py-2">{user.email}</td>
+                <td className="border px-4 py-2 capitalize">{user.role}</td>
                 <td className="border px-4 py-2">{user.designsCount}</td>
                 <td className="border px-4 py-2">{user.ordersCount}</td>
                 <td className="border px-4 py-2">{new Date(user.createdAt).toLocaleDateString()}</td>

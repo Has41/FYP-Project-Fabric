@@ -6,16 +6,9 @@ import { Pie } from "react-chartjs-2"
 import "chart.js/auto"
 import { FiArrowLeft } from "react-icons/fi"
 
-/**
- * UserOrders component
- *
- * Fetches and displays user dashboard stats and order history.
- * Uses react-query and Chart.js for visualization.
- */
 const UserOrders = () => {
   const navigate = useNavigate()
 
-  // Fetch dashboard statistics (separate endpoint)
   const {
     data: statsData,
     isLoading: statsLoading,
@@ -96,10 +89,10 @@ const UserOrders = () => {
         <h2 className="text-xl font-semibold mb-4">Order History</h2>
         {orders.length > 0 ? (
           <ul className="space-y-4">
-            {orders.map((order) => (
+            {orders.map((order, index) => (
               <li key={order._id} className="bg-white shadow rounded p-4 flex flex-col space-y-2">
                 <span>
-                  <strong>Order ID:</strong> {order._id}
+                  <strong>Order #:</strong> {index + 1}
                 </span>
                 <span>
                   <strong>Status:</strong> {order.deliveryStatus}
