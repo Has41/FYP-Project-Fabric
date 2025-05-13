@@ -91,10 +91,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 
 // 3. Revenue by delivery status
 const getRevenueByDeliveryStatus = asyncHandler(async (req, res) => {
-  const [pending, shipped, delivered, returned] = await Promise.all([
+  const [pending, shipped, delivered,processing, returned] = await Promise.all([
     Order.aggregate([{ $match: { deliveryStatus: "pending", returned: { $ne: true } } }, { $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
     Order.aggregate([{ $match: { deliveryStatus: "shipped", returned: { $ne: true } } }, { $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
     Order.aggregate([{ $match: { deliveryStatus: "delivered", returned: { $ne: true } } }, { $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
+    Order.aggregate([{ $match: { deliveryStatus: "processing", returned: { $ne: true } } }, { $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
     Order.aggregate([{ $match: { returned: true } }, { $group: { _id: null, total: { $sum: "$totalAmount" } } }]),
   ]);
 
@@ -103,19 +104,24 @@ const getRevenueByDeliveryStatus = asyncHandler(async (req, res) => {
     shippedRevenue: shipped[0]?.total || 0,
     deliveredRevenue: delivered[0]?.total || 0,
     returnedRevenue: returned[0]?.total || 0,
+    processingRevenue: processing[0]?.total || 0
   }, "Revenue by delivery status fetched successfully."));
 });
 
 // 4. Order payment method stats
 const getPaymentStatusStats = asyncHandler(async (req, res) => {
-  const [cod, paid] = await Promise.all([
-    Order.countDocuments({ paymentStatus: "Cash on Delivery" }),
-    Order.countDocuments({ paymentStatus: "Paid" }),
+  const [cod, paid, failed, refunded] = await Promise.all([
+    Order.countDocuments({ paymentStatus: "pending" }),
+    Order.countDocuments({ paymentStatus: "paid" }),
+    Order.countDocuments({ paymentStatus: "failed" }),
+    Order.countDocuments({ paymentStatus: "refunded" }),
   ]);
 
   return res.status(200).json(new ApiResponse(200, {
     cashOnDeliveryCount: cod,
     paidCount: paid,
+    failedCount: failed,
+    refundedCount: refunded,
   }, "Payment status stats fetched successfully."));
 });
 
