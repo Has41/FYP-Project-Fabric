@@ -59,7 +59,7 @@ const getDesignerDashboardStats = asyncHandler(async (req, res) => {
     },
     {
       $match: {
-        "designDetails.owner": mongoose.Types.ObjectId(userId), // Filter for designs owned by the current designer
+        "designDetails.owner": new mongoose.Types.ObjectId(userId), // Fixed: Added 'new' keyword
       },
     },
     {
@@ -69,7 +69,7 @@ const getDesignerDashboardStats = asyncHandler(async (req, res) => {
           $sum: { $multiply: ["$designs.unitPrice", "$designs.quantity"] },
         }, // Calculate total revenue
         totalDesignerProfit: {
-          $sum: { $multiply: ["$designs.designerProfit", "$designs.quantity"] }, // Calculate total designer profit
+          $sum: { $multiply: ["$designs.designerProfit", "$designs.quantity"] },
         },
         totalOrders: { $sum: 1 }, // Count total orders
       },
