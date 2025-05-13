@@ -37,10 +37,18 @@ const UserOrders = () => {
     data: orders = [],
     isLoading: ordersLoading,
     error: ordersError
-  } = useQuery("orderHistory", async () => {
-    const { data } = await axiosInstance.get("/api/v1/users/order-history")
-    return data.data
-  })
+  } = useQuery(
+    "orderHistory",
+    async () => {
+      const { data } = await axiosInstance.get("/api/v1/users/order-history")
+      return data.data
+    },
+    {
+      onSuccess: (data) => {
+        console.log("Dashboard Stats:", data)
+      }
+    }
+  )
 
   if (statsLoading || ordersLoading) return <div>Loading...</div>
   if (statsError || ordersError) return <div>Error loading data</div>
@@ -94,7 +102,7 @@ const UserOrders = () => {
                   <strong>Order ID:</strong> {order._id}
                 </span>
                 <span>
-                  <strong>Status:</strong> {order.orderStatus}
+                  <strong>Status:</strong> {order.deliveryStatus}
                 </span>
                 <span>
                   <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
