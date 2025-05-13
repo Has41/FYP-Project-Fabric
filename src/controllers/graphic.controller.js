@@ -72,30 +72,17 @@ const updateGraphic = asyncHandler(async (req, res, next) => {
     const existing = await Graphic.findById(id);
     if (!existing) throw new ApiError(404, "Graphic not found");
 
-    // Delete previous graphics from Cloudinary using public IDs
-    for (const image of existing.graphic) {
-      await deleteFromCloudinary(image.publicId);
-    }
+   
 
-    const newGraphics = [];
-    for (const file of req.files) {
-      const result = await uploadOnCloudinary(file.path);
-      if (!result?.secure_url || !result?.public_id) {
-        throw new ApiError(500, "Failed to upload new graphic");
-      }
-      newGraphics.push({
-        url: result.secure_url,
-        publicId: result.public_id,
-      });
-    }
 
-    existing.graphic = newGraphics;
     existing.width = width;
     existing.height = height;
     existing.offset = offset;
     existing.isFront = isFront;
 
-    await existing.save();
+    await existing.save({
+      validateBeforeSave: false,
+    });
 
     return res
       .status(200)
