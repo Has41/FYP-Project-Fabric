@@ -139,9 +139,12 @@ const EditFabric = () => {
               {toolOptions?.map((tool) => {
                 return (
                   <div
+                    aria-disabled={!!designerId}
                     key={tool.id}
-                    onClick={() => setSubActiveOption(tool.id)}
-                    className="flex items-center gap-x-3 bg-[#FFF] shadow-sm py-2 px-2 rounded-md cursor-pointer"
+                    onClick={() => !designerId && setSubActiveOption(tool.id)}
+                    className={`flex items-center gap-x-3 bg-[#FFF] ${
+                      designerId ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                    } shadow-sm py-2 px-2 rounded-md`}
                   >
                     <div className="ml-2">
                       <svg
