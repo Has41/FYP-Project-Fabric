@@ -538,10 +538,24 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
   const options = {
     page: parseInt(page),
     limit: parseInt(limit),
-    populate: {
-      path: "owner",
-      select: "username avatar fullname",
-    },
+    populate: [
+      {
+        path: "owner",
+        select: "username avatar fullname",
+      },
+      {
+        path: "text",
+      },
+      {
+        path: "graphic",
+      },
+      {
+        path: "pattren", 
+      },
+      {
+        path: "defaultPattren", 
+      }
+    ],
     lean: true,
   };
 
@@ -549,11 +563,6 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
     { isPublic: true, status: "published" },
     options
   );
-
-  // Populate text and graphic arrays for public designs
-  for (let design of designs.docs) {
-    await design.populate("text").populate("graphic");
-  }
 
   return res
     .status(200)
