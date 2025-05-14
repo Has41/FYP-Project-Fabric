@@ -221,14 +221,14 @@ const EditFabric = () => {
 
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Option" ? "flex" : "hidden"}`}>
               {toolOptions?.map((tool) => {
-                const isDisabled = designPayload?.owner?._id !== user?._id
+                const isNotOwner = designPayload?.owner?._id !== user?._id
                 return (
                   <div
-                    // aria-disabled={isDisabled}
+                    aria-disabled={isNotOwner}
                     key={tool.id}
-                    onClick={() => setSubActiveOption(tool.id)}
+                    onClick={() => !isNotOwner && setSubActiveOption(tool.id)}
                     className={`flex items-center gap-x-3 bg-[#FFF] ${
-                      isDisabled ? "cursor-pointer opacity-70" : "cursor-pointer"
+                      isNotOwner ? "cursor-not-allowed opacity-70" : "cursor-pointer"
                     } shadow-sm py-2 px-2 rounded-md`}
                   >
                     <div className="ml-2">
@@ -290,23 +290,29 @@ const EditFabric = () => {
                 )
               })}
             </div>
-
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Upload/Save" ? "flex" : "hidden"}`}>
               {saveOptions?.map((save, index) => {
-                // Modify the title if designerId exists and it's the "Save" option
-                const displayTitle = designerId && save.type === "Save" ? "Update Your Design" : save.title
-                const displayType = designerId && save.type === "Save" ? "Update" : save.type
+                const isNotOwner = designPayload?.owner?._id !== user?._id
+                const isSaveOption = save.type === "Save"
+                const displayTitle = designerId && isSaveOption ? "Update Your Design" : save.title
+                const displayType = designerId && isSaveOption ? "Update" : save.type
+                const isDisabled = isNotOwner && isSaveOption // Only disable Save option for non-owners
+
                 return (
                   <div
                     onClick={() => {
-                      if (save.type === "Save") {
-                        handleSaveClick()
-                      } else {
-                        handlePlaceOrderClick()
+                      if (!isDisabled) {
+                        if (isSaveOption) {
+                          handleSaveClick()
+                        } else {
+                          handlePlaceOrderClick()
+                        }
                       }
                     }}
                     key={index}
-                    className="flex items-center bg-white shadow-sm py-2 px-2 rounded-lg cursor-pointer"
+                    className={`flex items-center bg-white shadow-sm py-2 px-2 rounded-lg ${
+                      isDisabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                    }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -314,14 +320,14 @@ const EditFabric = () => {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className="size-5 ml-2 text-black/80"
+                      className={`size-5 ml-2 ${isDisabled ? "text-gray-400" : "text-black/80"}`}
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d={save.path} />
                     </svg>
 
-                    <span className="text-sm ml-2">{displayTitle}</span>
-                    <div className="ml-auto bg-slate-100 py-1 px-3 rounded-md">
-                      <p className="text-xs">{displayType}</p>
+                    <span className={`text-sm ml-2 ${isDisabled ? "text-gray-500" : "text-black"}`}>{displayTitle}</span>
+                    <div className={`ml-auto py-1 px-3 rounded-md ${isDisabled ? "bg-gray-200" : "bg-slate-100"}`}>
+                      <p className={`${isDisabled ? "text-gray-500" : "text-black"} text-xs`}>{displayType}</p>
                     </div>
                   </div>
                 )
@@ -413,7 +419,7 @@ const EditFabric = () => {
         <PlaceOrderModal
           isOpen={isOrderModalOpen}
           onClose={() => setIsOrderModalOpen(false)}
-          selectedDesignId={selectedDesignId}
+          selectedDesignId={selectedDesignId || designerId}
         />
       </section>
     </Fragment>

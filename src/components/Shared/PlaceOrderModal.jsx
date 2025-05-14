@@ -10,7 +10,7 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     reset
   } = useForm({
     resolver: zodResolver(orderSchema),
@@ -22,7 +22,13 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
     }
   })
 
-  // Reset form when modal opens or selectedDesignId changes
+  // Add this inside your component
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      console.log("Form errors:", errors)
+    }
+  }, [errors])
+
   useEffect(() => {
     if (isOpen) {
       reset({
@@ -45,8 +51,14 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
     }
   })
 
-  const onSubmit = (values) => {
-    placeOrder.mutate(values)
+  const onSubmit = async (values) => {
+    try {
+      console.log("Form values:", values)
+      await placeOrder.mutateAsync(values)
+    } catch (error) {
+      // Error is already handled in useMutation's onError
+      console.error("Submission error:", error)
+    }
   }
 
   if (!isOpen) return null
@@ -83,8 +95,12 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-300 rounded">
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 bg-button-color text-white rounded">
-              Submit Order
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`px-4 py-2 bg-button-color text-white rounded ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}`}
+            >
+              {isSubmitting ? "Processing..." : "Submit Order"}
             </button>
           </div>
         </form>
