@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "react-query"
-import axiosInstance from "../../../utils/axiosInstance"
 
-const TextTool = ({
+export default function TextTool({
   textPickerRef,
   texts,
   setTexts,
@@ -13,52 +11,12 @@ const TextTool = ({
   onTextColorChange,
   fontSize,
   onFontSizeChange
-}) => {
-  const queryClient = useQueryClient()
+}) {
   const [selectedId, setSelectedId] = useState(null)
   const [inputValue, setInputValue] = useState("")
   const [isFront, setIsFront] = useState(true)
 
-  // 1️⃣ Fetch from API and sync local `texts` state
-  const { data: fetched = [], isLoading } = useQuery(
-    "texts",
-    () => axiosInstance.get("/api/v1/texts/user").then((res) => res.data.data),
-    {
-      onSuccess: (data) => {
-        // map API shape to local TextItem shape
-        const mapped = data.map((t) => ({
-          id: t._id,
-          content: t.text,
-          color: t.color || "#000000",
-          fontSize: t.fontSize,
-          offset: t.offset,
-          isFront: t.isFront
-        }))
-        setTexts(mapped)
-      }
-    }
-  )
-
-  // 2️⃣ Mutations
-  const addText = useMutation(
-    (payload) => axiosInstance.post("/api/v1/texts/add", payload),
-    {
-      onSuccess: () => queryClient.invalidateQueries("texts")
-    },
-    {
-      onError: (error) => {
-        console.error("Error adding text:", error)
-      }
-    }
-  )
-  const updateText = useMutation(({ id, ...body }) => axiosInstance.put(`/api/v1/texts/update/${id}`, body), {
-    onSuccess: () => queryClient.invalidateQueries("texts")
-  })
-  const deleteText = useMutation((id) => axiosInstance.delete(`/api/v1/texts/delete/${id}`), {
-    onSuccess: () => queryClient.invalidateQueries("texts")
-  })
-
-  // 3️⃣ Sync form with selection
+  // Sync form with selected text
   useEffect(() => {
     if (selectedId) {
       const cur = texts.find((t) => t.id === selectedId)
@@ -76,36 +34,36 @@ const TextTool = ({
     }
   }, [selectedId, texts])
 
-  // 4️⃣ Handlers call API and update offsets locally
+  // Handlers
   const handleAdd = () => {
-    addText.mutate({
-      text: inputValue,
+    const newText = {
+      id: Date.now().toString(),
+      content: inputValue,
+      color: textColor,
       fontSize,
       offset: { x: 0, y: 0 },
       isFront
-    })
+    }
+    setTexts((prev) => [...prev, newText])
+    setSelectedId(newText.id)
+  }
 
-    setSelectedId(null)
-    // closePopup()
-  }
   const handleUpdate = () => {
-    updateText.mutate({
-      id: selectedId,
-      text: inputValue,
-      fontSize,
-      offset: texts.find((t) => t.id === selectedId).offset,
-      isFront
-    })
+    if (!selectedId) return
+    setTexts((prev) =>
+      prev.map((t) => (t.id === selectedId ? { ...t, content: inputValue, color: textColor, fontSize, isFront } : t))
+    )
     setSelectedId(null)
-    // closePopup()
   }
+
   const handleDelete = () => {
-    deleteText.mutate(selectedId)
-    // setSelectedId(null)
+    if (!selectedId) return
+    setTexts((prev) => prev.filter((t) => t.id !== selectedId))
+    setSelectedId(null)
   }
+
   const selectText = (id) => setSelectedId((prev) => (prev === id ? null : id))
 
-  // retain original offset-only change
   const handleOffsetChange = (dx, dy) => {
     if (!selectedId) return
     setTexts((prev) => prev.map((t) => (t.id === selectedId ? { ...t, offset: { x: t.offset.x + dx, y: t.offset.y + dy } } : t)))
@@ -125,8 +83,6 @@ const TextTool = ({
           ✕
         </button>
       </div>
-
-      {isLoading && <p>Loading...</p>}
 
       <ul className="space-y-1 max-h-32 overflow-auto mb-4">
         {texts.map((t) => (
@@ -204,5 +160,3 @@ const TextTool = ({
     </div>
   )
 }
-
-export default TextTool

@@ -1,6 +1,4 @@
 import React, { useEffect, useState, useRef } from "react"
-import { useQuery, useMutation, useQueryClient } from "react-query"
-import axiosInstance from "../../../utils/axiosInstance"
 
 export default function GraphicsTool({
   graphicsPickerRef,
@@ -10,42 +8,9 @@ export default function GraphicsTool({
   closePopup,
   isGraphicsDragging
 }) {
-  const queryClient = useQueryClient()
   const [selectedId, setSelectedId] = useState(null)
   const [isFront, setIsFront] = useState(true)
   const fileInputRef = useRef()
-
-  // 1️⃣ Fetch user graphics
-  const { data: fetched = [], isLoading } = useQuery(
-    "userGraphics",
-    () => axiosInstance.get("/api/v1/graphics/user").then((res) => res.data.data),
-    {
-      onSuccess: (data) => {
-        const mapped = data.map((g) => ({
-          id: g._id,
-          url: g.graphic[0].url,
-          width: g.width,
-          height: g.height,
-          offset: g.offset,
-          isFront: g.isFront
-        }))
-        setGraphics(mapped)
-      }
-    }
-  )
-
-  // 2️⃣ Mutations
-  const addGraphic = useMutation((formData) => axiosInstance.post("/api/v1/graphics/add", formData), {
-    onSuccess: () => queryClient.invalidateQueries("userGraphics")
-  })
-  const updateGraphic = useMutation(
-    ({ id, width, height, offset, isFront }) =>
-      axiosInstance.put(`/api/v1/graphics/update/${id}`, { width, height, offset, isFront }),
-    { onSuccess: () => queryClient.invalidateQueries("userGraphics") }
-  )
-  const deleteGraphic = useMutation((id) => axiosInstance.delete(`/api/v1/graphics/delete/${id}`), {
-    onSuccess: () => queryClient.invalidateQueries("userGraphics")
-  })
 
   // Sync isFront when selecting
   useEffect(() => {
@@ -61,41 +26,47 @@ export default function GraphicsTool({
   const handleFileChange = (e) => {
     const file = e.target.files[0]
     if (!file || !file.type.startsWith("image/")) return
-    const form = new FormData()
-    form.append("images", file)
-    form.append("width", 100)
-    form.append("height", 100)
-    form.append("offset", JSON.stringify({ x: 0, y: 0 }))
-    form.append("isFront", isFront)
-    addGraphic.mutate(form)
-    setSelectedId(null)
+
+    const url = URL.createObjectURL(file)
+    const newGraphic = {
+      id: Date.now().toString(),
+      url,
+      width: 100,
+      height: 100,
+      offset: { x: 0, y: 0 },
+      isFront
+    }
+    setGraphics((prev) => [...prev, newGraphic])
+    setSelectedId(newGraphic.id)
     e.target.value = null
   }
 
   const selectGraphic = (id) => setSelectedId((prev) => (prev === id ? null : id))
+
   const handleOffset = (dx, dy) => {
     if (!selectedId) return
     setGraphics((prev) =>
       prev.map((g) => (g.id === selectedId ? { ...g, offset: { x: g.offset.x + dx, y: g.offset.y + dy } } : g))
     )
   }
+
   const handleUpdate = () => {
     if (!selectedId) return
     const graphic = graphics.find((g) => g.id === selectedId)
-    updateGraphic.mutate({
-      id: selectedId,
-      width: graphic.width,
-      height: graphic.height,
-      offset: graphic.offset,
-      isFront: graphic.isFront
-    })
+    setGraphics((prev) =>
+      prev.map((g) =>
+        g.id === selectedId ? { ...g, width: graphic.width, height: graphic.height, offset: graphic.offset, isFront } : g
+      )
+    )
     setSelectedId(null)
   }
+
   const handleDelete = () => {
     if (!selectedId) return
-    deleteGraphic.mutate(selectedId)
+    setGraphics((prev) => prev.filter((g) => g.id !== selectedId))
     setSelectedId(null)
   }
+
   const handleSizeChange = (field, value) => {
     if (!selectedId) return
     setGraphics((prev) => prev.map((g) => (g.id === selectedId ? { ...g, [field]: parseInt(value, 10) } : g)))
@@ -115,8 +86,6 @@ export default function GraphicsTool({
           ✕
         </button>
       </div>
-
-      {isLoading && <p>Loading...</p>}
 
       {/* Upload */}
       <div className="mb-4">
@@ -196,7 +165,7 @@ export default function GraphicsTool({
         </div>
       )}
 
-      {/* Delete */}
+      {/* Delete & Update */}
       {selectedId && (
         <div className="flex flex-col gap-y-4 justify-between mt-2">
           <button onClick={handleDelete} className="px-3 py-1 rounded bg-red-500 text-white text-sm">

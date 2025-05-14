@@ -17,6 +17,7 @@ import AdminRoutes from "./components/Shared/AdminRoutes"
 import UserOrders from "./components/Home/UserOptions/UserOrders"
 import DesignerStats from "./components/Home/DesignerOptions/DesignerStats"
 import EditFabric from "./components/Custom/EditFabric"
+import NonUserRoutes from "./components/Shared/NonUserRoutes"
 
 const App = () => {
   return (
