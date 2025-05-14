@@ -8,6 +8,7 @@ import { Pattern } from "../models/pattern.model.js";
 import { Product } from "../models/product.model.js";
 import { User } from "../models/user.model.js";
 import { DefaultPattern } from "../models/defaultPattern.model.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 import mongoose from "mongoose";
 
@@ -60,6 +61,14 @@ const createDesign = asyncHandler(async (req, res) => {
       "You are an admin, you should add a product or model?"
     );
   }
+  if (!req.file?.path) {
+    throw new ApiError(400, "Image file is required");
+  }
+
+  const uploadResult = await uploadOnCloudinary(req.file.path);
+    if (!uploadResult?.secure_url || !uploadResult?.public_id) {
+      throw new ApiError(500, "Failed to upload pattern to Cloudinary");
+    }
 
   const design = await Design.create({
     owner: req.user._id,
@@ -74,6 +83,10 @@ const createDesign = asyncHandler(async (req, res) => {
     basePrice,
     salePrice,
     isPublic: isPublic || false,
+    image: {
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id,
+    },
   });
 
   if (!design) {
@@ -211,6 +224,7 @@ const getDesignById = asyncHandler(async (req, res) => {
       {
         $project: {
           owner: 1,
+          image: 1,
           name: 1,
           product: 1,
           color: 1,
@@ -358,6 +372,7 @@ const getDesignById = asyncHandler(async (req, res) => {
         owner: 1,
         name: 1,
         product: 1,
+        image: 1,
         color: 1,
         pattern: 1,
         defaultPattern: 1,
@@ -444,6 +459,8 @@ const updateDesign = asyncHandler(async (req, res) => {
   const { designId } = req.params;
   const updateData = req.body;
 
+  
+
   // Prevent changing certain fields directly
   if ("owner" in updateData || "_id" in updateData) {
     throw new ApiError(400, "Cannot change design ownership or ID");
@@ -457,6 +474,17 @@ const updateDesign = asyncHandler(async (req, res) => {
   if (updateData.graphic && !Array.isArray(updateData.graphic)) {
     throw new ApiError(400, "Graphic must be an array of object IDs");
   }
+  if (!req.file?.path) {
+    throw new ApiError(400, "Image file is required");
+  }
+
+  const uploadResult = await uploadOnCloudinary(req.file.path);
+    if (!uploadResult?.secure_url || !uploadResult?.public_id) {
+      throw new ApiError(500, "Failed to upload pattern to Cloudinary");
+    }
+
+    updateData.image = uploadResult.secure_url;
+    updateData.imagePublicId = uploadResult.public_id;
 
   const design = await Design.findOneAndUpdate(
     { _id: designId, owner: req.user._id },
@@ -511,10 +539,17 @@ const deleteDesign = asyncHandler(async (req, res) => {
       ? { _id: designId }
       : { _id: designId, owner: req.user._id };
 
+  
   const design = await Design.findOneAndDelete(query);
 
   if (!design) {
     throw new ApiError(404, "Design not found or not authorized");
+  }
+  try {
+    await deleteFromCloudinary(design.image.publicId);
+  } catch (cloudinaryError) {
+    console.error("Cloudinary deletion error:", cloudinaryError.message);
+    // Consider whether to proceed or throw error based on your requirements
   }
 
   return res

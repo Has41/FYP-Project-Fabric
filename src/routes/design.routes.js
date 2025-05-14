@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
+import { upload } from "../middleware/multer.middleware.js";
 import {
   createDesign,
   getMyDesigns,
@@ -24,7 +25,7 @@ router.get("/user/:userId/public", getPublicDesignsByUser);
 router.use(verifyJwt);
 
 // User design management
-router.post("/",createDesign);
+router.post("/",upload.single("image"),createDesign);
 router.get("/my-designs", getMyDesigns);
 router.get("/:designId", getDesignById);
 router.put("/:designId", updateDesign);

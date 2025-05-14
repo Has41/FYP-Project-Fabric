@@ -19,6 +19,18 @@ const designSchema = new Schema(
       ref: "Product",
       required: true,
     },
+    image: {
+      url: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+      publicId: {
+        type: String,
+        required: true,
+        trim: true,
+      }
+    },
     isPublic: {
       type: Boolean,
       default: false,
