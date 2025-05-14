@@ -1,19 +1,19 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { Pattren } from "../models/pattren.model.js";
+import { Pattern } from "../models/pattern.model.js";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-const addPattren = asyncHandler(async (req, res, next) => {
+const addPattern = asyncHandler(async (req, res, next) => {
   try {
     const { name } = req.body;
 
     // Validate input
     if (!name?.trim()) {
-      throw new ApiError(400, "pattren name is required");
+      throw new ApiError(400, "pattern name is required");
     }
 
     // Check file upload
@@ -29,11 +29,11 @@ const addPattren = asyncHandler(async (req, res, next) => {
     // Upload to Cloudinary
     const uploadResult = await uploadOnCloudinary(req.file.path);
     if (!uploadResult?.secure_url || !uploadResult?.public_id) {
-      throw new ApiError(500, "Failed to upload pattren to Cloudinary");
+      throw new ApiError(500, "Failed to upload pattern to Cloudinary");
     }
 
-    // Create pattren document
-    const pattren = await Pattren.create({
+    // Create pattern document
+    const pattern = await Pattern.create({
       owner: req.user._id,
       name: name.trim(),
       image: {
@@ -44,30 +44,30 @@ const addPattren = asyncHandler(async (req, res, next) => {
 
     return res
       .status(201)
-      .json(new ApiResponse(201, pattren, "pattren added successfully"));
+      .json(new ApiResponse(201, pattern, "pattern added successfully"));
   } catch (error) {
     next(error);
   }
 });
 
-const deletePattren = asyncHandler(async (req, res, next) => {
+const deletePattern = asyncHandler(async (req, res, next) => {
   try {
-    const { pattrenId } = req.params;
+    const { patternId } = req.params;
 
-    // Validate pattren ID
-    if (!mongoose.Types.ObjectId.isValid(pattrenId)) {
-      throw new ApiError(400, "Invalid pattren ID format");
+    // Validate pattern ID
+    if (!mongoose.Types.ObjectId.isValid(patternId)) {
+      throw new ApiError(400, "Invalid pattern ID format");
     }
 
-    // Find and delete pattren
-    const pattren = await Pattren.findByIdAndDelete(pattrenId);
-    if (!pattren) {
-      throw new ApiError(404, "pattren not found");
+    // Find and delete pattern
+    const pattern = await Pattern.findByIdAndDelete(patternId);
+    if (!pattern) {
+      throw new ApiError(404, "pattern not found");
     }
 
     // Delete from Cloudinary using public ID
     try {
-      await deleteFromCloudinary(pattren.image.publicId);
+      await deleteFromCloudinary(pattern.image.publicId);
     } catch (cloudinaryError) {
       console.error("Cloudinary deletion error:", cloudinaryError.message);
       // Consider whether to proceed or throw error based on your requirements
@@ -75,7 +75,7 @@ const deletePattren = asyncHandler(async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, null, "pattren deleted successfully"));
+      .json(new ApiResponse(200, null, "pattern deleted successfully"));
   } catch (error) {
     next(error);
   }
@@ -83,7 +83,7 @@ const deletePattren = asyncHandler(async (req, res, next) => {
 const allPatterns = asyncHandler(async (req, res, next) => {
   try {
     // Fetch patterns owned by the current user
-    const patterns = await Pattren.find({ owner: req.user._id });
+    const patterns = await Pattern.find({ owner: req.user._id });
 
     if (!patterns || patterns.length === 0) {
       return res
@@ -99,19 +99,19 @@ const allPatterns = asyncHandler(async (req, res, next) => {
   }
 });
 
-const getPattrenById = asyncHandler(async (req, res, next) => {
+const getPatternById = asyncHandler(async (req, res, next) => {
   try {
-    const { pattrenId } = req.params;
-    if (!pattrenId) {
-      throw new ApiError(400, "Pattren Id Not Found");
+    const { patternId } = req.params;
+    if (!patternId) {
+      throw new ApiError(400, "Pattern Id Not Found");
     }
-    const pattren = await Pattren.findById(pattrenId);
-    if (!pattren) {
-      throw new ApiError(404, "Pattren Not Found");
+    const pattern = await Pattern.findById(patternId);
+    if (!pattern) {
+      throw new ApiError(404, "Pattern Not Found");
     }
     return res
       .status(200)
-      .json(new ApiResponse(200, pattren, "Pattren Fetched Successfully"));
+      .json(new ApiResponse(200, pattern, "Pattern Fetched Successfully"));
   } catch (error) {
     next(error);
   }
@@ -119,7 +119,7 @@ const getPattrenById = asyncHandler(async (req, res, next) => {
 
 const getAllPatterns = asyncHandler(async (req, res, next) => {
   try {
-    const patterns = await Pattren.find();
+    const patterns = await Pattern.find();
     if (!patterns || patterns.length === 0) {
       return res
         .status(404)
@@ -134,9 +134,9 @@ const getAllPatterns = asyncHandler(async (req, res, next) => {
 });
 
 export {
-  addPattren,
-  deletePattren,
+  addPattern,
+  deletePattern,
   allPatterns,
-  getPattrenById,
+  getPatternById,
   getAllPatterns,
 };

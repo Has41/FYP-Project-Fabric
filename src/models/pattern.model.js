@@ -1,7 +1,11 @@
 import mongoose, { Schema } from "mongoose";
 
-const pattrenSchema = new Schema(
+const patternSchema = new Schema(
   {
+    owner: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
     name: {
       type: String,
       required: true,
@@ -23,4 +27,4 @@ const pattrenSchema = new Schema(
   }
 );
 
-export const DefaultPattren = mongoose.model("DefaultPattren", pattrenSchema);
+export const Pattern = mongoose.model("Pattern", patternSchema);

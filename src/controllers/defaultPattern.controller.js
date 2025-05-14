@@ -1,6 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
-import { DefaultPattren } from "../models/defaultPattren.model.js";
+import { DefaultPattern } from "../models/defaultPattern.model.js";
 import {
   deleteFromCloudinary,
   uploadOnCloudinary,
@@ -8,13 +8,13 @@ import {
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
-const addPattren = asyncHandler(async (req, res, next) => {
+const addPattern = asyncHandler(async (req, res, next) => {
   try {
     const { name } = req.body;
 
     // Validate input
     if (!name?.trim()) {
-      throw new ApiError(400, "Pattren name is required");
+      throw new ApiError(400, "Pattern name is required");
     }
 
     let files = [];
@@ -26,17 +26,17 @@ const addPattren = asyncHandler(async (req, res, next) => {
       throw new ApiError(400, "No file uploaded");
     }
 
-    const createdPattrens = [];
+    const createdPatterns = [];
 
     for (const file of files) {
       // Upload to Cloudinary
       const uploadResult = await uploadOnCloudinary(file.path);
       if (!uploadResult?.secure_url || !uploadResult?.public_id) {
-        throw new ApiError(500, "Failed to upload pattren to Cloudinary");
+        throw new ApiError(500, "Failed to upload pattern to Cloudinary");
       }
 
-      // Create pattren document
-      const pattren = await DefaultPattren.create({
+      // Create pattern document
+      const pattern = await DefaultPattern.create({
         name: name.trim(),
         image: {
           url: uploadResult.secure_url,
@@ -44,36 +44,36 @@ const addPattren = asyncHandler(async (req, res, next) => {
         }
       });
 
-      createdPattrens.push(pattren);
+      createdPatterns.push(pattern);
     }
 
     return res
       .status(201)
-      .json(new ApiResponse(201, createdPattrens, "Pattren(s) added successfully"));
+      .json(new ApiResponse(201, createdPatterns, "Pattern(s) added successfully"));
 
   } catch (error) {
     next(error);
   }
 });
 
-const deletePattren = asyncHandler(async (req, res, next) => {
+const deletePattern = asyncHandler(async (req, res, next) => {
   try {
-    const { pattrenId } = req.params;
+    const { patternId } = req.params;
 
-    // Validate pattren ID
-    if (!mongoose.Types.ObjectId.isValid(pattrenId)) {
-      throw new ApiError(400, "Invalid pattren ID format");
+    // Validate pattern ID
+    if (!mongoose.Types.ObjectId.isValid(patternId)) {
+      throw new ApiError(400, "Invalid pattern ID format");
     }
 
-    // Find and delete pattren
-    const pattren = await DefaultPattren.findByIdAndDelete(pattrenId);
-    if (!pattren) {
-      throw new ApiError(404, "Pattren not found");
+    // Find and delete pattern
+    const pattern = await DefaultPattern.findByIdAndDelete(patternId);
+    if (!pattern) {
+      throw new ApiError(404, "Pattern not found");
     }
 
     // Delete from Cloudinary using public ID
     try {
-      await deleteFromCloudinary(pattren.image.publicId);
+      await deleteFromCloudinary(pattern.image.publicId);
     } catch (cloudinaryError) {
       console.error("Cloudinary deletion error:", cloudinaryError.message);
       // You might want to handle this differently based on requirements
@@ -81,14 +81,14 @@ const deletePattren = asyncHandler(async (req, res, next) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, null, "Pattren deleted successfully"));
+      .json(new ApiResponse(200, null, "Pattern deleted successfully"));
 
   } catch (error) {
     next(error);
   }
 });
-const allPattren = asyncHandler(async (req, res, next) => {
-  const patterns = await DefaultPattren.find();
+const allPattern = asyncHandler(async (req, res, next) => {
+  const patterns = await DefaultPattern.find();
   try {
     if (!patterns || patterns.length === 0) {
       return res
@@ -104,4 +104,4 @@ const allPattren = asyncHandler(async (req, res, next) => {
   }
 });
 
-export { addPattren, deletePattren, allPattren };
+export { addPattern, deletePattern, allPattern };

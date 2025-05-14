@@ -2,10 +2,10 @@ import { Router } from "express";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import {
-  addPattren,
-  allPattren,
-  deletePattren,
-} from "../controllers/defaultPattren.controller.js";
+  addPattern,
+  allPattern,
+  deletePattern,
+} from "../controllers/defaultPattern.controller.js";
 import { adminOnly } from "../middleware/admin.middleware.js";
 const router = Router();
 router.use(verifyJwt);
@@ -22,11 +22,11 @@ router.post(
       next();
     });
   },
-  addPattren
+  addPattern
 );
 
-router.get("/", allPattren);
+router.get("/", allPattern);
 
-router.delete("/:pattrenId", deletePattren);
+router.delete("/:patternId", deletePattern);
 
 export default router;

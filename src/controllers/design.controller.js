@@ -4,10 +4,10 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Design } from "../models/design.model.js";
 import { Graphic } from "../models/graphic.model.js";
 import { Text } from "../models/text.model.js";
-import { Pattren } from "../models/pattren.model.js";
+import { Pattern } from "../models/pattern.model.js";
 import { Product } from "../models/product.model.js";
 import { User } from "../models/user.model.js";
-import { DefaultPattren } from "../models/defaultPattren.model.js";
+import { DefaultPattern } from "../models/defaultPattern.model.js";
 
 import mongoose from "mongoose";
 
@@ -131,7 +131,7 @@ const getDesignById = asyncHandler(async (req, res) => {
       // Lookup for User to get username and fullname
       {
         $lookup: {
-          from: "users", // Assuming your User model's collection name is "users"
+          from: "users",
           localField: "owner",
           foreignField: "_id",
           as: "ownerDetails",
@@ -171,41 +171,20 @@ const getDesignById = asyncHandler(async (req, res) => {
       // Lookup for Pattern to get name and image
       {
         $lookup: {
-          from: "patterns", // Assuming your Pattern model's collection name is "patterns"
+          from: "patterns",
           localField: "pattern",
           foreignField: "_id",
           as: "patternDetails",
-        },
-      },
-      {
-        $unwind: { path: "$patternDetails", preserveNullAndEmptyArrays: true },
-      },
-      {
-        $addFields: {
-          patternName: "$patternDetails.name",
-          patternImage: "$patternDetails.image",
         },
       },
 
       // Lookup for DefaultPattern to get name and image
       {
         $lookup: {
-          from: "defaultpatterns", // Assuming your DefaultPattern model's collection name is "defaultpatterns"
+          from: "defaultPatterns",
           localField: "defaultPattern",
           foreignField: "_id",
           as: "defaultPatternDetails",
-        },
-      },
-      {
-        $unwind: {
-          path: "$defaultPatternDetails",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $addFields: {
-          defaultPatternName: "$defaultPatternDetails.name",
-          defaultPatternImage: "$defaultPatternDetails.image",
         },
       },
 
@@ -249,10 +228,8 @@ const getDesignById = asyncHandler(async (req, res) => {
           productCategory: 1,
           productPrice: 1,
           productModelType: 1,
-          patternName: 1,
-          patternImage: 1,
-          defaultPatternName: 1,
-          defaultPatternImage: 1,
+          defaultPatternDetails: 1,
+          patternDetails: 1,
         },
       },
     ]);
@@ -270,7 +247,7 @@ const getDesignById = asyncHandler(async (req, res) => {
   const design = await Design.aggregate([
     {
       $match: {
-        _id: mongoose.Types.ObjectId(designId),
+        _id: new mongoose.Types.ObjectId(designId),
         $or: [{ owner: req.user._id }, { isPublic: true }],
       },
     },
@@ -324,37 +301,37 @@ const getDesignById = asyncHandler(async (req, res) => {
         as: "patternDetails",
       },
     },
-    {
-      $unwind: { path: "$patternDetails", preserveNullAndEmptyArrays: true },
-    },
-    {
-      $addFields: {
-        patternName: "$patternDetails.name",
-        patternImage: "$patternDetails.image",
-      },
-    },
+    // {
+    //   $unwind: { path: "$patternDetails", preserveNullAndEmptyArrays: true },
+    // },
+    // {
+    //   $addFields: {
+    //     patternName: "$patternDetails.name",
+    //     patternImage: "$patternDetails.image",
+    //   },
+    // },
 
     // Lookup for DefaultPattern to get name and image
     {
       $lookup: {
-        from: "defaultpatterns",
+        from: "defaultPatterns",
         localField: "defaultPattern",
         foreignField: "_id",
         as: "defaultPatternDetails",
       },
     },
-    {
-      $unwind: {
-        path: "$defaultPatternDetails",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $addFields: {
-        defaultPatternName: "$defaultPatternDetails.name",
-        defaultPatternImage: "$defaultPatternDetails.image",
-      },
-    },
+    // {
+    //   $unwind: {
+    //     path: "$defaultPatternDetails",
+    //     preserveNullAndEmptyArrays: true,
+    //   },
+    // },
+    // {
+    //   $addFields: {
+    //     defaultPatternName: "$defaultPatternDetails.name",
+    //     defaultPatternImage: "$defaultPatternDetails.image",
+    //   },
+    // },
 
     // Lookup for Text to get necessary fields
     {
@@ -396,10 +373,12 @@ const getDesignById = asyncHandler(async (req, res) => {
         productCategory: 1,
         productPrice: 1,
         productModelType: 1,
-        patternName: 1,
-        patternImage: 1,
-        defaultPatternName: 1,
-        defaultPatternImage: 1,
+        // patternName: 1,
+        // patternImage: 1,
+        // defaultPatternName: 1,
+        // defaultPatternImage: 1,
+        defaultPatternDetails: 1,
+        patternDetails: 1,
       },
     },
   ]);
@@ -419,12 +398,12 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
   // Admins can access any design directly
   if (req.user.role === "admin") {
     const design = await Design.findById(designId)
-      .populate("text") // Populating text
+      .populate("text")
       .populate("graphic")
-      .populate("pattren")
-      .populate("defaultpattren")
+      .populate("pattern")
+      .populate("defaultPattern")  // Fixed typo from 'defaultpattern' to 'defaultPattern'
       .populate('owner')
-      .populate('product'); // Populating graphic
+      .populate('product');
 
     if (!design) throw new ApiError(404, "Design not found");
     return res
@@ -437,10 +416,16 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
     _id: designId,
     $or: [{ owner: req.user._id }, { isPublic: true }],
   })
-    .populate("text") // Populating text
-    .populate("graphic") // Populating graphic
-    .populate("pattren")
-    .populate("defaultpattren")
+    .populate("text")
+    .populate("graphic")
+    .populate({
+      path: "pattern",
+      model: "Pattern"  // Explicitly specifying the model
+    })
+    .populate({
+      path: "defaultPattern",
+      model: "DefaultPattern"  // Explicitly specifying the model
+    })
     .populate('owner')
     .populate('product');
 
@@ -452,6 +437,7 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, design, "Design retrieved successfully"));
 });
+
 
 // Update design (owner only)
 const updateDesign = asyncHandler(async (req, res) => {
@@ -595,12 +581,12 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
         },
         {
           path: "pattern",
-          model: Pattren,
+          model: Pattern,
           options: { strictPopulate: false }, // Allow missing patterns
         },
         {
           path: "defaultPattern",
-          model: DefaultPattren,
+          model: DefaultPattern,
           options: { strictPopulate: false }, // Allow missing default patterns
         },
       ],

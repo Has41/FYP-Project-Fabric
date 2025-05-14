@@ -2,23 +2,23 @@ import { Router } from "express";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJwt } from "../middleware/auth.middleware.js";
 import {
-  addPattren,
+  addPattern,
   allPatterns,
-  deletePattren,
+  deletePattern,
   getAllPatterns,
-  getPattrenById
-} from "../controllers/pattren.controller.js";
+  getPatternById
+} from "../controllers/pattern.controller.js";
 
 const router = Router();
 router.use(verifyJwt);
 
-router.post("/add", upload.single("pattren"), addPattren);
+router.post("/add", upload.single("pattern"), addPattern);
 
 router.get("/", allPatterns);
 
-router.delete('/delete/:pattrenId', deletePattren);
+router.delete('/delete/:patternId', deletePattern);
 
-router.get("/:pattrenId", getPattrenById);
+router.get("/:patternId", getPatternById);
 
 router.get("/all", getAllPatterns);
 
