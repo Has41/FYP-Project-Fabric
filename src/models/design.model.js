@@ -85,6 +85,7 @@ designSchema.pre("save", function (next) {
   }
   next();
 });
+designSchema.set('strictPopulate', false); // ❌ Avoid unless necessary
 
 designSchema.plugin(mongoosePaginate);
 
