@@ -25,6 +25,8 @@ router.get("/user/:userId/public", getPublicDesignsByUser);
 router.use(verifyJwt);
 
 // User design management
+router.post('push-text',pushText);
+router.post('push-graphic',pushGraphic);
 router.post("/",upload.single("image"),createDesign);
 router.get("/my-designs", getMyDesigns);
 router.get("/:designId", getDesignById);

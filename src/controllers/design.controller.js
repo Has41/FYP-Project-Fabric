@@ -501,6 +501,62 @@ const updateDesign = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, design, "Design updated successfully"));
 });
 
+const pushText = asyncHandler(async (req, res) => {
+  const { designId } = req.params;
+  const { text } = req.body;
+
+  // Validate input
+  if (!mongoose.Types.ObjectId.isValid(designId)) {
+    throw new ApiError(400, "Invalid design ID");
+  }
+
+  if (!text || !mongoose.Types.ObjectId.isValid(text)) {
+    throw new ApiError(400, "Valid text ID is required");
+  }
+
+  const design = await Design.findByIdAndUpdate(
+    designId,  // Just pass the ID directly
+    { $push: { text } },
+    { new: true }
+  );
+
+  if (!design) {
+    throw new ApiError(404, "Design not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, design, "Text added successfully"));
+});
+
+const pushGraphic = asyncHandler(async (req, res) => {
+  const { designId } = req.params;
+  const { graphic } = req.body;
+
+  // Validate input
+  if (!mongoose.Types.ObjectId.isValid(designId)) {
+    throw new ApiError(400, "Invalid design ID");
+  }
+
+  if (!graphic || !mongoose.Types.ObjectId.isValid(graphic)) {
+    throw new ApiError(400, "Valid graphic ID is required");
+  }
+
+  const design = await Design.findByIdAndUpdate(
+    designId,  // Just pass the ID directly
+    { $push: { graphic } },
+    { new: true }
+  );
+
+  if (!design) {
+    throw new ApiError(404, "Design not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, design, "Graphic added successfully"));  
+  
+});
 // Toggle design public status (owner only)
 const toggleDesignPublicStatus = asyncHandler(async (req, res) => {
   const { designId } = req.params;
@@ -688,4 +744,6 @@ export {
   getAllDesigns,
   getAllPublicDesigns,
   getDesignByIdSimple,
+  pushText,
+  pushGraphic
 };
