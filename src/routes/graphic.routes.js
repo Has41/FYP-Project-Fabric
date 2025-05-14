@@ -12,7 +12,7 @@ import {
 
 const router = Router();
 
-router.post("/add", verifyJwt, upload.array("images"), addGraphic);
+router.post("/add", verifyJwt, upload.single("images"), addGraphic);
 router.put("/update/:id", verifyJwt, updateGraphic);
 router.delete("/delete/:id", verifyJwt, deleteGraphic);
 router.get("/user", verifyJwt, getUserGraphics);
