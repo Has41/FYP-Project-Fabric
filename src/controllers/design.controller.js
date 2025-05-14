@@ -212,7 +212,7 @@ const getDesignById = asyncHandler(async (req, res) => {
       // Lookup for Text to get necessary fields
       {
         $lookup: {
-          from: "texts", 
+          from: "texts",
           localField: "text",
           foreignField: "_id",
           as: "textDetails",
@@ -222,7 +222,7 @@ const getDesignById = asyncHandler(async (req, res) => {
       // Lookup for Graphic to get necessary fields
       {
         $lookup: {
-          from: "graphics", 
+          from: "graphics",
           localField: "graphic",
           foreignField: "_id",
           as: "graphicDetails",
@@ -417,25 +417,28 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
   const { designId } = req.params;
 
   // Admins can access any design directly
-  if (req.user.role === 'admin') {
+  if (req.user.role === "admin") {
     const design = await Design.findById(designId)
-      .populate('text')   // Populating text
-      .populate('graphic'); // Populating graphic
+      .populate("text") // Populating text
+      .populate("graphic")
+      .populate("pattren")
+      .populate("defaultpattren"); // Populating graphic
 
     if (!design) throw new ApiError(404, "Design not found");
-    return res.status(200).json(new ApiResponse(200, design, "Design retrieved"));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, design, "Design retrieved"));
   }
 
   // Regular users have restricted access
   const design = await Design.findOne({
     _id: designId,
-    $or: [
-      { owner: req.user._id },
-      { isPublic: true },
-    ]
+    $or: [{ owner: req.user._id }, { isPublic: true }],
   })
-    .populate('text')   // Populating text
-    .populate('graphic'); // Populating graphic
+    .populate("text") // Populating text
+    .populate("graphic") // Populating graphic
+    .populate("pattren")
+    .populate("defaultpattren");
 
   if (!design) {
     throw new ApiError(404, "Design not found or not authorized");
@@ -540,13 +543,23 @@ const getAllDesigns = asyncHandler(async (req, res) => {
 // Get all public designs
 const getAllPublicDesigns = asyncHandler(async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy = "createdAt", sortOrder = -1 } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = -1,
+    } = req.query;
 
     // Validate pagination parameters
     const pageNumber = parseInt(page);
     const limitNumber = parseInt(limit);
-    
-    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+
+    if (
+      isNaN(pageNumber) ||
+      isNaN(limitNumber) ||
+      pageNumber < 1 ||
+      limitNumber < 1
+    ) {
       throw new ApiError(400, "Invalid pagination parameters");
     }
 
@@ -554,47 +567,47 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
     const options = {
       page: pageNumber,
       limit: limitNumber,
-      sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 },
+      sort: { [sortBy]: sortOrder === "asc" ? 1 : -1 },
       populate: [
         {
           path: "owner",
           select: "username avatar fullname",
-          model: User
+          model: User,
         },
         {
           path: "product",
           model: Product,
-          select: "title price discount_price type"
+          select: "title price discount_price type",
         },
         {
           path: "text",
           model: Text,
-          options: { strictPopulate: false } // Allow missing texts
+          options: { strictPopulate: false }, // Allow missing texts
         },
         {
           path: "graphic",
           model: Graphic,
-          options: { strictPopulate: false } // Allow missing graphics
+          options: { strictPopulate: false }, // Allow missing graphics
         },
         {
           path: "pattern",
           model: Pattren,
-          options: { strictPopulate: false } // Allow missing patterns
+          options: { strictPopulate: false }, // Allow missing patterns
         },
         {
           path: "defaultPattern",
           model: DefaultPattren,
-          options: { strictPopulate: false } // Allow missing default patterns
-        }
+          options: { strictPopulate: false }, // Allow missing default patterns
+        },
       ],
-      lean: true
+      lean: true,
     };
 
     // Less restrictive query - only check isPublic and status
     const designs = await Design.paginate(
-      { 
-        isPublic: true, 
-        status: "published"
+      {
+        isPublic: true,
+        status: "published",
       },
       options
     );
@@ -602,34 +615,42 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
     // Format response safely
     const formattedDesigns = {
       ...designs,
-      docs: designs.docs.map(design => ({
+      docs: designs.docs.map((design) => ({
         ...design,
-        currentPrice: design.product?.discount_price ?? design.product?.price ?? 0,
+        currentPrice:
+          design.product?.discount_price ?? design.product?.price ?? 0,
         originalPrice: design.product?.price ?? 0,
-        hasDiscount: design.product?.discount_price && 
-                   design.product.discount_price < design.product.price
-      }))
+        hasDiscount:
+          design.product?.discount_price &&
+          design.product.discount_price < design.product.price,
+      })),
     };
 
-    return res.status(200).json(
-      new ApiResponse(200, formattedDesigns, "Public designs retrieved successfully")
-    );
-
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          formattedDesigns,
+          "Public designs retrieved successfully"
+        )
+      );
   } catch (error) {
     console.error("Error fetching public designs:", error);
-    
+
     if (error instanceof mongoose.Error.ValidationError) {
       throw new ApiError(400, "Validation error: " + error.message);
     }
-    if (error.name === 'CastError') {
+    if (error.name === "CastError") {
       throw new ApiError(400, "Invalid ID format");
     }
-    
-    throw new ApiError(500, error.message || "Failed to retrieve public designs");
+
+    throw new ApiError(
+      500,
+      error.message || "Failed to retrieve public designs"
+    );
   }
 });
-
-
 
 export {
   createDesign,
@@ -641,5 +662,5 @@ export {
   deleteDesign,
   getAllDesigns,
   getAllPublicDesigns,
-  getDesignByIdSimple
+  getDesignByIdSimple,
 };
