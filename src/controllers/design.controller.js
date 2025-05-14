@@ -20,9 +20,9 @@ const createDesign = asyncHandler(async (req, res) => {
     color,
     pattern,
     defaultPattern,
-    text, // Now an array of objectIds
-    graphic, // Now an array of objectIds
-    basePrice, // which is price in product
+    text, 
+    graphic, 
+    basePrice, 
     isPublic,
     designerProfit,
   } = req.body;
@@ -51,7 +51,7 @@ const createDesign = asyncHandler(async (req, res) => {
     salePrice = basePrice + 10;
   }
 
-  if (isPublic && req.user.role === "user") {
+  if (isPublic === "true" && req.user.role === "user") {
     throw new ApiError(403, "Be a Designer for Public Designs");
   }
 
@@ -66,17 +66,17 @@ const createDesign = asyncHandler(async (req, res) => {
   }
 
   const uploadResult = await uploadOnCloudinary(req.file.path);
-    if (!uploadResult?.secure_url || !uploadResult?.public_id) {
-      throw new ApiError(500, "Failed to upload pattern to Cloudinary");
-    }
+  if (!uploadResult?.secure_url || !uploadResult?.public_id) {
+    throw new ApiError(500, "Failed to upload pattern to Cloudinary");
+  }
 
   const design = await Design.create({
     owner: req.user._id,
     name,
     product,
     color,
-    pattern,
-    defaultPattern,
+    pattern: pattern === "" ? null : pattern,
+    defaultPattern: defaultPattern === "" ? null : defaultPattern,
     text, // Expecting an array of ObjectId references
     graphic, // Expecting an array of ObjectId references
     designerProfit,
