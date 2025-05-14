@@ -7,8 +7,7 @@ import mongoose from "mongoose";
 
 const validateDesignForPurchase = (design, userId) => {
   if (!design.isPublic && !design.owner.equals(userId)) {
-    console.log(design.owner, userId);
-    console.log(design.owner!== userId);
+   
     throw new Error("Only the owner can purchase private designs");
   }
 };
