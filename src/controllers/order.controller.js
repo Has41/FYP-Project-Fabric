@@ -58,6 +58,7 @@ const addOrder = asyncHandler(async (req, res) => {
     shippingFee,
     totalAmount,
     designerEarnings,
+    paymentStatus: paymentStatus,
     paymentMethod: paymentMethod || "COD",
     paymentStatus: "pending",
     deliveryStatus: "pending",
@@ -348,7 +349,6 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
   // Record designer earnings when order is delivered (for public designs)
   if (status === "delivered") {
     order.deliveredDate = new Date();
-    await recordDesignerEarnings(order);
   }
 
   await order.save();
