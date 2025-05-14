@@ -96,7 +96,9 @@ const OrderDetails = () => {
                       onChange={handleStatusChange}
                       className="w-full p-2 border rounded"
                     >
+                      <option value="">Select</option>
                       <option value="paid">Paid</option>
+                      <option value="pending">Pending</option>
                       <option value="failed">Failed</option>
                       <option value="refunded">Refunded</option>
                     </select>
@@ -125,6 +127,7 @@ const OrderDetails = () => {
                       onChange={handleStatusChange}
                       className="w-full p-2 border rounded"
                     >
+                      <option value="">Select</option>
                       <option value="processing">Processing</option>
                       <option value="shipped">Shipped</option>
                       <option value="delivered">Delivered</option>

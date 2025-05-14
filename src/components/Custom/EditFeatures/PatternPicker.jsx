@@ -15,7 +15,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
     },
     onSuccess: () => {
       refetchCustomPatterns()
-      console.log("Pattern added successfully!")
+      // console.log("Pattern added successfully!")
     }
   })
 
@@ -27,7 +27,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
     },
     onSuccess: (data) => {
       setDefaultPatterns(data?.data)
-      console.log(data?.data)
+      // console.log(data?.data)
     },
     onError: (error) => {
       console.error(error)
@@ -108,7 +108,6 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
   const handlePatternSelect = (pattern) => {
     setSelectedPatternState(pattern)
     setSelectedPattern(pattern)
-    console.log(pattern)
   }
 
   return (
