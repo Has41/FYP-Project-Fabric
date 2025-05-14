@@ -6,7 +6,7 @@ const graphicSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    graphic: [{
+    graphic: {
       url: {
         type: String,
         required: true,
@@ -17,7 +17,7 @@ const graphicSchema = new Schema(
         required: true,
         trim: true,
       }
-    }],
+    },
     width: {
       type: Number,
       required: true,

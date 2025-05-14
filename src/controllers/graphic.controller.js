@@ -6,42 +6,63 @@ import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
+import fs from "fs";
 
 const addGraphic = asyncHandler(async (req, res, next) => {
   try {
     const { width, height, offset, isFront } = req.body;
     const owner = req.user._id;
 
-    if (!req.files || req.files.length === 0) {
-      throw new ApiError(400, "No graphics uploaded.");
+    // Validate required fields
+    if (!width || !height) {
+      throw new ApiError(400, "Width and height are required");
     }
 
-    const uploadedGraphics = [];
+    if (!req.file) { // Now expecting single file upload
+      throw new ApiError(400, "No graphic file uploaded");
+    }
 
-    for (const file of req.files) {
-      const result = await uploadOnCloudinary(file.path);
-      if (!result?.secure_url || !result?.public_id) {
-        throw new ApiError(500, "Graphic upload failed");
+    // Upload to Cloudinary
+    const uploadResult = await uploadOnCloudinary(req.file.path);
+    if (!uploadResult?.secure_url || !uploadResult?.public_id) {
+      throw new ApiError(500, "Failed to upload graphic to Cloudinary");
+    }
+
+    // Parse offset (default to {x:0, y:0} if not provided)
+    let offsetObj = { x: 0, y: 0 };
+    if (offset) {
+      try {
+        offsetObj = typeof offset === 'string' ? JSON.parse(offset) : offset;
+      } catch (e) {
+        throw new ApiError(400, "Invalid offset format");
       }
-      uploadedGraphics.push({
-        url: result.secure_url,
-        publicId: result.public_id,
-      });
     }
 
+    // Create graphic document
     const graphic = await Graphic.create({
       owner,
-      graphic: uploadedGraphics,
-      width,
-      height,
-      offset,
-      isFront,
+      graphic: {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id
+      },
+      width: Number(width),
+      height: Number(height),
+      offset: offsetObj,
+      isFront: isFront !== undefined ? isFront : true
     });
+
+    // Cleanup uploaded file
+    await fs.promises.unlink(req.file.path).catch(console.error);
 
     return res
       .status(201)
       .json(new ApiResponse(201, graphic, "Graphic created successfully"));
+
   } catch (error) {
+    // Cleanup file if error occurred
+    if (req.file?.path) {
+      await fs.promises.unlink(req.file.path).catch(console.error);
+    }
     next(error);
   }
 });
@@ -80,9 +101,7 @@ const updateGraphic = asyncHandler(async (req, res, next) => {
     existing.offset = offset;
     existing.isFront = isFront;
 
-    await existing.save({
-      validateBeforeSave: false,
-    });
+    await existing.save();
 
     return res
       .status(200)
