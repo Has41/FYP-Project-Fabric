@@ -29,8 +29,14 @@ const Dashboard = () => {
   )
 
   // Revenue by delivery status
-  const { data: revenueByStatus, isLoading: loadingRevenueStatus } = useQuery(["revenueByDelivery"], () =>
-    axiosInstance.get("/api/v1/dashboard/delivery-status-stats").then((res) => res.data.data)
+  const { data: revenueByStatus, isLoading: loadingRevenueStatus } = useQuery(
+    ["revenueByDelivery"],
+    () => axiosInstance.get("/api/v1/dashboard/delivery-status-stats").then((res) => res.data.data),
+    {
+      onSuccess: (data) => {
+        console.log("Revenue Status:", data)
+      }
+    }
   )
 
   // Payment status stats
@@ -39,18 +45,36 @@ const Dashboard = () => {
   )
 
   // Delivery status stats
-  const { data: deliveryStats, isLoading: loadingDelivery } = useQuery(["deliveryStats"], () =>
-    axiosInstance.get("/api/v1/dashboard/revenue-by-delivery-status").then((res) => res.data.data)
+  const { data: deliveryStats, isLoading: loadingDelivery } = useQuery(
+    ["deliveryStats"],
+    () => axiosInstance.get("/api/v1/dashboard/revenue-by-delivery-status").then((res) => res.data.data),
+    {
+      onSuccess: (data) => {
+        console.log("Delivery Stats:", data)
+      }
+    }
   )
 
   // Most sold design
-  const { data: topDesign, isLoading: loadingDesign } = useQuery(["mostSoldDesign"], () =>
-    axiosInstance.get("/api/v1/dashboard/top-design").then((res) => res.data.data)
+  const { data: topDesign, isLoading: loadingDesign } = useQuery(
+    ["mostSoldDesign"],
+    () => axiosInstance.get("/api/v1/dashboard/top-design").then((res) => res.data.data),
+    {
+      onSuccess: (data) => {
+        console.log("Top Designs:", data)
+      }
+    }
   )
 
   // Monthly revenue trend
-  const { data: monthlyRevenue, isLoading: loadingMonthlyRevenue } = useQuery(["monthlyRevenue"], () =>
-    axiosInstance.get("/api/v1/dashboard/monthly-revenue").then((res) => res.data.data)
+  const { data: monthlyRevenue, isLoading: loadingMonthlyRevenue } = useQuery(
+    ["monthlyRevenue"],
+    () => axiosInstance.get("/api/v1/dashboard/monthly-revenue").then((res) => res.data.data),
+    {
+      onSuccess: (data) => {
+        console.log("Monthly Revenue:", data)
+      }
+    }
   )
 
   // Monthly signup trend
@@ -78,10 +102,10 @@ const Dashboard = () => {
       {
         label: "Revenue",
         data: [
-          revenueByStatus.pendingRevenue,
-          revenueByStatus.shippedRevenue,
-          revenueByStatus.deliveredRevenue,
-          revenueByStatus.returnedRevenue
+          revenueByStatus.pendingCount,
+          revenueByStatus.shippedCount,
+          revenueByStatus.deliveredCount,
+          revenueByStatus.returnedCount
         ]
       }
     ]
@@ -102,27 +126,47 @@ const Dashboard = () => {
     datasets: [
       {
         label: "Orders",
-        data: [deliveryStats.pendingCount, deliveryStats.shippedCount, deliveryStats.deliveredCount]
+        data: [deliveryStats.pendingRevenue, deliveryStats.shippedRevenue, deliveryStats.deliveredRevenue]
       }
     ]
   }
 
+  const TOTAL_MONTHS = 12
+
+  // 2. Create a zero‑filled array and populate it
+  const revenueByMonth = Array(TOTAL_MONTHS).fill(0)
+  monthlyRevenue.forEach(({ _id, totalRevenue }) => {
+    // Month _id is 1–12
+    revenueByMonth[_id - 1] = totalRevenue
+  })
+
+  // 3. Build your labels & dataset off that
   const monthlyRevData = {
-    labels: monthlyRevenue.map((m) => `Month ${m._id}`),
+    labels: Array.from({ length: TOTAL_MONTHS }, (_, i) => `Month ${i + 1}`),
     datasets: [
       {
         label: "Revenue",
-        data: monthlyRevenue.map((m) => m.totalRevenue)
+        data: revenueByMonth,
+        fill: false, // if you later switch to a line chart
+        tension: 0.1 // for a little smoothing
       }
     ]
   }
 
+  // const TOTAL_MONTHS = 12
+  const countsByMonth = Array(TOTAL_MONTHS).fill(0)
+  signupStats.forEach(({ _id, count }) => {
+    countsByMonth[_id - 1] = count
+  })
+
   const signupData = {
-    labels: signupStats.map((s) => `Month ${s._id}`),
+    labels: Array.from({ length: TOTAL_MONTHS }, (_, i) => `Month ${i + 1}`),
     datasets: [
       {
         label: "Signups",
-        data: signupStats.map((s) => s.count)
+        data: countsByMonth,
+        fill: false,
+        tension: 0.1
       }
     ]
   }
