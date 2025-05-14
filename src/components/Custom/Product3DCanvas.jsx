@@ -4,7 +4,7 @@ import { Leva, useControls } from "leva"
 import { Environment, EnvironmentCube, OrbitControls } from "@react-three/drei"
 import ShirtModel from "../Models/ShirtModel"
 
-const Scene = ({ color, pattern, texts, setTexts, graphics, activeTextId, setActiveTextId, textColor, textFontSize }) => {
+const Scene = ({ color, pattern, texts, onReadyCapture, graphics, activeTextId, setActiveTextId, textColor, textFontSize }) => {
   const directionalLightRef = useRef()
 
   const { lightColour, lightIntensity } = useControls({
@@ -28,6 +28,7 @@ const Scene = ({ color, pattern, texts, setTexts, graphics, activeTextId, setAct
         scale={3.5}
         color={color}
         pattern={pattern}
+        onReadyCapture={onReadyCapture}
         texts={texts}
         graphics={graphics}
         onSelectText={setActiveTextId}
@@ -55,6 +56,7 @@ const Product3DCanvas = ({
   texts,
   graphics,
   setTexts,
+  onReadyCapture,
   activeTextId,
   setActiveTextId,
   textColor,
@@ -69,6 +71,7 @@ const Product3DCanvas = ({
         activeTextId={activeTextId}
         setActiveTextId={setActiveTextId}
         texts={texts}
+        onReadyCapture={onReadyCapture}
         graphics={graphics}
         setTexts={setTexts}
         textColor={textColor}

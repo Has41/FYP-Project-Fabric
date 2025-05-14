@@ -10,7 +10,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
 
   const { mutate: addCustomPattern, isLoading } = useMutation({
     mutationFn: async (patternData) => {
-      const { data } = await axiosInstance.post("/api/v1/pattrens/add", patternData)
+      const { data } = await axiosInstance.post("/api/v1/patterns/add", patternData)
       return data
     },
     onSuccess: () => {
@@ -22,7 +22,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
   const { refetch: refetchDefaultPatterns } = useQuery({
     queryKey: "/api/v1/defaupattrens",
     queryFn: async () => {
-      const { data } = await axiosInstance.get("/api/v1/defaupattrens")
+      const { data } = await axiosInstance.get("/api/v1/defaultpatterns")
       return data
     },
     onSuccess: (data) => {
@@ -40,9 +40,9 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
   })
 
   const { refetch: refetchCustomPatterns } = useQuery({
-    queryKey: "/api/v1/pattrens",
+    queryKey: "/api/v1/patterns",
     queryFn: async () => {
-      return await axiosInstance.get("/api/v1/pattrens/")
+      return await axiosInstance.get("/api/v1/patterns")
     },
     onSuccess: (data) => {
       setCustomPattern(data?.data?.data)

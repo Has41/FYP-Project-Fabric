@@ -13,6 +13,7 @@ import useAuth from "../../hooks/useAuth"
 import { useMutation, useQuery, useQueryClient } from "react-query"
 import { useParams } from "react-router-dom"
 import axiosInstance from "../../utils/axiosInstance"
+import PlaceOrderModal from "../Shared/PlaceOrderModal"
 
 const EditFabric = () => {
   const { user } = useAuth()
@@ -27,19 +28,35 @@ const EditFabric = () => {
   const [graphics, setGraphics] = useState([])
   const [activeTextId, setActiveTextId] = useState(null)
   const [isModalOpen, setModalOpen] = useState(false)
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
+  const [orderAfterSave, setOrderAfterSave] = useState(false)
+  const [selectedDesignId, setSelectedDesignId] = useState(null)
+  const captureRef = useRef(null)
 
-  useQuery({
-    queryKey: ["designsById", designerId],
-    queryFn: () => axiosInstance.get(`/api/v1/designs/simple/${designerId}`).then((res) => res.data.data),
-    onSuccess: (data) => {
-      console.log(data)
-      setColor(data.color)
-      setTexts(data.text)
-      setGraphics(data.graphic)
-    },
+  const {
+    data: designPayload, // this is axiosRes.data.data, or undefined
+    isLoading: loadingDesign,
+    refetch: refetchDesign,
+    isFetching: fetchingDesign,
+    isError,
+    error
+  } = useQuery(
+    ["designsById", designerId],
+    () => axiosInstance.get(`/api/v1/designs/simple/${designerId}`).then((res) => res.data.data),
+    { onSuccess: (data) => console.log(data) },
+    { enabled: !!designerId }
+  )
 
-    enabled: !!designerId
-  })
+  // 2. Sync into local state via useEffect
+  useEffect(() => {
+    if (designerId && designPayload) {
+      console.log("Design payload:", designPayload?.owner?._id !== user?._id)
+
+      setColor(designPayload?.color)
+      setTexts(designPayload?.text)
+      setGraphics(designPayload?.graphic)
+    }
+  }, [designerId, designPayload])
 
   const closePopup = () => setSubActiveOption("")
   const containerRef = useRef(null)
@@ -67,24 +84,70 @@ const EditFabric = () => {
 
   const handleSaveClick = () => setModalOpen(true)
   const handleModalClose = () => setModalOpen(false)
-
-  const handleDesignSave = (isPublic, designName) => {
-    // gather payload
-    const payload = {
-      name: designName,
-      color,
-      pattern: selectedPattern?._id || null,
-      defaultPattern: selectedPattern?._id || null,
-      text: texts.map((t) => t.id),
-      graphic: graphics.map((g) => g.id),
-      basePrice: 100,
-      isPublic,
-      designerProfit: 0,
-      product: id
+  const handlePlaceOrderClick = () => {
+    if (designerId) {
+      // An existing design—go straight to ordering
+      setIsOrderModalOpen(true)
+    } else {
+      // New design needs saving first
+      setOrderAfterSave(true)
+      setModalOpen(true)
     }
-    createDesign.mutate(payload)
-    setModalOpen(false)
   }
+
+  // utility to turn dataURL → Blob
+  const dataURLtoBlob = (dataURL) => {
+    const [header, base64] = dataURL.split(",")
+    const mime = header.match(/:(.*?);/)[1]
+    const bin = atob(base64)
+    const len = bin.length
+    const buf = new Uint8Array(len)
+    for (let i = 0; i < len; i++) buf[i] = bin.charCodeAt(i)
+    return new Blob([buf], { type: mime })
+  }
+
+  const handleDesignSave = async (isPublic, designName) => {
+    // 1️⃣ take the screenshot
+    const screenshotDataUrl = captureRef.current?.()
+    const screenshotBlob = dataURLtoBlob(screenshotDataUrl)
+
+    // 2️⃣ build FormData (instead of JSON)
+    const form = new FormData()
+    form.append("name", designName)
+    form.append("product", id)
+    form.append("color", color)
+    form.append("pattern", selectedPattern?._id || "")
+    form.append("defaultPattern", selectedPattern?._id || "")
+    texts.forEach((t) => form.append("text", t.id))
+    graphics.forEach((g) => form.append("graphic", g.id))
+    form.append("basePrice", 100)
+    form.append("isPublic", isPublic)
+    form.append("designerProfit", 0)
+    // finally append your screenshot as if it were an uploaded file
+    form.append("image", screenshotBlob, "front-view.png")
+
+    try {
+      // 3️⃣ send it as multipart/form-data
+      const res = await createDesign.mutateAsync(form)
+      const newId = res.data.data._id
+      setSelectedDesignId(newId)
+      setModalOpen(false)
+      if (orderAfterSave) {
+        setOrderAfterSave(false)
+        setIsOrderModalOpen(true)
+      }
+    } catch (err) {
+      console.error("Save failed:", err)
+    }
+  }
+
+  // if (designerId && loadingDesign) {
+  //   return (
+  //     <div className="flex items-center justify-center h-full">
+  //       <p>Loading design…</p>
+  //     </div>
+  //   )
+  // }
 
   return (
     <Fragment>
@@ -134,16 +197,16 @@ const EditFabric = () => {
               })}
             </div>
 
-            {/* Tools */}
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Option" ? "flex" : "hidden"}`}>
               {toolOptions?.map((tool) => {
+                const isDisabled = designPayload?.owner?._id !== user?._id
                 return (
                   <div
-                    aria-disabled={!!designerId}
+                    // aria-disabled={isDisabled}
                     key={tool.id}
-                    onClick={() => !designerId && setSubActiveOption(tool.id)}
+                    onClick={() => setSubActiveOption(tool.id)}
                     className={`flex items-center gap-x-3 bg-[#FFF] ${
-                      designerId ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                      isDisabled ? "cursor-pointer opacity-70" : "cursor-pointer"
                     } shadow-sm py-2 px-2 rounded-md`}
                   >
                     <div className="ml-2">
@@ -211,7 +274,13 @@ const EditFabric = () => {
               {saveOptions?.map((save, index) => {
                 return (
                   <div
-                    onClick={handleSaveClick}
+                    onClick={() => {
+                      if (save.type === "Save") {
+                        handleSaveClick()
+                      } else {
+                        handlePlaceOrderClick()
+                      }
+                    }}
                     key={index}
                     className="flex items-center bg-white shadow-sm py-2 px-2 rounded-lg cursor-pointer"
                   >
@@ -258,9 +327,12 @@ const EditFabric = () => {
         <TextTool
           subActiveOption={subActiveOption}
           closePopup={closePopup}
+          designId={designerId}
           setActiveTextId={setActiveTextId}
           texts={texts}
+          refetchDesign={refetchDesign}
           setTexts={setTexts}
+          fetchingDesign={fetchingDesign}
           isTextDragging={isTextDragging}
           textPickerRef={textPickerRef}
           textColor={textColor}
@@ -292,6 +364,10 @@ const EditFabric = () => {
               textFontSize={textFontSize}
               activeTextId={activeTextId}
               setActiveTextId={setActiveTextId}
+              onReadyCapture={(captureFn) => {
+                // captureFn(): sets camera/front-view & returns dataURL
+                captureRef.current = captureFn
+              }}
               texts={texts}
               graphics={graphics}
               setTexts={setTexts}
@@ -301,6 +377,11 @@ const EditFabric = () => {
           </div>
         </div>
         <SaveDesignModel isOpen={isModalOpen} onClose={handleModalClose} userRole={user.role} onSave={handleDesignSave} />
+        <PlaceOrderModal
+          isOpen={isOrderModalOpen}
+          onClose={() => setIsOrderModalOpen(false)}
+          selectedDesignId={selectedDesignId}
+        />
       </section>
     </Fragment>
   )

@@ -46,4 +46,11 @@ const productSchema = z.object({
     })
 })
 
-export { registerSchema, loginSchema, productSchema }
+const orderSchema = z.object({
+  designIds: z.array(z.string()).min(1, "Select a design"),
+  shippingFee: z.number().min(0, "Fee must be non-negative"),
+  paymentMethod: z.enum(["COD", "card"]),
+  paymentStatus: z.enum(["pending"])
+})
+
+export { registerSchema, loginSchema, productSchema, orderSchema }

@@ -13,6 +13,8 @@ const FeaturedByDesigners = () => {
       return data.data
     },
     onSuccess: (data) => {
+      console.log(data.docs[0].image.url)
+
       setDesigns(data.docs)
     },
     onError: (error) => {
@@ -36,12 +38,8 @@ const FeaturedByDesigners = () => {
           >
             <div className="flex flex-col items-center justify-center gap-y-2">
               <div className="w-full h-64 overflow-hidden">
-                {design.graphic?.[0]?.url ? (
-                  <img
-                    src={design.graphic[0].url}
-                    alt={design.title || "Design preview"}
-                    className="object-cover w-full h-full"
-                  />
+                {design?.image ? (
+                  <img src={design?.image?.url} alt={design.title || "Design preview"} className="object-cover w-full h-full" />
                 ) : (
                   <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                     <span className="text-gray-400">No Preview</span>

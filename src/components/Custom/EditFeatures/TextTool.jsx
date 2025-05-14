@@ -1,28 +1,67 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import { useMutation } from "react-query"
+import axiosInstance from "../../../utils/axiosInstance"
 
-export default function TextTool({
+const TextTool = ({
   textPickerRef,
   texts,
+  refetchDesign,
   setTexts,
+  designId,
   subActiveOption,
+  fetchingDesign,
   closePopup,
-  onTextChange,
   textColor,
   onTextColorChange,
   fontSize,
   onFontSizeChange
-}) {
+}) => {
   const [selectedId, setSelectedId] = useState(null)
   const [inputValue, setInputValue] = useState("")
   const [isFront, setIsFront] = useState(true)
 
-  // Sync form with selected text
+  const pushText = useMutation((textId) => axiosInstance.post(`/api/v1/designs/push-text/${designId}`, { text: textId }), {
+    onSuccess: ({ data }) => {
+      console.log("Design updated with new text:", data.data)
+      refetchDesign() // pull in the latest design.text array
+    },
+    onError: (err) => console.error("Failed to push text to design:", err)
+  })
+
+  const addText = useMutation(
+    (payload) => axiosInstance.post("/api/v1/texts/add", payload),
+    {
+      onSuccess: ({ data }) => {
+        console.log("Text added successfully", data.data)
+        const newTextId = data.data._id
+        pushText.mutate(newTextId)
+        setInputValue("")
+        setSelectedId(null)
+        refetchDesign()
+      }
+    },
+    {
+      onError: (error) => {
+        console.error("Error adding text:", error)
+      }
+    }
+  )
+  const updateText = useMutation(({ id, ...body }) => axiosInstance.put(`/api/v1/texts/update/${id}`, body), {
+    onSuccess: () => refetchDesign()
+  })
+  const deleteText = useMutation((id) => axiosInstance.delete(`/api/v1/texts/delete/${id}`), {
+    onSuccess: () => {
+      refetchDesign()
+    }
+  })
+
+  // 3️⃣ Sync form with selection
   useEffect(() => {
     if (selectedId) {
-      const cur = texts.find((t) => t.id === selectedId)
+      const cur = texts.find((t) => t._id === selectedId)
       if (cur) {
-        setInputValue(cur.content)
-        onTextColorChange(cur.color)
+        setInputValue(cur.text)
+        onTextColorChange(cur?.color || "#000000")
         onFontSizeChange(cur.fontSize)
         setIsFront(cur.isFront)
       }
@@ -34,39 +73,39 @@ export default function TextTool({
     }
   }, [selectedId, texts])
 
-  // Handlers
+  // 4️⃣ Handlers call API and update offsets locally
   const handleAdd = () => {
-    const newText = {
-      id: Date.now().toString(),
-      content: inputValue,
-      color: textColor,
+    addText.mutate({
+      text: inputValue,
       fontSize,
       offset: { x: 0, y: 0 },
       isFront
-    }
-    setTexts((prev) => [...prev, newText])
-    setSelectedId(newText.id)
-  }
+    })
 
+    setSelectedId(null)
+    // closePopup()
+  }
   const handleUpdate = () => {
-    if (!selectedId) return
-    setTexts((prev) =>
-      prev.map((t) => (t.id === selectedId ? { ...t, content: inputValue, color: textColor, fontSize, isFront } : t))
-    )
+    updateText.mutate({
+      id: selectedId,
+      text: inputValue,
+      fontSize,
+      offset: texts.find((t) => t._id === selectedId).offset,
+      isFront
+    })
     setSelectedId(null)
+    // closePopup()
   }
-
   const handleDelete = () => {
-    if (!selectedId) return
-    setTexts((prev) => prev.filter((t) => t.id !== selectedId))
-    setSelectedId(null)
+    deleteText.mutate(selectedId)
+    // setSelectedId(null)
   }
-
   const selectText = (id) => setSelectedId((prev) => (prev === id ? null : id))
 
+  // retain original offset-only change
   const handleOffsetChange = (dx, dy) => {
     if (!selectedId) return
-    setTexts((prev) => prev.map((t) => (t.id === selectedId ? { ...t, offset: { x: t.offset.x + dx, y: t.offset.y + dy } } : t)))
+    setTexts((prev) => prev.map((t) => (t._id === selectedId ? { ...t, offset: { x: t.offset.x + dx, y: t.offset.y + dy } } : t)))
   }
 
   return (
@@ -84,19 +123,23 @@ export default function TextTool({
         </button>
       </div>
 
-      <ul className="space-y-1 max-h-32 overflow-auto mb-4">
-        {texts.map((t) => (
-          <li
-            key={t.id}
-            onClick={() => selectText(t.id)}
-            className={`px-2 py-1 rounded cursor-pointer truncate ${
-              t.id === selectedId ? "bg-button-color font-medium" : "hover:bg-gray-100"
-            }`}
-          >
-            {t.content} ({t.isFront ? "Front" : "Back"})
-          </li>
-        ))}
-      </ul>
+      {fetchingDesign ? (
+        <p>Loading...</p>
+      ) : (
+        <ul className="space-y-1 max-h-32 overflow-auto mb-4">
+          {texts.map((t) => (
+            <li
+              key={t._id}
+              onClick={() => selectText(t._id)}
+              className={`px-2 py-1 rounded cursor-pointer truncate ${
+                t._id === selectedId ? "bg-button-color font-medium" : "hover:bg-gray-100"
+              }`}
+            >
+              {t.text} ({t.isFront ? "Front" : "Back"})
+            </li>
+          ))}
+        </ul>
+      )}
 
       {selectedId && (
         <div className="flex justify-center items-center mb-4 gap-2">
@@ -160,3 +203,5 @@ export default function TextTool({
     </div>
   )
 }
+
+export default TextTool

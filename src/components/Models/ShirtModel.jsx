@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react"
 import { useGLTF } from "@react-three/drei"
 import * as THREE from "three"
+import { useThree } from "@react-three/fiber"
 
-export default function ShirtModel({ position, scale, color, pattern, texts = [], graphics = [] }) {
+export default function ShirtModel({ position, scale, color, pattern, texts = [], graphics = [], onReadyCapture }) {
   const shirtRef = useRef()
+  const { gl, camera } = useThree()
   const { scene } = useGLTF("/models/shirt/shirt.glb")
 
   // Bake pattern + multiple texts + graphics onto a canvas texture
@@ -72,7 +74,7 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
           `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"${svgW}\" height=\"${svgH}\">` +
           `<style>text { font-family: sans-serif; font-size: ${fontSz}px; fill: ${fg}; }</style>` +
           `<rect width=\"100%\" height=\"100%\" fill=\"${bg}\"/>` +
-          `<text x=\"${pad}\" y=\"${pad + ascent}\" dominant-baseline=\"alphabetic\">${t.content}</text>` +
+          `<text x=\"${pad}\" y=\"${pad + ascent}\" dominant-baseline=\"alphabetic\">${t.text}</text>` +
           `</svg>`
         const uri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
         await new Promise((res) => {
@@ -143,6 +145,19 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
       }
     })
   }, [scene, color])
+
+  useEffect(() => {
+    if (!scene || !onReadyCapture) return
+
+    onReadyCapture(() => {
+      camera.position.set(0, 0, 2)
+      camera.lookAt(0, 0, 0)
+      // (b) Force a render pass:
+      gl.render(scene, camera)
+      // (c) Grab the PNG data URL:
+      return gl.domElement.toDataURL("image/png")
+    })
+  }, [scene, gl, camera, onReadyCapture])
 
   if (!scene) return null
 

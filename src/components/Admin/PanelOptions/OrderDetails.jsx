@@ -98,7 +98,7 @@ const OrderDetails = () => {
                     >
                       <option value="">Select</option>
                       <option value="paid">Paid</option>
-                      <option value="pending">Pending</option>
+                      {/* <option value="pending">Pending</option> */}
                       <option value="failed">Failed</option>
                       <option value="refunded">Refunded</option>
                     </select>
