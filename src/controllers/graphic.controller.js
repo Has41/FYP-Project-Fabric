@@ -74,11 +74,12 @@ const deleteGraphic = asyncHandler(async (req, res, next) => {
   if (!graphic) throw new ApiError(404, "Graphic not found");
 
   // Delete all graphics from Cloudinary using public IDs
-  for (const image of graphic.graphic) {
-    await deleteFromCloudinary(image.publicId);
-  }
+  
+    await deleteFromCloudinary(graphic.publicId);
+  
 
-  await graphic.deleteOne();
+
+  await Graphic.findByIdAndDelete(id);
 
   return res
     .status(200)
