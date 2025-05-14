@@ -38,7 +38,7 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/categories", categoryRouter);
 app.use("/api/v1/products", productRouter);
 app.use("/api/v1/patterns", patternRouter);
-app.use("/api/v1/defaupatterns", defaultPatternRouter);
+app.use("/api/v1/defaultpatterns", defaultPatternRouter);
 app.use("/api/v1/colors", colorRouter);
 app.use("/api/v1/models", modelRouter);
 app.use("/api/v1/orders", orderRouter);
