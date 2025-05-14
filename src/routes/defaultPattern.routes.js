@@ -13,14 +13,12 @@ router.use(verifyJwt);
 router.post(
   "/add",
   adminOnly,
+  upload.single("pattern"),
   (req, res, next) => {
-    upload.any()(req, res, (err) => {
-      // `any()` handles single or multiple file uploads
-      if (err) {
-        return res.status(400).json({ message: err.message });
-      }
-      next();
-    });
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    next();
   },
   addPattern
 );

@@ -8,49 +8,41 @@ import {
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
+
 const addPattern = asyncHandler(async (req, res, next) => {
   try {
     const { name } = req.body;
 
     // Validate input
     if (!name?.trim()) {
-      throw new ApiError(400, "Pattern name is required");
+      throw new ApiError(400, "pattern name is required");
     }
 
-    let files = [];
-    if (req.file) {
-      files = [req.file];
-    } else if (req.files && Array.isArray(req.files)) {
-      files = req.files;
-    } else {
-      throw new ApiError(400, "No file uploaded");
+    // Check file upload
+    if (!req.file?.path) {
+      throw new ApiError(400, "SVG file is required");
     }
 
-    const createdPatterns = [];
-
-    for (const file of files) {
-      // Upload to Cloudinary
-      const uploadResult = await uploadOnCloudinary(file.path);
-      if (!uploadResult?.secure_url || !uploadResult?.public_id) {
-        throw new ApiError(500, "Failed to upload pattern to Cloudinary");
-      }
-
-      // Create pattern document
-      const pattern = await DefaultPattern.create({
-        name: name.trim(),
-        image: {
-          url: uploadResult.secure_url,
-          publicId: uploadResult.public_id
-        }
-      });
-
-      createdPatterns.push(pattern);
+    // Validate file type
+    if (req.file.mimetype !== "image/svg+xml") {
+      throw new ApiError(400, "Only SVG files are allowed");
     }
+
+    // Upload to Cloudinary
+    const uploadResult = await uploadOnCloudinary(req.file.path);
+
+    // Create pattern
+    const pattern = await DefaultPattern.create({
+      name,
+      image: {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+      },
+    });
 
     return res
       .status(201)
-      .json(new ApiResponse(201, createdPatterns, "Pattern(s) added successfully"));
-
+      .json(new ApiResponse(201, pattern, "Pattern added successfully"));
   } catch (error) {
     next(error);
   }
@@ -87,10 +79,12 @@ const deletePattern = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
+
 const allPattern = asyncHandler(async (req, res, next) => {
-  const patterns = await DefaultPattern.find();
   try {
-    if (!patterns || patterns.length === 0) {
+    const patterns = await DefaultPattern.find();
+    
+    if (!patterns?.length) {
       return res
         .status(404)
         .json(new ApiResponse(404, null, "No Patterns Found"));
