@@ -6,7 +6,9 @@ export default function GraphicsTool({
   graphicsPickerRef,
   graphics,
   setGraphics,
+  designId,
   subActiveOption,
+  fetchingDesign,
   closePopup,
   isGraphicsDragging
 }) {
@@ -15,42 +17,53 @@ export default function GraphicsTool({
   const [isFront, setIsFront] = useState(true)
   const fileInputRef = useRef()
 
-  // 1️⃣ Fetch user graphics
-  // const { data: fetched = [], isLoading } = useQuery(
-  //   "userGraphics",
-  //   () => axiosInstance.get("/api/v1/graphics/user").then((res) => res.data.data),
-  //   {
-  //     onSuccess: (data) => {
-  //       const mapped = data.map((g) => ({
-  //         id: g._id,
-  //         url: g.graphic[0].url,
-  //         width: g.width,
-  //         height: g.height,
-  //         offset: g.offset,
-  //         isFront: g.isFront
-  //       }))
-  //       setGraphics(mapped)
-  //     }
-  //   }
-  // )
-
-  // 2️⃣ Mutations
-  const addGraphic = useMutation((formData) => axiosInstance.post("/api/v1/graphics/add", formData), {
-    onSuccess: () => queryClient.invalidateQueries("userGraphics")
-  })
-  const updateGraphic = useMutation(({ id, width, height, offset, isFront }) =>
-    axiosInstance.put(`/api/v1/graphics/update/${id}`, { width, height, offset, isFront })
+  // mutation to append a graphic to an existing design
+  const pushGraphic = useMutation(
+    (graphicId) => axiosInstance.post(`/api/v1/designs/push-graphic/${designId}`, { graphic: graphicId }),
+    {
+      onSuccess: () => queryClient.invalidateQueries(["designsById", designId]),
+      onError: (err) => console.error("Failed to push graphic to design:", err)
+    }
   )
-  const deleteGraphic = useMutation((id) => axiosInstance.delete(`/api/v1/graphics/delete/${id}`))
+
+  // mutation to add a standalone graphic
+  const addGraphic = useMutation((formData) => axiosInstance.post("/api/v1/graphics/add", formData), {
+    onSuccess: ({ data }) => {
+      const newG = data.data
+      // if editing an existing design, push into design
+      if (designId) {
+        pushGraphic.mutate(newG._id)
+      }
+      // append to local graphics state
+      setGraphics((prev) => [
+        ...prev,
+        {
+          _id: newG._id,
+          url: newG.graphic.url,
+          width: newG.width,
+          height: newG.height,
+          offset: newG.offset,
+          isFront: newG.isFront
+        }
+      ])
+    }
+  })
+
+  // mutation to update an existing graphic
+  const updateGraphic = useMutation(
+    ({ id, width, height, offset, isFront }) =>
+      axiosInstance.put(`/api/v1/graphics/update/${id}`, { width, height, offset, isFront }),
+    { onSuccess: () => queryClient.invalidateQueries(["designsById", designId]) }
+  )
+
+  // mutation to delete a graphic
+  const deleteGraphic = useMutation((id) => axiosInstance.delete(`/api/v1/graphics/delete/${id}`), {
+    onSuccess: () => queryClient.invalidateQueries(["designsById", designId])
+  })
 
   useEffect(() => {
-    if (selectedId) {
-      const cur = graphics.find((g) => g._id === selectedId)
-      if (cur) setIsFront(cur.isFront)
-    } else {
-      setIsFront(true)
-    }
-  }, [selectedId, graphics])
+    console.log(graphics)
+  }, [graphics])
 
   const handleFileChange = (e) => {
     const file = e.target.files[0]
@@ -67,32 +80,49 @@ export default function GraphicsTool({
   }
 
   const selectGraphic = (id) => setSelectedId((prev) => (prev === id ? null : id))
+
   const handleOffset = (dx, dy) => {
     if (!selectedId) return
     setGraphics((prev) =>
       prev.map((g) => (g._id === selectedId ? { ...g, offset: { x: g.offset.x + dx, y: g.offset.y + dy } } : g))
     )
   }
+
   const handleUpdate = () => {
     if (!selectedId) return
-    const graphic = graphics.find((g) => g.id === selectedId)
-    updateGraphic.mutate({
-      id: selectedId,
-      width: graphic.width,
-      height: graphic.height,
-      offset: graphic.offset,
-      isFront: graphic.isFront
-    })
+    const g = graphics.find((g) => g._id === selectedId)
+    if (designId) {
+      // update via API
+      updateGraphic.mutate({ id: selectedId, width: g.width, height: g.height, offset: g.offset, isFront })
+    } else {
+      console.log("Updating graphic locally")
+
+      // update local state
+      setGraphics((prev) =>
+        prev.map((item) =>
+          item._id === selectedId ? { ...item, width: g.width, height: g.height, offset: g.offset, isFront } : item
+        )
+      )
+    }
     setSelectedId(null)
   }
+
   const handleDelete = () => {
-    if (!selectedId) return
-    deleteGraphic.mutate(selectedId)
+    if (selectedId) {
+      if (designId) {
+        // delete on backend for existing design
+        deleteGraphic.mutate(selectedId)
+      } else {
+        // remove from local state
+        setGraphics((prev) => prev.filter((g) => g._id !== selectedId))
+      }
+    }
     setSelectedId(null)
   }
+
   const handleSizeChange = (field, value) => {
     if (!selectedId) return
-    setGraphics((prev) => prev.map((g) => (g.id === selectedId ? { ...g, [field]: parseInt(value, 10) } : g)))
+    setGraphics((prev) => prev.map((g) => (g._id === selectedId ? { ...g, [field]: parseInt(value, 10) } : g)))
   }
 
   return (
@@ -110,15 +140,11 @@ export default function GraphicsTool({
         </button>
       </div>
 
-      {/* {isLoading && <p>Loading...</p>} */}
-
-      {/* Upload */}
       <div className="mb-4">
         <label className="block text-sm font-medium mb-1">Upload Image</label>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="block w-full text-sm" />
       </div>
 
-      {/* Front/Back selector */}
       <div className="flex items-center gap-4 mb-4">
         <label className="flex items-center gap-1">
           <input type="radio" checked={isFront} onChange={() => setIsFront(true)} /> Front
@@ -128,27 +154,32 @@ export default function GraphicsTool({
         </label>
       </div>
 
-      {/* List of images */}
       <div className="mb-4">
         <h3 className="text-sm font-semibold mb-1">Images ({graphics.length})</h3>
         <ul className="space-y-1 max-h-32 overflow-auto">
           {graphics.map((g) => (
             <li
-              key={g.id}
-              onClick={() => selectGraphic(g.id)}
+              key={g._id}
+              onClick={() => selectGraphic(g._id)}
               className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer truncate ${
-                g.id === selectedId ? "bg-blue-100" : "hover:bg-gray-100"
+                g._id === selectedId ? "bg-blue-100" : "hover:bg-gray-100"
               }`}
             >
-              <img src={g.url} alt="thumb" className="h-6 w-6 object-cover rounded" />
-              <span className="text-xs truncate">{g.id}</span>
+              <img
+                src={
+                  // support standalone or nested graphic URLs
+                  g?.url || g.graphic?.url || ""
+                }
+                alt="thumb"
+                className="h-6 w-6 object-cover rounded"
+              />
+              <span className="text-xs truncate">{g._id}</span>
               <span className="text-xs italic">({g.isFront ? "Front" : "Back"})</span>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Position controls */}
       {selectedId && (
         <div className="flex justify-center items-center mb-4 gap-2">
           <button onClick={() => handleOffset(0, 5)} className="p-1 border rounded">
@@ -166,7 +197,6 @@ export default function GraphicsTool({
         </div>
       )}
 
-      {/* Resize controls */}
       {selectedId && (
         <div className="flex flex-col gap-2 mb-4">
           <label className="text-sm font-medium">Width</label>
@@ -175,7 +205,7 @@ export default function GraphicsTool({
             min={20}
             max={500}
             step={1}
-            value={graphics.find((g) => g.id === selectedId)?.width || 100}
+            value={graphics.find((g) => g._id === selectedId)?.width || 100}
             onChange={(e) => handleSizeChange("width", e.target.value)}
           />
           <label className="text-sm font-medium">Height</label>
@@ -184,13 +214,12 @@ export default function GraphicsTool({
             min={20}
             max={500}
             step={1}
-            value={graphics.find((g) => g.id === selectedId)?.height || 100}
+            value={graphics.find((g) => g._id === selectedId)?.height || 100}
             onChange={(e) => handleSizeChange("height", e.target.value)}
           />
         </div>
       )}
 
-      {/* Delete */}
       {selectedId && (
         <div className="flex flex-col gap-y-4 justify-between mt-2">
           <button onClick={handleDelete} className="px-3 py-1 rounded bg-red-500 text-white text-sm">

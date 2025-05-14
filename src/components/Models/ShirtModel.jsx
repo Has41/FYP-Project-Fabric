@@ -114,7 +114,7 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
             res()
           }
           img.onerror = () => res()
-          img.src = g.url
+          img.src = g?.url ? g.url : g?.graphic?.url
         })
       }
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useMutation } from "react-query"
 import axiosInstance from "../../../utils/axiosInstance"
 
-const TextTool = ({
+export default function TextTool({
   textPickerRef,
   texts,
   refetchDesign,
@@ -15,53 +15,58 @@ const TextTool = ({
   onTextColorChange,
   fontSize,
   onFontSizeChange
-}) => {
+}) {
   const [selectedId, setSelectedId] = useState(null)
   const [inputValue, setInputValue] = useState("")
   const [isFront, setIsFront] = useState(true)
 
+  // mutation to append a text ID to an existing design
   const pushText = useMutation((textId) => axiosInstance.post(`/api/v1/designs/push-text/${designId}`, { text: textId }), {
-    onSuccess: ({ data }) => {
-      console.log("Design updated with new text:", data.data)
-      refetchDesign() // pull in the latest design.text array
-    },
+    onSuccess: () => refetchDesign(),
     onError: (err) => console.error("Failed to push text to design:", err)
   })
 
-  const addText = useMutation(
-    (payload) => axiosInstance.post("/api/v1/texts/add", payload),
-    {
-      onSuccess: ({ data }) => {
-        console.log("Text added successfully", data.data)
-        const newTextId = data.data._id
-        pushText.mutate(newTextId)
-        setInputValue("")
-        setSelectedId(null)
-        refetchDesign()
+  // mutation to create a new text object
+  const addText = useMutation((payload) => axiosInstance.post("/api/v1/texts/add", payload), {
+    onSuccess: ({ data }) => {
+      const newTextObj = data.data
+      if (designId) {
+        // if editing existing design, also push ID into design
+        pushText.mutate(newTextObj._id)
       }
+      // append newly created text object locally
+      setTexts((prev) => [
+        ...prev,
+        {
+          _id: newTextObj._id,
+          text: newTextObj.text,
+          color: newTextObj.color,
+          fontSize: newTextObj.fontSize,
+          offset: newTextObj.offset,
+          isFront: newTextObj.isFront
+        }
+      ])
+      setInputValue("")
+      setSelectedId(null)
     },
-    {
-      onError: (error) => {
-        console.error("Error adding text:", error)
-      }
-    }
-  )
+    onError: (error) => console.error("Error adding text:", error)
+  })
+
+  // mutation to update an existing text object
   const updateText = useMutation(({ id, ...body }) => axiosInstance.put(`/api/v1/texts/update/${id}`, body), {
     onSuccess: () => refetchDesign()
   })
-  const deleteText = useMutation((id) => axiosInstance.delete(`/api/v1/texts/delete/${id}`), {
-    onSuccess: () => {
-      refetchDesign()
-    }
-  })
 
-  // 3️⃣ Sync form with selection
+  // mutation to delete a text object (and remove from design)
+  const deleteText = useMutation((id) => axiosInstance.delete(`/api/v1/texts/delete/${id}`), { onSuccess: () => refetchDesign() })
+
+  // sync form fields when selection changes
   useEffect(() => {
     if (selectedId) {
       const cur = texts.find((t) => t._id === selectedId)
       if (cur) {
         setInputValue(cur.text)
-        onTextColorChange(cur?.color || "#000000")
+        onTextColorChange(cur.color || "#000000")
         onFontSizeChange(cur.fontSize)
         setIsFront(cur.isFront)
       }
@@ -73,36 +78,28 @@ const TextTool = ({
     }
   }, [selectedId, texts])
 
-  // 4️⃣ Handlers call API and update offsets locally
+  // handlers
   const handleAdd = () => {
-    addText.mutate({
-      text: inputValue,
-      fontSize,
-      offset: { x: 0, y: 0 },
-      isFront
-    })
+    addText.mutate({ text: inputValue, fontSize, offset: { x: 0, y: 0 }, isFront })
+  }
 
-    setSelectedId(null)
-    // closePopup()
-  }
   const handleUpdate = () => {
-    updateText.mutate({
-      id: selectedId,
-      text: inputValue,
-      fontSize,
-      offset: texts.find((t) => t._id === selectedId).offset,
-      isFront
-    })
+    const offset = texts.find((t) => t._id === selectedId).offset
+    updateText.mutate({ id: selectedId, text: inputValue, fontSize, offset, isFront })
     setSelectedId(null)
-    // closePopup()
   }
+
   const handleDelete = () => {
-    deleteText.mutate(selectedId)
-    // setSelectedId(null)
+    if (designId) {
+      deleteText.mutate(selectedId)
+    } else {
+      setTexts((prev) => prev.filter((t) => t._id !== selectedId))
+    }
+    setSelectedId(null)
   }
+
   const selectText = (id) => setSelectedId((prev) => (prev === id ? null : id))
 
-  // retain original offset-only change
   const handleOffsetChange = (dx, dy) => {
     if (!selectedId) return
     setTexts((prev) => prev.map((t) => (t._id === selectedId ? { ...t, offset: { x: t.offset.x + dx, y: t.offset.y + dy } } : t)))
@@ -123,23 +120,19 @@ const TextTool = ({
         </button>
       </div>
 
-      {fetchingDesign ? (
-        <p>Loading...</p>
-      ) : (
-        <ul className="space-y-1 max-h-32 overflow-auto mb-4">
-          {texts.map((t) => (
-            <li
-              key={t._id}
-              onClick={() => selectText(t._id)}
-              className={`px-2 py-1 rounded cursor-pointer truncate ${
-                t._id === selectedId ? "bg-button-color font-medium" : "hover:bg-gray-100"
-              }`}
-            >
-              {t.text} ({t.isFront ? "Front" : "Back"})
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="space-y-1 max-h-32 overflow-auto mb-4">
+        {texts.map((t) => (
+          <li
+            key={t._id}
+            onClick={() => selectText(t._id)}
+            className={`px-2 py-1 rounded cursor-pointer truncate ${
+              t._id === selectedId ? "bg-button-color font-medium" : "hover:bg-gray-100"
+            }`}
+          >
+            {t.text} ({t.isFront ? "Front" : "Back"})
+          </li>
+        ))}
+      </ul>
 
       {selectedId && (
         <div className="flex justify-center items-center mb-4 gap-2">
@@ -203,5 +196,3 @@ const TextTool = ({
     </div>
   )
 }
-
-export default TextTool

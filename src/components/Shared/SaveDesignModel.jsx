@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { createPortal } from "react-dom"
 
-const SaveDesignModal = ({ isOpen, onClose, userRole, onSave }) => {
+const SaveDesignModal = ({ isOpen, onClose, userRole, onSave, savedDesignName }) => {
   const [designName, setDesignName] = useState("")
   if (!isOpen) return null
 
@@ -12,22 +12,37 @@ const SaveDesignModal = ({ isOpen, onClose, userRole, onSave }) => {
       <div className="bg-white p-6 rounded-lg w-80">
         {userRole === "designer" ? (
           <>
-            <h3 className="text-lg font-semibold mb-2">Make Your Design Public?</h3>
-            <input
-              type="text"
-              value={designName}
-              onChange={(e) => setDesignName(e.target.value)}
-              className="border p-2 mb-4 w-full rounded"
-              placeholder="Enter a name for your design"
-            />
-            <div className="flex justify-end gap-2">
+            <h3 className="text-lg font-semibold mb-2">{savedDesignName ? "Update your design?" : "Make Your Design Public?"}</h3>
+            {savedDesignName ? (
+              <p className="mb-4">Are you sure you want to update your design?</p>
+            ) : (
+              <p className="mb-4">Your design will be saved to your account. Do you want to make it public?</p>
+            )}
+            {!savedDesignName && (
+              <input
+                type="text"
+                value={designName}
+                onChange={(e) => setDesignName(e.target.value)}
+                className="border p-2 mb-4 w-full rounded"
+                placeholder="Enter a name for your design"
+              />
+            )}
+
+            <div className="flex flex-col justify-end gap-2">
               <button onClick={onClose} className="px-4 py-2">
                 Cancel
               </button>
               <button
-                onClick={() => onSave(true, designName)}
-                className="px-4 py-2 bg-button-color text-white rounded"
-                disabled={isDisabled}
+                onClick={() => onSave(false, savedDesignName || designName)}
+                className="px-4 py-2 bg-button-color cursor-pointer text-white rounded"
+                // disabled={isDisabled}
+              >
+                No, Don't Publish
+              </button>
+              <button
+                onClick={() => onSave(true, savedDesignName || designName)}
+                className="px-4 py-2 bg-button-color cursor-pointer text-white rounded"
+                // disabled={isDisabled}
               >
                 Yes, Publish
               </button>

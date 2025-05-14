@@ -55,6 +55,7 @@ const EditFabric = () => {
       setColor(designPayload?.color)
       setTexts(designPayload?.text)
       setGraphics(designPayload?.graphic)
+      setSelectedPattern(designPayload?.defaultPattern || designPayload?.pattern)
     }
   }, [designerId, designPayload])
 
@@ -82,6 +83,18 @@ const EditFabric = () => {
     onSuccess: () => queryClient.invalidateQueries("designs")
   })
 
+  const updateDesign = useMutation((payload) => axiosInstance.put(`/api/v1/designs/${designerId}`, payload), {
+    onSuccess: () => {
+      queryClient.invalidateQueries("designs")
+      queryClient.invalidateQueries(["designsById", designerId])
+      setModalOpen(false)
+    },
+    onError: (err) => {
+      console.error("Update failed:", err)
+      setModalOpen(false)
+    }
+  })
+
   const handleSaveClick = () => setModalOpen(true)
   const handleModalClose = () => setModalOpen(false)
   const handlePlaceOrderClick = () => {
@@ -107,30 +120,39 @@ const EditFabric = () => {
   }
 
   const handleDesignSave = async (isPublic, designName) => {
-    // 1️⃣ take the screenshot
-    const screenshotDataUrl = captureRef.current?.()
-    const screenshotBlob = dataURLtoBlob(screenshotDataUrl)
-
-    // 2️⃣ build FormData (instead of JSON)
-    const form = new FormData()
-    form.append("name", designName)
-    form.append("product", id)
-    form.append("color", color)
-    form.append("pattern", selectedPattern?._id || "")
-    form.append("defaultPattern", selectedPattern?._id || "")
-    texts.forEach((t) => form.append("text", t.id))
-    graphics.forEach((g) => form.append("graphic", g.id))
-    form.append("basePrice", 100)
-    form.append("isPublic", isPublic)
-    form.append("designerProfit", 0)
-    // finally append your screenshot as if it were an uploaded file
-    form.append("image", screenshotBlob, "front-view.png")
-
     try {
-      // 3️⃣ send it as multipart/form-data
-      const res = await createDesign.mutateAsync(form)
-      const newId = res.data.data._id
-      setSelectedDesignId(newId)
+      // 1️⃣ Capture screenshot
+      const screenshotDataUrl = captureRef.current?.()
+      const screenshotBlob = dataURLtoBlob(screenshotDataUrl)
+
+      // 2️⃣ Prepare FormData - Handle null pattern case
+      const form = new FormData()
+      form.append("name", designName)
+      form.append("color", color)
+
+      // Only append pattern if it exists
+      if (selectedPattern?._id) {
+        form.append("pattern", selectedPattern._id)
+        form.append("defaultPattern", selectedPattern._id)
+      }
+
+      form.append("basePrice", 100)
+      form.append("isPublic", isPublic)
+      form.append("designerProfit", 0)
+      form.append("image", screenshotBlob, designerId ? "update.png" : "create.png")
+
+      if (designerId) {
+        // 3️⃣ Update existing design
+        await updateDesign.mutateAsync(form)
+      } else {
+        // 4️⃣ Create new design
+        form.append("product", id)
+        texts.forEach((t) => form.append("text", t._id))
+        graphics.forEach((g) => form.append("graphic", g._id))
+        const res = await createDesign.mutateAsync(form)
+        setSelectedDesignId(res.data.data._id)
+      }
+
       setModalOpen(false)
       if (orderAfterSave) {
         setOrderAfterSave(false)
@@ -269,9 +291,11 @@ const EditFabric = () => {
               })}
             </div>
 
-            {/* Save info */}
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Upload/Save" ? "flex" : "hidden"}`}>
               {saveOptions?.map((save, index) => {
+                // Modify the title if designerId exists and it's the "Save" option
+                const displayTitle = designerId && save.type === "Save" ? "Update Your Design" : save.title
+                const displayType = designerId && save.type === "Save" ? "Update" : save.type
                 return (
                   <div
                     onClick={() => {
@@ -295,9 +319,9 @@ const EditFabric = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" d={save.path} />
                     </svg>
 
-                    <span className="text-sm ml-2">{save.title}</span>
+                    <span className="text-sm ml-2">{displayTitle}</span>
                     <div className="ml-auto bg-slate-100 py-1 px-3 rounded-md">
-                      <p className="text-xs">{save.type}</p>
+                      <p className="text-xs">{displayType}</p>
                     </div>
                   </div>
                 )
@@ -345,6 +369,9 @@ const EditFabric = () => {
           subActiveOption={subActiveOption}
           closePopup={closePopup}
           graphics={graphics}
+          fetchingDesign={fetchingDesign}
+          refetchDesign={refetchDesign}
+          designId={designerId}
           setGraphics={setGraphics}
           isGraphicsDragging={isGraphicsDragging}
           graphicsPickerRef={graphicsPickerRef}
@@ -376,7 +403,13 @@ const EditFabric = () => {
             />
           </div>
         </div>
-        <SaveDesignModel isOpen={isModalOpen} onClose={handleModalClose} userRole={user.role} onSave={handleDesignSave} />
+        <SaveDesignModel
+          savedDesignName={designPayload?.name}
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+          userRole={user.role}
+          onSave={handleDesignSave}
+        />
         <PlaceOrderModal
           isOpen={isOrderModalOpen}
           onClose={() => setIsOrderModalOpen(false)}
