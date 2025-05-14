@@ -126,7 +126,7 @@ const getDesignById = asyncHandler(async (req, res) => {
   // Admins can access any design directly
   if (req.user.role === "admin") {
     const design = await Design.aggregate([
-      { $match: { _id: mongoose.Types.ObjectId(designId) } },
+      { $match: { _id: new mongoose.Types.ObjectId(designId) } },
 
       // Lookup for User to get username and fullname
       {
