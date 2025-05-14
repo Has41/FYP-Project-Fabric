@@ -422,7 +422,9 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
       .populate("text") // Populating text
       .populate("graphic")
       .populate("pattren")
-      .populate("defaultpattren"); // Populating graphic
+      .populate("defaultpattren")
+      .populate('owner')
+      .populate('product'); // Populating graphic
 
     if (!design) throw new ApiError(404, "Design not found");
     return res
@@ -438,7 +440,9 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
     .populate("text") // Populating text
     .populate("graphic") // Populating graphic
     .populate("pattren")
-    .populate("defaultpattren");
+    .populate("defaultpattren")
+    .populate('owner')
+    .populate('product');
 
   if (!design) {
     throw new ApiError(404, "Design not found or not authorized");
