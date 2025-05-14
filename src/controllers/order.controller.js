@@ -6,7 +6,9 @@ import { Design } from "../models/design.model.js";
 import mongoose from "mongoose";
 
 const validateDesignForPurchase = (design, userId) => {
-  if (!design.isPublic && design.owner.toString() !== userId) {
+  if (!design.isPublic && !design.owner.equals(userId)) {
+    console.log(design.owner, userId);
+    console.log(design.owner!== userId);
     throw new Error("Only the owner can purchase private designs");
   }
 };
@@ -60,7 +62,6 @@ const addOrder = asyncHandler(async (req, res) => {
     designerEarnings,
     paymentStatus: paymentStatus,
     paymentMethod: paymentMethod || "COD",
-    paymentStatus: "pending",
     deliveryStatus: "pending",
   });
 
