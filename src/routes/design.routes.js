@@ -28,7 +28,7 @@ router.use(verifyJwt);
 router.post("/",upload.single("image"),createDesign);
 router.get("/my-designs", getMyDesigns);
 router.get("/:designId", getDesignById);
-router.put("/:designId", updateDesign);
+router.put("/:designId",upload.single("image"), updateDesign);
 router.put("/:designId/public", toggleDesignPublicStatus);
 router.delete("/:designId", deleteDesign);
 

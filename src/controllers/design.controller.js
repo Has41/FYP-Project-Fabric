@@ -435,11 +435,11 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
     .populate("graphic")
     .populate({
       path: "pattern",
-      model: "Pattern"  // Explicitly specifying the model
+      model: "Pattern"  
     })
     .populate({
       path: "defaultPattern",
-      model: "DefaultPattern"  // Explicitly specifying the model
+      model: "DefaultPattern"  
     })
     .populate('owner')
     .populate('product');
