@@ -12,7 +12,9 @@ import {
   deleteDesign,
   getAllDesigns,
   getAllPublicDesigns,
-  getDesignByIdSimple
+  getDesignByIdSimple,
+  pushText,
+  pushGraphic
 } from "../controllers/design.controller.js";
 
 const router = Router();
@@ -26,7 +28,7 @@ router.use(verifyJwt);
 
 // User design management
 router.post('/push-text',pushText);
-router.post('push-graphic',pushGraphic);
+router.post('/push-graphic',pushGraphic);
 router.post("/",upload.single("image"),createDesign);
 router.get("/my-designs", getMyDesigns);
 router.get("/:designId", getDesignById);
