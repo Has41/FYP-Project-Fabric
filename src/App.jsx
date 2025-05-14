@@ -52,9 +52,9 @@ const App = () => {
         <Route
           index
           element={
-            <ProtectedRoute>
+            <NonUserRoutes>
               <HomePage />
-            </ProtectedRoute>
+            </NonUserRoutes>
           }
         />
         <Route
