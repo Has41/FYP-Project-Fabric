@@ -17,7 +17,10 @@ const registerSchema = z
       .max(100, { message: "Password can't be longer than 100 characters" }),
     phoneNumber: z.string().min(1, { message: "Phone number is required" }),
     address: z.string().min(1, { message: "Address is required" }),
-    city: z.string().min(1, { message: "City is required" })
+    city: z.string().min(1, { message: "City is required" }),
+    role: z.enum(["user", "designer"], {
+      errorMap: () => ({ message: "Role is required" })
+    })
   })
   .superRefine((val, ctx) => {
     if (val.password !== val.confirmPassword) {
@@ -42,7 +45,8 @@ const editSchema = z.object({
   country: z.string().min(1, { message: "Country is required" }),
   address: z.string().min(1, { message: "Address is required" }),
   city: z.string().min(1, { message: "City is required" }),
-  postalCode: z.string().optional()
+  postalCode: z.string().optional(),
+  role: z.enum(["user", "designer"]).optional()
 })
 
 const productSchema = z.object({

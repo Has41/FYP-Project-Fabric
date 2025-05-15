@@ -186,7 +186,26 @@ const Register = ({ onLoginClick, setFormHeight }) => {
                 />
               ))}
 
-              <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2">
+              <div className="ml-4">
+                <p className="text-sm font-medium mb-2">Select your role:</p>
+                <label className="inline-flex items-center mr-6">
+                  <input
+                    type="radio"
+                    {...register("role")}
+                    value="user"
+                    defaultChecked
+                    className="form-radio size-4 accent-black"
+                  />
+                  <span className="ml-2">User</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input type="radio" {...register("role")} value="designer" className="form-radio h-4 w-4 accent-black" />
+                  <span className="ml-2">Designer</span>
+                </label>
+                {errors.role && <p className="text-sm text-red-500 mt-1">{errors.role.message}</p>}
+              </div>
+
+              <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2 gap-x-4">
                 <button
                   className="bg-dusty-grass rounded w-1/2 font-semibold py-2 text-white flex items-center justify-center"
                   type="button"
