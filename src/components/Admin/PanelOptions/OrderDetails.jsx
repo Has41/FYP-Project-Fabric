@@ -10,7 +10,6 @@ const OrderDetails = () => {
   const queryClient = useQueryClient()
   const [editingId, setEditingId] = useState(null)
   const [editData, setEditData] = useState({ paymentStatus: "", deliveryStatus: "" })
-  const [hoveredOrderId, setHoveredOrderId] = useState(null)
   const [menuPosition, setMenuPosition] = useState(null)
   const [selectedOrderId, setSelectedOrderId] = useState(null)
 
@@ -156,11 +155,7 @@ const OrderDetails = () => {
                   )}
                 </td>
 
-                <td
-                  onMouseEnter={() => order.returnRequested && setHoveredOrderId(order._id)}
-                  onMouseLeave={() => setHoveredOrderId(null)}
-                  className="p-3 text-center"
-                >
+                <td className="p-3 text-center">
                   {editingId === order._id ? (
                     <select
                       name="deliveryStatus"
