@@ -6,7 +6,7 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-
+import mongoose from "mongoose";
 
 
 const addPattern = asyncHandler(async (req, res, next) => {
