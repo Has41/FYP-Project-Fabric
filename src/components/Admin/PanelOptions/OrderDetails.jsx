@@ -3,13 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "react-query"
 import axiosInstance from "../../../utils/axiosInstance"
 import { FiTrash2, FiCheck, FiX, FiEdit2 } from "react-icons/fi"
 import LoadingSpinner from "../../Shared/LoadingSpinner"
+import { FaInfoCircle } from "react-icons/fa"
+import ReturnMenu from "../../Shared/ReturnModal"
 
 const OrderDetails = () => {
   const queryClient = useQueryClient()
   const [editingId, setEditingId] = useState(null)
   const [editData, setEditData] = useState({ paymentStatus: "", deliveryStatus: "" })
+  const [hoveredOrderId, setHoveredOrderId] = useState(null)
+  const [menuPosition, setMenuPosition] = useState(null)
+  const [selectedOrderId, setSelectedOrderId] = useState(null)
 
-  // Fetch all orders (admin only)
   const {
     data: orders = [],
     isLoading,
@@ -18,6 +22,22 @@ const OrderDetails = () => {
     const res = await axiosInstance.get("/api/v1/orders")
     return res.data.data
   })
+
+  const processReturnMutation = useMutation(
+    async ({ orderId, action }) => {
+      const res = await axiosInstance.put(`/api/v1/orders/${orderId}/process-return`, { action })
+      return res.data.data
+    },
+    {
+      onSuccess: () => {
+        alert("Return processed")
+        queryClient.invalidateQueries(["orders"])
+      },
+      onError: (err) => {
+        alert(err.response?.data?.message || "Failed to process return")
+      }
+    }
+  )
 
   // Cancel/delete order
   const deleteMutation = useMutation(
@@ -61,6 +81,23 @@ const OrderDetails = () => {
     setEditData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handleIconClick = (e, orderId) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+
+    if (selectedOrderId === orderId) {
+      // Toggle off if same icon is clicked again
+      setMenuPosition(null)
+      setSelectedOrderId(null)
+    } else {
+      // Open menu for this order
+      setMenuPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX
+      })
+      setSelectedOrderId(orderId)
+    }
+  }
+
   if (isLoading) return <div className="p-6">Loading orders...</div>
   if (isError) return <div className="p-6 text-red-500">Error loading orders</div>
 
@@ -68,7 +105,7 @@ const OrderDetails = () => {
     <div className="p-6 min-h-screen space-y-8 font-poppins">
       <h1 className="text-2xl font-bold text-gray-800">Order Management</h1>
       <div className="overflow-x-auto bg-white shadow-md rounded-lg">
-        <table className="min-w-full text-sm lg:text-base">
+        <table className="min-w-full select-none text-sm lg:text-base">
           <thead className="bg-button-color text-white">
             <tr>
               <th className="p-3 text-center">#</th>
@@ -119,7 +156,11 @@ const OrderDetails = () => {
                   )}
                 </td>
 
-                <td className="p-3 text-center">
+                <td
+                  onMouseEnter={() => order.returnRequested && setHoveredOrderId(order._id)}
+                  onMouseLeave={() => setHoveredOrderId(null)}
+                  className="p-3 text-center"
+                >
                   {editingId === order._id ? (
                     <select
                       name="deliveryStatus"
@@ -136,7 +177,7 @@ const OrderDetails = () => {
                     </select>
                   ) : (
                     <div className="flex justify-center">
-                      <span
+                      <div
                         className={`px-2 py-1 rounded-full text-sm ${
                           order.deliveryStatus === "delivered"
                             ? "bg-green-100 text-green-800"
@@ -146,7 +187,16 @@ const OrderDetails = () => {
                         }`}
                       >
                         {order.deliveryStatus}
-                      </span>
+                      </div>
+                      <div>
+                        {order.returnRequested && (
+                          <FaInfoCircle
+                            onClick={(e) => handleIconClick(e, order._id)}
+                            className=" text-yellow-500"
+                            title="User requested return!"
+                          />
+                        )}
+                      </div>
                     </div>
                   )}
                 </td>
@@ -192,6 +242,15 @@ const OrderDetails = () => {
             ))}
           </tbody>
         </table>
+        {menuPosition && selectedOrderId && (
+          <ReturnMenu
+            top={menuPosition.top}
+            left={menuPosition.left}
+            onClose={() => setMenuPosition(null)}
+            onApprove={() => processReturnMutation.mutate({ orderId: selectedOrderId, action: "approve" })}
+            onReject={() => processReturnMutation.mutate({ orderId: selectedOrderId, action: "reject" })}
+          />
+        )}
       </div>
     </div>
   )

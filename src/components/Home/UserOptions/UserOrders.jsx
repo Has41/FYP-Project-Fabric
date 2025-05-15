@@ -3,13 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "react-query"
 import { Link, useNavigate } from "react-router-dom"
 import axiosInstance from "../../../utils/axiosInstance"
 import "chart.js/auto"
-import { FiArrowLeft, FiEye, FiTrash2 } from "react-icons/fi"
+import { FiArrowLeft, FiEye, FiRefreshCw, FiTrash2 } from "react-icons/fi"
 import EditForm from "../../Shared/EditForm"
+import ReturnReasonModal from "../../Shared/ReturnReasonModal"
 
 const UserOrders = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState("details")
+  const [modalOrderId, setModalOrderId] = useState(null)
 
   const returnMutation = useMutation(
     async ({ orderId, reason }) => {
@@ -17,13 +19,11 @@ const UserOrders = () => {
       return res.data.data
     },
     {
-      onSuccess: (updatedOrder) => {
-        alert("Return requested successfully")
-        // Refresh order list to pick up the new `returnRequested` flag
+      onSuccess: () => {
         refetchOrders()
+        setModalOrderId(null)
       },
       onError: (err) => {
-        console.error(err)
         alert(err.response?.data?.message || "Failed to request return")
       }
     }
@@ -70,6 +70,11 @@ const UserOrders = () => {
       }
     }
   )
+
+  const handleModalSubmit = (reason) => {
+    returnMutation.mutate({ orderId: modalOrderId, reason })
+    setModalOrderId(null)
+  }
 
   return (
     <div className="flex font-poppins max-w-full mx-auto h-full">
@@ -167,12 +172,15 @@ const UserOrders = () => {
                         <td className="p-3 text-center">
                           {order.deliveryStatus === "delivered" && !order.returnRequested ? (
                             <button
-                              onClick={() => handleRequestReturn(order)}
+                              onClick={() => setModalOrderId(order._id)}
                               disabled={returnMutation.isLoading}
                               className="inline-flex items-center px-3 py-1 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
-                              title="Request a Return"
                             >
-                              {returnMutation.isLoading ? <LoadingSpinner size="w-4 h-4" /> : <FiRefreshCw className="mr-1" />}
+                              {returnMutation.isLoading && modalOrderId === order._id ? (
+                                <span className="loader mr-1" /> /* or a spinner component */
+                              ) : (
+                                <FiRefreshCw className="mr-1" />
+                              )}
                               Return
                             </button>
                           ) : order.returnRequested ? (
@@ -241,6 +249,7 @@ const UserOrders = () => {
 
         {activeTab === "edit-form" && <EditForm />}
       </div>
+      <ReturnReasonModal isOpen={!!modalOrderId} onClose={() => setModalOrderId(null)} onSubmit={handleModalSubmit} />
     </div>
   )
 }
