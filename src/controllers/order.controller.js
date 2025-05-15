@@ -6,8 +6,7 @@ import { Design } from "../models/design.model.js";
 import mongoose from "mongoose";
 import Stripe from "stripe";
 
-// Initialize Stripe with your secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_WEBHOOK_SECRET);
 
 const validateDesignForPurchase = (design, userId) => {
   if (!design.isPublic && !design.owner.equals(userId)) {
