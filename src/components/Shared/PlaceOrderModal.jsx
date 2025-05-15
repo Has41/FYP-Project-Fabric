@@ -70,13 +70,8 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium">Shipping Fee</label>
-            <input
-              type="number"
-              step="0.01"
-              {...register("shippingFee", { valueAsNumber: true })}
-              className="mt-1 block w-full border p-2 rounded"
-            />
-            {errors.shippingFee && <p className="text-red-500 text-xs">{errors.shippingFee.message}</p>}
+            <p className="mt-1 text-gray-700">${defaultShippingFee.toFixed(2)}</p>
+            <input type="hidden" {...register("shippingFee", { valueAsNumber: true })} value={defaultShippingFee} />
           </div>
 
           <div>

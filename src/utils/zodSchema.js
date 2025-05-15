@@ -37,13 +37,13 @@ const productSchema = z.object({
   price: z.string().refine((val) => !isNaN(Number(val)), { message: "Must be a number" }),
   discount_price: z.string().optional(),
   quantity: z.string().refine((val) => !isNaN(Number(val)), { message: "Must be a number" }),
-  category: z.string().min(1, "Required"),
-  type: z
-    .string()
-    .min(1, "Required")
-    .refine((val) => ["Shirt", "Bag", "Shoes"].includes(val), {
-      message: "Type must be either Shirt, Bag or Shoes"
-    })
+  category: z.string().min(1, "Required")
+  // type: z
+  //   .string()
+  //   .min(1, "Required")
+  //   .refine((val) => ["Shirt", "Bag", "Shoes"].includes(val), {
+  //     message: "Type must be either Shirt, Bag or Shoes"
+  //   })
 })
 
 const orderSchema = z.object({

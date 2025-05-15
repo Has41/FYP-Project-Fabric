@@ -32,7 +32,7 @@ const ProductDetails = () => {
       discount_price: "",
       quantity: "",
       category: "",
-      type: ""
+      type: "Shirt"
     }
   })
 
@@ -85,7 +85,8 @@ const ProductDetails = () => {
 
   // Form submit handler
   const onSubmit = (data) => {
-    saveMutation.mutate({ ...data, id: editingId })
+    saveMutation.mutate({ ...data, id: editingId, type: "Shirt" })
+    reset()
   }
 
   // Initialize edit state
@@ -129,18 +130,6 @@ const ProductDetails = () => {
                           {cat.name}
                         </option>
                       ))}
-                    </select>
-                  ) : key === "type" ? (
-                    <select
-                      {...field}
-                      className={`w-full p-2 border rounded focus:ring-2 focus:ring-amber-500 focus:border-custom-border ${
-                        errors[key] ? "border-red-500" : "border-gray-300"
-                      }`}
-                    >
-                      <option value="">Select type</option>
-                      <option value="Shirt">Shirt</option>
-                      <option value="Bag">Bag</option>
-                      <option value="Shoes">Shoes</option>
                     </select>
                   ) : (
                     <input
@@ -260,35 +249,7 @@ const ProductDetails = () => {
                   )}
                 </td>
                 <td className="p-3">
-                  {editingId === product._id ? (
-                    <Controller
-                      name="type"
-                      control={control}
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          className="w-full p-2 border rounded focus:ring-2 focus:ring-amber-500 focus:border-custom-border"
-                        >
-                          <option value="">Select type</option>
-                          <option value="Shirt">Shirt</option>
-                          <option value="Bag">Bag</option>
-                          <option value="Shoes">Shoes</option>
-                        </select>
-                      )}
-                    />
-                  ) : (
-                    <span
-                      className={`px-2 py-1 rounded-full text-sm ${
-                        product.type === "Shirt"
-                          ? "bg-blue-100 text-blue-800"
-                          : product.type === "Bag"
-                          ? "bg-purple-100 text-purple-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {product.type || "-"}
-                    </span>
-                  )}
+                  <span className="px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-800">{product.type || "Shirt"}</span>
                 </td>
 
                 <td className="p-3 flex justify-center gap-2">

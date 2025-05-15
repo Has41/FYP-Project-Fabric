@@ -11,12 +11,13 @@ import { patternLibrary as patterns } from "../../utils/dynamicData"
 import SaveDesignModel from "../Shared/SaveDesignModel"
 import useAuth from "../../hooks/useAuth"
 import { useMutation, useQuery, useQueryClient } from "react-query"
-import { useParams } from "react-router-dom"
+import { useLocation, useParams } from "react-router-dom"
 import axiosInstance from "../../utils/axiosInstance"
 import PlaceOrderModal from "../Shared/PlaceOrderModal"
 
 const EditFabric = () => {
   const { user } = useAuth()
+  const location = useLocation()
   const { id, designerId } = useParams()
   const [activeOption, setActiveOption] = useState("Cloth-Option")
   const [subActiveOption, setSubActiveOption] = useState(null)
@@ -32,6 +33,11 @@ const EditFabric = () => {
   const [orderAfterSave, setOrderAfterSave] = useState(false)
   const [selectedDesignId, setSelectedDesignId] = useState(null)
   const captureRef = useRef(null)
+
+  // true if we’re on /view-design/:designerId
+  const isViewingDesign = location.pathname.startsWith("/view-design/")
+  // true if we’re on /edit-product/:id
+  const isEditingProduct = location.pathname.startsWith("/edit-product/")
 
   const {
     data: designPayload, // this is axiosRes.data.data, or undefined
@@ -221,15 +227,17 @@ const EditFabric = () => {
 
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Option" ? "flex" : "hidden"}`}>
               {toolOptions?.map((tool) => {
-                const isNotOwner = designPayload?.owner?._id !== user?._id
+                // Only disable if we’re viewing someone else’s design, never disable in edit-product
+                const isNotOwner = isViewingDesign && designPayload?.owner?._id !== user?._id
+
                 return (
                   <div
-                    aria-disabled={isNotOwner}
                     key={tool.id}
+                    aria-disabled={isNotOwner}
                     onClick={() => !isNotOwner && setSubActiveOption(tool.id)}
-                    className={`flex items-center gap-x-3 bg-[#FFF] ${
-                      isNotOwner ? "cursor-not-allowed opacity-70" : "cursor-pointer"
-                    } shadow-sm py-2 px-2 rounded-md`}
+                    className={`flex items-center gap-x-3 bg-white
+              ${isNotOwner ? "cursor-not-allowed opacity-70" : "cursor-pointer"}
+              shadow-sm py-2 px-2 rounded-md`}
                   >
                     <div className="ml-2">
                       <svg
@@ -292,27 +300,23 @@ const EditFabric = () => {
             </div>
             <div className={`flex flex-col gap-y-4 ${activeOption === "Cloth-Upload/Save" ? "flex" : "hidden"}`}>
               {saveOptions?.map((save, index) => {
-                const isNotOwner = designPayload?.owner?._id !== user?._id
                 const isSaveOption = save.type === "Save"
                 const displayTitle = designerId && isSaveOption ? "Update Your Design" : save.title
                 const displayType = designerId && isSaveOption ? "Update" : save.type
-                const isDisabled = isNotOwner && isSaveOption // Only disable Save option for non-owners
 
                 return (
                   <div
                     onClick={() => {
-                      if (!isDisabled) {
-                        if (isSaveOption) {
-                          handleSaveClick()
-                        } else {
-                          handlePlaceOrderClick()
-                        }
+                      if (isSaveOption) {
+                        handleSaveClick()
+                      } else {
+                        handlePlaceOrderClick()
                       }
                     }}
                     key={index}
-                    className={`flex items-center bg-white shadow-sm py-2 px-2 rounded-lg ${
-                      isDisabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"
-                    }`}
+                    className={`flex items-center bg-white shadow-sm py-2 px-2 rounded-lg 
+                       cursor-pointer
+                    `}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -320,14 +324,14 @@ const EditFabric = () => {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className={`size-5 ml-2 ${isDisabled ? "text-gray-400" : "text-black/80"}`}
+                      className={`size-5 ml-2 text-black/80`}
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d={save.path} />
                     </svg>
 
-                    <span className={`text-sm ml-2 ${isDisabled ? "text-gray-500" : "text-black"}`}>{displayTitle}</span>
-                    <div className={`ml-auto py-1 px-3 rounded-md ${isDisabled ? "bg-gray-200" : "bg-slate-100"}`}>
-                      <p className={`${isDisabled ? "text-gray-500" : "text-black"} text-xs`}>{displayType}</p>
+                    <span className={`text-sm ml-2  text-black`}>{displayTitle}</span>
+                    <div className={`ml-auto py-1 px-3 rounded-md  bg-slate-100`}>
+                      <p className={`text-black text-xs`}>{displayType}</p>
                     </div>
                   </div>
                 )

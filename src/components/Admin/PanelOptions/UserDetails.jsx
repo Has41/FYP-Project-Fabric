@@ -64,34 +64,36 @@ const UserDetails = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((user, index) => (
-              <tr key={user._id} className="text-center text-sm hover:bg-gray-50 lg:text-base">
-                <td className="border px-4 py-2">{index + 1}</td>
-                <td className="border px-4 py-2">{user.fullname}</td>
-                <td className="border px-4 py-2">{user.email}</td>
-                <td className="border px-4 py-2 capitalize">{user.role}</td>
-                <td className="border px-4 py-2">{user.designsCount}</td>
-                <td className="border px-4 py-2">{user.ordersCount}</td>
-                <td className="border px-4 py-2">{new Date(user.createdAt).toLocaleDateString()}</td>
-                <td className="border px-4 py-2">
-                  <button
-                    onClick={() => deleteMutation.mutate(user._id)}
-                    disabled={deletingId === user._id || deleteMutation.isLoading}
-                    className="flex items-center gap-1 mx-auto p-2 text-red-600 hover:bg-red-50 rounded transition disabled:opacity-50"
-                    title="Delete User"
-                  >
-                    {deletingId === user._id && deleteMutation.isLoading ? (
-                      "Deleting..."
-                    ) : (
-                      <>
-                        <FiTrash2 size={16} />
-                        <span className="hidden sm:inline">Delete</span>
-                      </>
-                    )}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {users
+              .filter((user) => user.role !== "admin")
+              .map((user, index) => (
+                <tr key={user._id} className="text-center text-sm hover:bg-gray-50 lg:text-base">
+                  <td className="border px-4 py-2">{index + 1}</td>
+                  <td className="border px-4 py-2">{user.fullname}</td>
+                  <td className="border px-4 py-2">{user.email}</td>
+                  <td className="border px-4 py-2 capitalize">{user.role}</td>
+                  <td className="border px-4 py-2">{user.designsCount}</td>
+                  <td className="border px-4 py-2">{user.ordersCount}</td>
+                  <td className="border px-4 py-2">{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td className="border px-4 py-2">
+                    <button
+                      onClick={() => deleteMutation.mutate(user._id)}
+                      disabled={deletingId === user._id || deleteMutation.isLoading}
+                      className="flex items-center gap-1 mx-auto p-2 text-red-600 hover:bg-red-50 rounded transition disabled:opacity-50"
+                      title="Delete User"
+                    >
+                      {deletingId === user._id && deleteMutation.isLoading ? (
+                        "Deleting..."
+                      ) : (
+                        <>
+                          <FiTrash2 size={16} />
+                          <span className="hidden sm:inline">Delete</span>
+                        </>
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

@@ -1,23 +1,32 @@
 import React, { useState } from "react"
-import { useMutation, useQuery } from "react-query"
-import { useNavigate } from "react-router-dom"
+import { useMutation, useQuery, useQueryClient } from "react-query"
+import { Link, useNavigate } from "react-router-dom"
 import axiosInstance from "../../../utils/axiosInstance"
-import { Pie } from "react-chartjs-2"
+import { Bar } from "react-chartjs-2"
 import "chart.js/auto"
-import { FiArrowLeft, FiTrash2 } from "react-icons/fi"
+import { FiArrowLeft, FiEye, FiTrash2 } from "react-icons/fi"
 
 const UserOrders = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState("details")
 
   const {
     data: statsData,
     isLoading: statsLoading,
     error: statsError
-  } = useQuery("dashboardStats", async () => {
-    const { data } = await axiosInstance.get("/api/v1/users/dashboard-stats")
-    return data.data
-  })
+  } = useQuery(
+    "dashboardStats",
+    async () => {
+      const { data } = await axiosInstance.get("/api/v1/users/dashboard-stats")
+      return data.data
+    },
+    {
+      onSuccess: (data) => {
+        console.log("Dashboard Stats:", data)
+      }
+    }
+  )
 
   const { data: designs } = useQuery("myDesigns", async () => {
     const { data } = await axiosInstance.get("/api/v1/designs/my-designs")
@@ -36,12 +45,6 @@ const UserOrders = () => {
     }
   )
 
-  const stats = {
-    totalOrders: statsData?.totalOrders ?? 0,
-    totalSpent: statsData?.totalSpent ?? 0,
-    statusBreakdown: statsData?.statusBreakdown ?? {}
-  }
-
   const {
     data: orders = [],
     isLoading: ordersLoading,
@@ -54,18 +57,25 @@ const UserOrders = () => {
   if (statsLoading || ordersLoading) return <div>Loading...</div>
   if (statsError || ordersError) return <div>Error loading data</div>
 
-  const breakdown = stats.statusBreakdown
+  const breakdown = statsData?.statusBreakdown || {}
   const statusLabels = Object.keys(breakdown)
   const statusCounts = Object.values(breakdown)
-  const pieData = {
+  const barData = {
     labels: statusLabels,
     datasets: [
       {
-        label: "Orders by Status",
-        data: statusCounts,
-        backgroundColor: statusLabels.map((_, i) => `hsl(${(i * 60) % 360}, 70%, 50%)`)
+        label: "Orders",
+        data: statusCounts
       }
     ]
+  }
+  const barOptions = {
+    indexAxis: "y",
+    maintainAspectRatio: false,
+    aspectRatio: 2,
+    scales: {
+      x: { beginAtZero: true }
+    }
   }
 
   return (
@@ -105,21 +115,9 @@ const UserOrders = () => {
 
         {activeTab === "details" && (
           <>
-            <h1 className="text-2xl font-semibold">Dashboard Stats</h1>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-white shadow rounded p-4">
-                <h2 className="font-medium">Total Orders</h2>
-                <p className="text-3xl">{stats.totalOrders}</p>
-              </div>
-              <div className="bg-white shadow rounded p-4">
-                <h2 className="font-medium">Total Spent</h2>
-                <p className="text-3xl">${stats.totalSpent.toFixed(2)}</p>
-              </div>
-            </div>
-
-            <div className="bg-white shadow rounded p-4">
-              <h2 className="font-medium mb-4">Order Status Breakdown</h2>
-              {statusLabels.length > 0 ? <Pie data={pieData} /> : <p>No status data available</p>}
+            <h1 className="text-2xl font-semibold">Order Status Breakdown</h1>
+            <div className="bg-white shadow rounded p-4 w-full h-96">
+              {statusLabels.length > 0 ? <Bar data={barData} options={barOptions} /> : <p>No status data available</p>}
             </div>
 
             <div>
@@ -173,7 +171,13 @@ const UserOrders = () => {
                         {design.isPublic ? <span className="text-green-600">Yes</span> : <span className="text-red-600">No</span>}
                       </td>
                       <td className="p-3 text-center">{new Date(design.createdAt).toLocaleDateString()}</td>
-                      <td className="p-3 text-center">
+                      <td className="p-3 text-center flex justify-center gap-2">
+                        <Link
+                          to={`/view-design/${design._id}`}
+                          className="px-2 py-1 text-blue-800 flex items-center justify-center rounded hover:bg-blue-200"
+                        >
+                          <FiEye />
+                        </Link>
                         <button
                           onClick={() => deleteMutation.mutate(design._id)}
                           disabled={deleteMutation.isLoading}

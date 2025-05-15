@@ -23,7 +23,7 @@ const PatternDetails = () => {
       const formData = new FormData()
       files.forEach((file) => formData.append("pattren", file))
       formData.append("name", name)
-      const res = await axiosInstance.post("/api/v1/defaupattrens/add", formData, {
+      const res = await axiosInstance.post("/api/v1/defaulpatterns/add", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       })
       return res.data.data
