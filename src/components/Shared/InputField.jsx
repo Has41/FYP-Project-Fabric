@@ -4,13 +4,13 @@ const InputField = ({ field, register, error, clearErrors, recalculateFormHeight
   const [isFocused, setIsFocused] = useState(false)
 
   const handleFocus = () => {
-    clearErrors(field.name || field.name)
+    clearErrors(field.name)
     setIsFocused(true)
   }
 
   const handleBlur = async () => {
     setIsFocused(false)
-    await setTrigger(field.name || field.name)
+    await setTrigger(field.name)
   }
 
   useEffect(() => {

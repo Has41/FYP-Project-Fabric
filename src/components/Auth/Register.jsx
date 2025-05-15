@@ -20,6 +20,7 @@ const Register = ({ onLoginClick, setFormHeight }) => {
     reset,
     clearErrors,
     handleSubmit,
+    getValues,
     trigger,
     formState: { errors }
   } = useForm({
@@ -31,13 +32,23 @@ const Register = ({ onLoginClick, setFormHeight }) => {
   }
 
   const nextStep = async () => {
-    if (step === 1) {
-      const isValid = await trigger()
-      if (!isValid) {
-        setFormHeight(registerRef.current.clientHeight)
-        return
-      }
+    // pick which fields to validate
+    const fieldsToCheck = step === 1 ? stepOneRegisterField.map((f) => f.name) : stepTwoRegisterField.map((f) => f.name)
+
+    // run validation
+    const isValid = await trigger(fieldsToCheck)
+    if (!isValid) {
+      setFormHeight(registerRef.current.clientHeight)
+      return
     }
+
+    // if we just validated step 2, grab those values
+    if (step === 2) {
+      const step2Values = getValues(fieldsToCheck)
+      console.log("Step 2 values:", step2Values)
+    }
+
+    // go to the next step
     setFormHeight(registerRef.current.clientHeight)
     setStep(step + 1)
   }
@@ -50,7 +61,7 @@ const Register = ({ onLoginClick, setFormHeight }) => {
       return data
     },
     onSuccess: () => {
-      navigate("/auth")
+      // navigate("/auth")
       window.location.reload()
     },
     onError: () => {
@@ -70,9 +81,15 @@ const Register = ({ onLoginClick, setFormHeight }) => {
       formData.append("avatar", avatar)
     }
 
+    console.log("🔍 Final FormData being sent to server:")
     for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value)
+      if (value instanceof File) {
+        console.log(`${key}: [File] ${value.name}, type: ${value.type}, size: ${value.size} bytes`)
+      } else {
+        console.log(`${key}:`, value)
+      }
     }
+
     mutate(formData)
   }
 
@@ -113,110 +130,81 @@ const Register = ({ onLoginClick, setFormHeight }) => {
         </div>
         <form onSubmit={handleSubmit(onSubmit)}>
           <div
-            className={`transition-opacity duration-1000 ease-in-out transform ${
-              step === 1 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"
-            } w-full`}
+            className={`
+              transition-opacity duration-500 ease-in-out transform
+              ${step === 1 ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"}
+              ${step === 1 ? "" : "hidden"}
+              w-full
+            `}
           >
-            {step === 1 && (
-              <div className="flex flex-col mt-10">
-                {stepOneRegisterField.map((field) => (
-                  <InputField
-                    key={field.name}
-                    field={field}
-                    error={errors[field.name]}
-                    clearErrors={clearErrors}
-                    setTrigger={trigger}
-                    register={register}
-                    recalculateFormHeight={recalculateFormHeight}
-                  />
-                ))}
-                <div className="ml-4 flex justify-start max-w-[90%] mt-2">
-                  <button
-                    className="bg-dusty-grass rounded-[4px] w-full text-lg font-semibold tracking-wider py-2 text-white flex items-center justify-center"
-                    type="button"
-                    onClick={nextStep}
-                  >
-                    <span>Next</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-5 h-5 ml-2"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                    </svg>
-                  </button>
-                </div>
-                <div className={`mx-auto mt-5 text-sm text-black/80`}>
-                  Already have an account?{" "}
-                  <span onClick={onLoginClick} className="ml-1 cursor-pointer">
-                    Login now!
-                  </span>
-                </div>
+            <div className="flex flex-col mt-10">
+              {stepOneRegisterField.map((field) => (
+                <InputField
+                  key={field.name}
+                  field={field}
+                  error={errors[field.name]}
+                  clearErrors={clearErrors}
+                  setTrigger={trigger}
+                  register={register}
+                  recalculateFormHeight={recalculateFormHeight}
+                />
+              ))}
+              <div className="ml-4 flex justify-start max-w-[90%] mt-2">
+                <button
+                  className="bg-dusty-grass rounded w-full text-lg font-semibold tracking-wider py-2 text-white flex items-center justify-center"
+                  type="button"
+                  onClick={nextStep}
+                >
+                  Next <span className="ml-2">→</span>
+                </button>
               </div>
-            )}
+              <div className="mx-auto mt-5 text-sm text-black/80">
+                Already have an account?{" "}
+                <span onClick={onLoginClick} className="ml-1 cursor-pointer">
+                  Login now!
+                </span>
+              </div>
+            </div>
           </div>
 
           <div
-            className={`transition-opacity duration-1000 ease-in-out transform ${
-              step === 2 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
-            } w-full`}
+            className={`
+              transition-opacity duration-500 ease-in-out transform
+              ${step === 2 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"}
+              ${step === 2 ? "" : "hidden"}
+              w-full
+            `}
           >
-            {step === 2 && (
-              <div className="flex flex-col mt-10">
-                {stepTwoRegisterField.map((field) => (
-                  <InputField
-                    key={field.name}
-                    field={field}
-                    error={errors[field.name]}
-                    clearErrors={clearErrors}
-                    setTrigger={trigger}
-                    register={register}
-                    recalculateFormHeight={recalculateFormHeight}
-                  />
-                ))}
+            <div className="flex flex-col mt-10">
+              {stepTwoRegisterField.map((field) => (
+                <InputField
+                  key={field.name}
+                  field={field}
+                  error={errors[field.name]}
+                  clearErrors={clearErrors}
+                  setTrigger={trigger}
+                  register={register}
+                  recalculateFormHeight={recalculateFormHeight}
+                />
+              ))}
 
-                <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2">
-                  <button
-                    className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-1/2 text-lg font-semibold tracking-wider py-2 text-white mr-2"
-                    type="button"
-                    onClick={prevStep}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-5 h-5 mr-2"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                    </svg>
-
-                    <span>Back</span>
-                  </button>
-                  <button
-                    className="bg-dusty-grass rounded-[4px] flex items-center justify-center w-1/2 text-lg font-semibold tracking-wider py-2 text-white ml-2"
-                    type="button"
-                    onClick={nextStep}
-                  >
-                    <span>Next</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-5 h-5 ml-2"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                    </svg>
-                  </button>
-                </div>
+              <div className="ml-4 flex items-center justify-between max-w-[90%] mt-2">
+                <button
+                  className="bg-dusty-grass rounded w-1/2 font-semibold py-2 text-white flex items-center justify-center"
+                  type="button"
+                  onClick={prevStep}
+                >
+                  ← Back
+                </button>
+                <button
+                  className="bg-dusty-grass rounded w-1/2 font-semibold py-2 text-white flex items-center justify-center"
+                  type="button"
+                  onClick={nextStep}
+                >
+                  Next <span className="ml-2">→</span>
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
           <div

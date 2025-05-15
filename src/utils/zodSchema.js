@@ -14,7 +14,10 @@ const registerSchema = z
     confirmPassword: z
       .string()
       .min(6, "Password must be at least 6 characters long")
-      .max(100, { message: "Password can't be longer than 100 characters" })
+      .max(100, { message: "Password can't be longer than 100 characters" }),
+    phoneNumber: z.string().min(1, { message: "Phone number is required" }),
+    address: z.string().min(1, { message: "Address is required" }),
+    city: z.string().min(1, { message: "City is required" })
   })
   .superRefine((val, ctx) => {
     if (val.password !== val.confirmPassword) {
@@ -38,12 +41,6 @@ const productSchema = z.object({
   discount_price: z.string().optional(),
   quantity: z.string().refine((val) => !isNaN(Number(val)), { message: "Must be a number" }),
   category: z.string().min(1, "Required")
-  // type: z
-  //   .string()
-  //   .min(1, "Required")
-  //   .refine((val) => ["Shirt", "Bag", "Shoes"].includes(val), {
-  //     message: "Type must be either Shirt, Bag or Shoes"
-  //   })
 })
 
 const orderSchema = z.object({
