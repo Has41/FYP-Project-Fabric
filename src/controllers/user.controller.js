@@ -49,6 +49,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
       address,
       city,
       postalCode,
+      role,
     } = req.body;
 
     if (
@@ -60,6 +61,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
         phoneNumber,
         address,
         city,
+        role
       ].some((field) => field?.trim() === "")
     ) {
       throw new ApiError(400, "All fields are required");
@@ -92,6 +94,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
         url: avatar?.url || "",
         publicId: avatar?.public_id,
       },
+      role,
       
     });
 
