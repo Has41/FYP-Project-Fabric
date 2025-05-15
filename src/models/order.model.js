@@ -51,6 +51,10 @@ const orderSchema = new Schema(
       min: 0,
       default: 3,
     },
+    shippingAddress:{
+      type: String,
+      required: true,
+    },
     totalAmount: {
       type: Number,
       required: true,

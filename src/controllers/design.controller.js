@@ -20,12 +20,12 @@ const createDesign = asyncHandler(async (req, res) => {
     color,
     pattern,
     defaultPattern,
-    text, 
-    graphic, 
-    basePrice, 
+    text,
+    graphic,
+    basePrice,
     isPublic,
-    designerProfit,
   } = req.body;
+  const designerProfit = Number(req.body.designerProfit) || 0;
 
   let salePrice;
 
@@ -97,6 +97,7 @@ const createDesign = asyncHandler(async (req, res) => {
     .status(201)
     .json(new ApiResponse(201, design, "Design created successfully"));
 });
+
 
 // Get my designs
 const getMyDesigns = asyncHandler(async (req, res) => {

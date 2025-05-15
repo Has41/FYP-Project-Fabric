@@ -17,7 +17,7 @@ const addOrder = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Only designers and users can purchase designs");
   }
 
-  const { designIds, paymentMethod,paymentStatus } = req.body;
+  const { designIds, paymentMethod,paymentStatus, shippingAddress } = req.body;
   let { shippingFee } = req.body;
   
   const userId = req.user._id;
@@ -59,6 +59,7 @@ const addOrder = asyncHandler(async (req, res) => {
     shippingFee,
     totalAmount,
     designerEarnings,
+    shippingAddress,
     paymentStatus: paymentStatus,
     paymentMethod: paymentMethod || "COD",
     deliveryStatus: "pending",
