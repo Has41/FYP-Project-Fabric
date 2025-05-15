@@ -310,18 +310,22 @@ const EditFabric = () => {
                 const isSaveOption = save.type === "Save"
                 const displayTitle = designerId && isSaveOption ? "Update Your Design" : save.title
                 const displayType = designerId && isSaveOption ? "Update" : save.type
-
+                const isNotOwner = isViewingDesign && designPayload?.owner?._id !== user?._id
                 return (
                   <div
+                    aria-disabled={isNotOwner}
                     onClick={() => {
                       if (isSaveOption) {
+                        if (isNotOwner) return
                         handleSaveClick()
                       } else {
                         handlePlaceOrderClick()
                       }
                     }}
                     key={index}
-                    className={`flex items-center bg-white shadow-sm py-2 px-2 rounded-lg 
+                    className={` ${
+                      isNotOwner && isSaveOption ? "hidden" : "flex"
+                    } items-center bg-white shadow-sm py-2 px-2 rounded-lg 
                        cursor-pointer
                     `}
                   >
