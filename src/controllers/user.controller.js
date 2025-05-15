@@ -87,7 +87,10 @@ const registerUser = asyncHandler(async (req, res, next) => {
       city,
       postalCode,
       username: username.toLowerCase(),
-      avatar: avatar?.url || "",
+      avatar:{
+        url: avatar?.url || "",
+        public_id: avatar?.public_id,
+      },
       
     });
 
@@ -263,8 +266,7 @@ const deleteUserById = asyncHandler(async (req, res) => {
 
     // Delete avatar from Cloudinary if exists
     if (user.avatar) {
-      const public_id = user.avatar.split("/").pop().split(".")[0];
-      await deleteFromCloudinary(public_id);
+      await deleteFromCloudinary(avatar.publicId);
     }
 
     // Delete user from database
@@ -287,13 +289,14 @@ const deleteUserByIdAdmin = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.userId);
 
     if (!user) {
+      console.log("User not found");
       throw new ApiError(404, "User not found");
     }
 
     // Delete avatar from Cloudinary if exists
-    if (user.avatar) {
-      const public_id = user.avatar.split("/").pop().split(".")[0];
-      await deleteFromCloudinary(public_id);
+    if (user.avatar.url) {
+      console.log(`Attempting to delete from Cloudinary: ${avatar.publicId}`);
+      await deleteFromCloudinary(avatar.publicId);
     }
 
     // Delete user from database

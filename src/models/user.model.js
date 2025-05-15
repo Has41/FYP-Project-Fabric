@@ -59,7 +59,15 @@ const userSchema = new Schema(
     },
 
     postalCode: String,
-    avatar: String,
+    avatar: {
+      url: {
+        type: String,
+      },
+      publicId: {
+        type: String,
+      },
+    },
+   
     refreshToken: String,
     accountDetails: {
       accountNumber: {
