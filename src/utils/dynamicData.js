@@ -81,6 +81,55 @@ const loginFields = [
   }
 ]
 
+const editFormFields = [
+  {
+    name: "fullname",
+    label: "Full Name",
+    type: "text",
+    iconPath:
+      "M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+  },
+  {
+    name: "username",
+    label: "Username",
+    type: "text",
+    iconPath:
+      "M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+  },
+  {
+    name: "email",
+    label: "Email",
+    type: "email",
+    iconPath:
+      "M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
+  },
+  {
+    name: "phoneNumber",
+    label: "Phone Number",
+    type: "text",
+    iconPath:
+      "M2.25 6.75c0 8.284 6.716 15 15 15m0 0h-1.5a2.25 2.25 0 0 1-2.25-2.25v-2.275m0-12.45v-1.5a2.25 2.25 0 0 1 2.25-2.25h1.5M6.75 2.25h.75a2.25 2.25 0 0 1 2.25 2.25v.75m0 12.45v4.5c0 .414.336.75.75.75h4.5c.414 0 .75-.336.75-.75v-.75"
+  },
+  {
+    name: "address",
+    label: "Address",
+    type: "text",
+    iconPath: "M3 10l1.553-2.87A2 2 0 0 1 6.378 6h11.244a2 2 0 0 1 1.825 1.13L21 10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8z"
+  },
+  {
+    name: "city",
+    label: "City",
+    type: "text",
+    iconPath: "M3.75 4.5h16.5M5.25 9h13.5M12 21v-8M8.25 12.75h7.5M6 17.25h12"
+  },
+  {
+    name: "postalCode",
+    label: "Postal Code",
+    type: "text",
+    iconPath: "M3 4.5h18M3 9h18m-9 12v-6m-6 6v-6m12 6v-6"
+  }
+]
+
 const menuOptions = [
   {
     id: "Cloth-Option",
@@ -194,5 +243,6 @@ export {
   clothOptions,
   menuOptions,
   saveOptions,
-  patternLibrary
+  patternLibrary,
+  editFormFields
 }

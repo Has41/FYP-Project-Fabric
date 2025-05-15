@@ -100,6 +100,15 @@ const Sidebar = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h18v4H3V3zm0 7h18v4H3v-4zm0 7h18v4H3v-4z" />
         </svg>
       )
+    },
+    {
+      name: "Edit Profile",
+      path: "/admin/edit",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h18v4H3V3zm0 7h18v4H3v-4zm0 7h18v4H3v-4z" />
+        </svg>
+      )
     }
   ]
 

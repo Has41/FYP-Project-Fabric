@@ -128,7 +128,7 @@ const EditFabric = () => {
   const handleDesignSave = async (isPublic, designName, designerProfit) => {
     try {
       // 1️⃣ Capture screenshot
-      const screenshotDataUrl = captureRef.current?.()
+      const screenshotDataUrl = await captureRef.current?.()
       const screenshotBlob = dataURLtoBlob(screenshotDataUrl)
 
       // 2️⃣ Prepare FormData - Handle null pattern case

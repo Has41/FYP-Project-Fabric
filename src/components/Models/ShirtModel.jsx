@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useGLTF } from "@react-three/drei"
 import * as THREE from "three"
 import { useThree } from "@react-three/fiber"
@@ -7,6 +7,8 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
   const shirtRef = useRef()
   const { gl, camera } = useThree()
   const { scene } = useGLTF("/models/shirt/shirt.glb")
+  const [saveRequested, setSaveRequested] = useState(false)
+  const saveResolver = useRef(null)
 
   // Bake pattern + multiple texts + graphics onto a canvas texture
   useEffect(() => {
@@ -146,16 +148,38 @@ export default function ShirtModel({ position, scale, color, pattern, texts = []
     })
   }, [scene, color])
 
+  // useEffect(() => {
+  //   if (!scene || !onReadyCapture) return
+
+  //   onReadyCapture(() => {
+  //     camera.position.set(0, 0, 2)
+  //     camera.lookAt(0, 0, 0)
+  //     // (b) Force a render pass:
+  //     gl.render(scene, camera)
+  //     // (c) Grab the PNG data URL:
+  //     return gl.domElement.toDataURL("image/png")
+  //   })
+  // }, [scene, gl, camera, onReadyCapture])
+
   useEffect(() => {
     if (!scene || !onReadyCapture) return
 
     onReadyCapture(() => {
-      camera.position.set(0, 0, 2)
-      camera.lookAt(0, 0, 0)
-      // (b) Force a render pass:
-      gl.render(scene, camera)
-      // (c) Grab the PNG data URL:
-      return gl.domElement.toDataURL("image/png")
+      return new Promise((resolve) => {
+        // push the render + capture to the next browser repaint
+        requestAnimationFrame(() => {
+          // (a) reposition your camera if needed
+          camera.position.set(0, 0, 2)
+          camera.lookAt(0, 0, 0)
+
+          // (b) force a render pass:
+          gl.render(scene, camera)
+
+          // (c) read out the pixels
+          const dataUrl = gl.domElement.toDataURL("image/png")
+          resolve(dataUrl)
+        })
+      })
     })
   }, [scene, gl, camera, onReadyCapture])
 

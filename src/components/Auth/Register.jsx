@@ -5,7 +5,6 @@ import { registerSchema } from "../../utils/zodSchema"
 import { stepOneRegisterField, stepTwoRegisterField } from "../../utils/dynamicData"
 import InputField from "../Shared/InputField"
 import AvatarSection from "../Shared/AvatarSection"
-import { useNavigate } from "react-router-dom"
 import LoadingSpinner from "../Shared/LoadingSpinner"
 import { useMutation } from "react-query"
 import axiosInstance from "../../utils/axiosInstance"
@@ -14,7 +13,6 @@ const Register = ({ onLoginClick, setFormHeight }) => {
   const [step, setStep] = useState(1)
   const [avatar, setAvatar] = useState(null)
   const registerRef = useRef(null)
-  const navigate = useNavigate()
   const {
     register,
     reset,

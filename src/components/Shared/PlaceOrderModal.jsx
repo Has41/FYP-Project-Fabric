@@ -5,8 +5,14 @@ import { createPortal } from "react-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
+import { loadStripe } from "@stripe/stripe-js"
+import useAuth from "../../hooks/useAuth"
+
+// Load Stripe using Vite environment variable
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
 const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee = 3 }) => {
+  const { user } = useAuth()
   const {
     register,
     handleSubmit,
@@ -18,7 +24,8 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
       designIds: [selectedDesignId],
       shippingFee: defaultShippingFee,
       paymentMethod: "COD",
-      paymentStatus: "pending"
+      paymentStatus: "pending",
+      shippingAddress: user?.address || ""
     }
   })
 
@@ -28,16 +35,13 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
         designIds: [selectedDesignId],
         shippingFee: defaultShippingFee,
         paymentMethod: "COD",
-        paymentStatus: "pending"
+        paymentStatus: "pending",
+        shippingAddress: user?.address || ""
       })
     }
-  }, [isOpen, selectedDesignId, defaultShippingFee, reset])
+  }, [isOpen, selectedDesignId, defaultShippingFee, reset, user?.address])
 
-  const placeOrder = useMutation((payload) => axiosInstance.post("/api/v1/orders", payload), {
-    onSuccess: ({ data }) => {
-      alert(`Order placed! ID: ${data.data._id}`)
-      onClose()
-    },
+  const placeOrder = useMutation((payload) => axiosInstance.post("/api/v1/orders/create", payload), {
     onError: (err) => {
       console.error(err)
       alert(err.response?.data?.message || err.message)
@@ -47,9 +51,18 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
   const onSubmit = async (values) => {
     try {
       console.log("Form values:", values)
-      await placeOrder.mutateAsync(values)
+      const response = await placeOrder.mutateAsync(values)
+      const { order, stripeSessionUrl } = response.data.data
+
+      if (values.paymentMethod === "online") {
+        // Redirect to Stripe Checkout URL
+        window.location.href = stripeSessionUrl
+      } else {
+        // Cash on Delivery flow
+        alert(`Order placed! ID: ${order._id}`)
+        onClose()
+      }
     } catch (error) {
-      // Error is already handled in useMutation's onError
       console.error("Submission error:", error)
     }
   }
@@ -58,24 +71,30 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg w-96">
+      <div className="bg-white p-6 rounded-lg w-96 max-h-full overflow-auto">
         <h2 className="text-xl font-semibold mb-4">Place Your Order</h2>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div>
+            <label className="block text-sm font-medium">Shipping Address</label>
+            <textarea {...register("shippingAddress")} className="mt-1 block w-full border p-2 rounded" rows={3} />
+            {errors.shippingAddress && <p className="text-sm text-red-500">{errors.shippingAddress.message}</p>}
+          </div>
+
           <div>
             <label className="block text-sm font-medium">Shipping Fee</label>
             <p className="mt-1 text-gray-700">${defaultShippingFee.toFixed(2)}</p>
-            <input type="hidden" {...register("shippingFee", { valueAsNumber: true })} value={defaultShippingFee} />
+            <input type="hidden" {...register("shippingFee", { valueAsNumber: true })} />
           </div>
 
           <div>
             <label className="block text-sm font-medium">Payment Method</label>
             <select {...register("paymentMethod")} className="mt-1 block w-full border p-2 rounded">
               <option value="COD">Cash on Delivery</option>
-              <option value="card">Card</option>
+              <option value="online">Card (Online)</option>
             </select>
           </div>
 
-          {/* Hidden designIds array */}
+          {/* Hidden fields */}
           <input type="hidden" value={selectedDesignId} {...register("designIds.0")} />
           <input type="hidden" {...register("paymentStatus")} />
 

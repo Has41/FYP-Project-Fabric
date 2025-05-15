@@ -18,6 +18,8 @@ import UserOrders from "./components/Home/UserOptions/UserOrders"
 import DesignerStats from "./components/Home/DesignerOptions/DesignerStats"
 import EditFabric from "./components/Custom/EditFabric"
 import NonUserRoutes from "./components/Shared/NonUserRoutes"
+import EditFormForAdmin from "./pages/EditFormForAdmin"
+import OrderSuccess from "./pages/OrderSuccess"
 
 const App = () => {
   return (
@@ -72,9 +74,11 @@ const App = () => {
           <Route path="pattern" element={<PatternDetails />} />
           <Route path="products" element={<ProductDetails />} />
           <Route path="orders" element={<OrderDetails />} />
+          <Route path="edit" element={<EditFormForAdmin />} />
         </Route>
         <Route path="/user/more" element={<UserOrders />} />
         <Route path="/design/stats" element={<DesignerStats />} />
+        <Route path="/order/success" element={<OrderSuccess />} />
       </Routes>
     </>
   )

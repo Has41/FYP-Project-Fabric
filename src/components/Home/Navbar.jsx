@@ -81,7 +81,7 @@ const Navbar = () => {
             <div onClick={toggleDropdown} className="cursor-pointer">
               {user ? (
                 user.avatar && user.avatar.length !== 0 ? (
-                  <img src={user?.avatar} className="size-8 rounded-full" alt="User Avatar" />
+                  <img src={user?.avatar?.url} className="size-8 rounded-full" alt="User Avatar" />
                 ) : (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

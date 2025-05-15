@@ -5,6 +5,7 @@ import axiosInstance from "../../../utils/axiosInstance"
 import { Bar } from "react-chartjs-2"
 import "chart.js/auto"
 import { FiArrowLeft, FiEye, FiTrash2 } from "react-icons/fi"
+import EditForm from "../../Shared/EditForm"
 
 const UserOrders = () => {
   const navigate = useNavigate()
@@ -28,10 +29,18 @@ const UserOrders = () => {
     }
   )
 
-  const { data: designs } = useQuery("myDesigns", async () => {
-    const { data } = await axiosInstance.get("/api/v1/designs/my-designs")
-    return data.data
-  })
+  const { data: designs } = useQuery(
+    "myDesigns",
+    async () => {
+      const { data } = await axiosInstance.get("/api/v1/designs/my-designs")
+      return data.data
+    },
+    {
+      onSuccess: (data) => {
+        console.log("My Designs:", data)
+      }
+    }
+  )
 
   const deleteMutation = useMutation(
     async (id) => {
@@ -49,10 +58,18 @@ const UserOrders = () => {
     data: orders = [],
     isLoading: ordersLoading,
     error: ordersError
-  } = useQuery("orderHistory", async () => {
-    const { data } = await axiosInstance.get("/api/v1/users/order-history")
-    return data.data
-  })
+  } = useQuery(
+    "orderHistory",
+    async () => {
+      const { data } = await axiosInstance.get("/api/v1/users/order-history")
+      return data.data
+    },
+    {
+      onSuccess: (data) => {
+        console.log("Order History:", data)
+      }
+    }
+  )
 
   if (statsLoading || ordersLoading) return <div>Loading...</div>
   if (statsError || ordersError) return <div>Error loading data</div>
@@ -103,6 +120,16 @@ const UserOrders = () => {
               Your Designs
             </button>
           </li>
+          <li>
+            <button
+              onClick={() => setActiveTab("edit-form")}
+              className={`w-full text-left px-3 py-2 rounded ${
+                activeTab === "edit-form" ? "bg-button-color font-medium" : "hover:bg-gray-100"
+              }`}
+            >
+              Edit Profile
+            </button>
+          </li>
         </ul>
       </nav>
 
@@ -131,6 +158,16 @@ const UserOrders = () => {
                       </span>
                       <span>
                         <strong>Status:</strong> {order.deliveryStatus}
+                      </span>
+                      <span>
+                        <strong>Payment:</strong>{" "}
+                        <span
+                          className={`px-2 py-1 rounded text-sm font-semibold ${
+                            order.paymentStatus === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {order.paymentStatus || "Unpaid"}
+                        </span>
                       </span>
                       <span>
                         <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
@@ -194,6 +231,8 @@ const UserOrders = () => {
             </div>
           </>
         )}
+
+        {activeTab === "edit-form" && <EditForm />}
       </div>
     </div>
   )
