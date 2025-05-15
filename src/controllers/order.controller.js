@@ -73,7 +73,26 @@ const addOrder = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, order, "Order created successfully"));
 });
 
+// controller
+const verifyPayment = asyncHandler(async (req, res) => {
+  const { sessionId } = req.body;
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
 
+  if (!session || session.payment_status !== "paid") {
+    return res.status(400).json(new ApiResponse(400, null, "Payment not completed"));
+  }
+
+  const order = await Order.findById(session.metadata.orderId);
+  if (!order) {
+    return res.status(404).json(new ApiResponse(404, null, "Order not found"));
+  }
+
+  order.paymentStatus = "paid";
+  order.paymentDate = new Date();
+  await order.save();
+
+  res.status(200).json(new ApiResponse(200, null, "Payment verified"));
+});
 
 const createOrder = asyncHandler(async (req, res) => {
   if (req.user.role === "admin") {
@@ -623,5 +642,6 @@ export {
   processReturn,
   getOrderByIdPipeline,
   createOrder,
-  handleStripeWebhook
+  handleStripeWebhook,
+  verifyPayment
 };

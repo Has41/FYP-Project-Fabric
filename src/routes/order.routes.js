@@ -12,7 +12,8 @@ import {
   processReturn,
   getOrderByIdPipeline,
   handleStripeWebhook,
-  createOrder
+  createOrder,
+  verifyPayment
 } from "../controllers/order.controller.js";
 
 const router = Router();
@@ -26,6 +27,7 @@ router.use((req, res, next) => {
   verifyJwt(req, res, next);
 });
 
+router.route("/verify-payment").post(verifyPayment);
 // Customer routes
 router.route("/")
   .post(addOrder); // Create new order
