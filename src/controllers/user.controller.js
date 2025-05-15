@@ -439,8 +439,8 @@ const updateUserAvtar = asyncHandler(async (req, res) => {
   const oldAvatar = req.user?.avatar;
 
   if (oldAvatar) {
-    const public_id = oldAvatar.split("/").pop().split(".")[0];
-    await deleteFromCloudinary(public_id);
+   
+    await deleteFromCloudinary(oldAvatar.publicId);
   }
 
   const avatar = await uploadOnCloudinary(avatarLocalPath);
@@ -453,7 +453,10 @@ const updateUserAvtar = asyncHandler(async (req, res) => {
     req.user?._id,
     {
       $set: {
-        avatar: avatar.url,
+        avatar:{
+          url: avatar.secure_url,
+          publicId: avatar.publicId
+        }
       },
     },
     { new: true }
