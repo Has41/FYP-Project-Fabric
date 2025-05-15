@@ -12,10 +12,21 @@ const PatternDetails = () => {
     data: patterns = [],
     isLoading,
     isError
-  } = useQuery(["default-patterns"], async () => {
-    const res = await axiosInstance.get("/api/v1/defaupattrens")
-    return res.data.data
-  })
+  } = useQuery(
+    ["default-patterns"],
+    async () => {
+      const res = await axiosInstance.get("/api/v1/defaultpatterns")
+      return res.data.data
+    },
+    {
+      onSuccess: (data) => {
+        console.log("Fetched patterns:", data)
+      },
+      onError: (error) => {
+        console.error("Error fetching patterns:", error)
+      }
+    }
+  )
 
   // Add patterns mutation
   const addMutation = useMutation(
@@ -23,7 +34,7 @@ const PatternDetails = () => {
       const formData = new FormData()
       files.forEach((file) => formData.append("pattren", file))
       formData.append("name", name)
-      const res = await axiosInstance.post("/api/v1/defaulpatterns/add", formData, {
+      const res = await axiosInstance.post("/api/v1/defaultpatterns/add", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       })
       return res.data.data
@@ -39,7 +50,7 @@ const PatternDetails = () => {
 
   const deleteMutation = useMutation(
     async (id) => {
-      await axiosInstance.delete(`/api/v1/defaupattrens/delete/${id}`)
+      await axiosInstance.delete(`/api/v1/defaultpatterns/${id}`)
     },
     {
       onSuccess: () => {
@@ -108,7 +119,11 @@ const PatternDetails = () => {
                 className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative group"
               >
                 <div className="p-4 bg-gray-50 flex justify-center items-center h-48">
-                  <img src={pattern.image} alt={pattern.name || "Pattern"} className="max-h-full max-w-full object-contain" />
+                  <img
+                    src={pattern?.image?.url}
+                    alt={pattern.name || "Pattern"}
+                    className="max-h-full max-w-full object-contain"
+                  />
                 </div>
                 <div className="p-4">
                   <h3 className=" font-medium text-gray-800 truncate">{pattern.name || "Untitled Pattern"}</h3>
