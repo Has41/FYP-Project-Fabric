@@ -16,7 +16,7 @@ const addText = asyncHandler(async (req, res, next) => {
     }
 
     const newText = await Text.create({
-      text, // now a single string
+      text, 
       owner: req.user._id,
       fontSize,
       offset,
