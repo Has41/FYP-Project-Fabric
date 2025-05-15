@@ -9,8 +9,6 @@ const textSchema = new Schema(
         text: {
             type: String,
             required: true,
-            trim: true,
-            index: true,
         },
         fontSize: {
             type: String,
