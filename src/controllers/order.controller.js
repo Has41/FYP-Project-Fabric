@@ -121,26 +121,32 @@ const calculateOrderTotals = (items, shippingFee) => {
 const deleteOrder = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
   const userId = req.user._id;
+  const isAdmin = req.user.role === 'admin';
 
   // Find and validate order
   const order = await Order.findOne({
     _id: orderId,
-    orderBy: userId,
+    // If user is admin, don't filter by orderBy (can access any order)
+    ...(isAdmin ? {} : { orderBy: userId })
   }).populate("designs.design"); // Populate design details
 
   if (!order) {
-    throw new ApiError(404, "Order not found or not authorized");
+    throw new ApiError(404, "Order not found" + (isAdmin ? "" : " or not authorized"));
   }
 
-  // Check if order can be cancelled
+  // Check if order can be cancelled (admins might bypass some restrictions)
   const orderAgeDays = (new Date() - order.createdAt) / (1000 * 60 * 60 * 24);
-  if (orderAgeDays > 2 || order.deliveryStatus !== "pending") {
-    throw new ApiError(
-      400,
-      orderAgeDays > 2
-        ? "Order cancellation window has expired (2 days max)"
-        : "Order cannot be cancelled after processing has begun"
-    );
+  
+  // Admins can cancel orders regardless of age or status
+  if (!isAdmin) {
+    if (orderAgeDays > 2 || order.deliveryStatus !== "pending") {
+      throw new ApiError(
+        400,
+        orderAgeDays > 2
+          ? "Order cancellation window has expired (2 days max)"
+          : "Order cannot be cancelled after processing has begun"
+      );
+    }
   }
 
   // Update order status to cancelled
@@ -149,21 +155,22 @@ const deleteOrder = asyncHandler(async (req, res) => {
     {
       $set: {
         deliveryStatus: "cancelled",
-
-        $push: {
-          statusHistory: {
-            status: "cancelled",
-            changedAt: new Date(),
-            changedBy: userId,
-          },
-        },
       },
+      $push: {
+        statusHistory: {
+          status: "cancelled",
+          changedAt: new Date(),
+          changedBy: userId,
+          changedByRole: req.user.role // Optional: track who made the change
+        }
+      }
     },
     { new: true }
   ).select("-__v -statusHistory._id"); // Exclude unnecessary fields
 
   // TODO: Add any refund processing logic here if payment was online
   // This might involve calling your payment gateway API
+  // Note: For admin cancellations, you might want different refund handling
 
   return res
     .status(200)

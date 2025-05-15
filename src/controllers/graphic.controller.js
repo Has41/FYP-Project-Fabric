@@ -73,17 +73,24 @@ const deleteGraphic = asyncHandler(async (req, res, next) => {
   const graphic = await Graphic.findById(id);
   if (!graphic) throw new ApiError(404, "Graphic not found");
 
-  // Delete all graphics from Cloudinary using public IDs
-  
-    await deleteFromCloudinary(graphic.publicId);
-  
+  try {
+    // Delete from Cloudinary
+    if (graphic.graphic?.publicId) {
+      console.log(`Attempting to delete from Cloudinary: ${graphic.graphic.publicId}`);
+      await deleteFromCloudinary(graphic.graphic.publicId);
+    }
 
+    // Delete from database
+    const deletedGraphic = await Graphic.findByIdAndDelete(id);
 
-  await Graphic.findByIdAndDelete(id);
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, null, "Graphic deleted successfully"));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, deletedGraphic, "Graphic deleted successfully"));
+  } catch (error) {
+    // If Cloudinary deletion fails but you still want to delete from DB
+    await Graphic.findByIdAndDelete(id);
+    throw new ApiError(500, "Graphic database record deleted but Cloudinary deletion failed");
+  }
 });
 
 const updateGraphic = asyncHandler(async (req, res, next) => {

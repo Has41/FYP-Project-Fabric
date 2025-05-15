@@ -855,9 +855,9 @@ const getUserDashboardStats = asyncHandler(async (req, res) => {
     const stats = await Order.aggregate([
       {
         $match: { 
-          orderBy: new mongoose.Types.ObjectId(userId) 
+          orderBy: new mongoose.Types.ObjectId(userId),
+          orderStatus: { $nin: ["cancelled", "returned"] } // Exclude cancelled and returned orders
         }
-        
       },
       {
         $group: {
