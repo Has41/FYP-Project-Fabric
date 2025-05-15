@@ -125,7 +125,7 @@ const EditFabric = () => {
     return new Blob([buf], { type: mime })
   }
 
-  const handleDesignSave = async (isPublic, designName) => {
+  const handleDesignSave = async (isPublic, designName, designerProfit) => {
     try {
       // 1️⃣ Capture screenshot
       const screenshotDataUrl = captureRef.current?.()
@@ -133,8 +133,15 @@ const EditFabric = () => {
 
       // 2️⃣ Prepare FormData - Handle null pattern case
       const form = new FormData()
-      form.append("name", designName)
+      if (designName) {
+        form.append("name", designName)
+      }
       form.append("color", color)
+      const profitValue = designerProfit !== undefined ? Number(designerProfit) : 0
+      if (profitValue < 0 || profitValue > 5) {
+        throw new Error("Designer profit must be between 0 and 5")
+      }
+      form.append("designerProfit", profitValue)
 
       // Only append pattern if it exists
       if (selectedPattern?._id) {
@@ -402,7 +409,6 @@ const EditFabric = () => {
               activeTextId={activeTextId}
               setActiveTextId={setActiveTextId}
               onReadyCapture={(captureFn) => {
-                // captureFn(): sets camera/front-view & returns dataURL
                 captureRef.current = captureFn
               }}
               texts={texts}
@@ -416,6 +422,7 @@ const EditFabric = () => {
         <SaveDesignModel
           savedDesignName={designPayload?.name}
           isOpen={isModalOpen}
+          designId={designerId}
           onClose={handleModalClose}
           userRole={user.role}
           onSave={handleDesignSave}

@@ -22,13 +22,6 @@ const PlaceOrderModal = ({ isOpen, onClose, selectedDesignId, defaultShippingFee
     }
   })
 
-  // Add this inside your component
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log("Form errors:", errors)
-    }
-  }, [errors])
-
   useEffect(() => {
     if (isOpen) {
       reset({
