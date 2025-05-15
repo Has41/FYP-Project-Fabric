@@ -856,7 +856,7 @@ const getUserDashboardStats = asyncHandler(async (req, res) => {
       {
         $match: { 
           orderBy: new mongoose.Types.ObjectId(userId),
-          orderStatus: { $nin: ["cancelled", "returned"] } // Exclude cancelled and returned orders
+          deliveryStatus: { $nin: ["cancelled", "returned"] } // Exclude cancelled and returned orders
         }
       },
       {
