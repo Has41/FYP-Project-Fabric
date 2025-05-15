@@ -10,22 +10,42 @@ import {
   updatePaymentStatus,
   requestReturn,
   processReturn,
-  getOrderByIdPipeline
+  getOrderByIdPipeline,
+  handleStripeWebhook,
+  createOrder
 } from "../controllers/order.controller.js";
 
 const router = Router();
 
-// Apply JWT verification to all order routes
-router.use(verifyJwt);
+// Apply JWT verification to all order routes except webhook
+router.use((req, res, next) => {
+  // Skip JWT verification for Stripe webhook
+  if (req.path === '/stripe-webhook') {
+    return next();
+  }
+  verifyJwt(req, res, next);
+});
 
 // Customer routes
 router.route("/")
   .post(addOrder); // Create new order
 
+router.route("/create")
+  .post(createOrder);
+
 router.route("/:orderId")
   .delete(deleteOrder); // Cancel order
 
 router.post("/:orderId/return", requestReturn); // Request return
+
+// Stripe webhook route - must be before JSON middleware and without auth
+router.route("/stripe-webhook").post(
+  // Use raw body parser for Stripe webhook
+  Router().use((req, res, next) => {
+    express.raw({ type: 'application/json' })(req, res, next);
+  }),
+  handleStripeWebhook
+);
 
 // Admin-only routes
 router.get("/", adminOnly, getAllOrders); // Get all orders

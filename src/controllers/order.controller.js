@@ -4,6 +4,10 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Order } from "../models/order.model.js";
 import { Design } from "../models/design.model.js";
 import mongoose from "mongoose";
+import Stripe from "stripe";
+
+// Initialize Stripe with your secret key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const validateDesignForPurchase = (design, userId) => {
   if (!design.isPublic && !design.owner.equals(userId)) {
@@ -68,6 +72,161 @@ const addOrder = asyncHandler(async (req, res) => {
   return res
     .status(201)
     .json(new ApiResponse(201, order, "Order created successfully"));
+});
+
+
+
+const createOrder = asyncHandler(async (req, res) => {
+  if (req.user.role === "admin") {
+    throw new ApiError(403, "Only designers and users can purchase designs");
+  }
+
+  const { designIds, paymentMethod, paymentStatus, shippingAddress } = req.body;
+  let { shippingFee } = req.body;
+  
+  const userId = req.user._id;
+
+  // Validate input
+  if (!designIds || !Array.isArray(designIds)) {
+    throw new ApiError(400, "Design IDs must be provided as an array");
+  }
+  if (designIds.length === 0) {
+    throw new ApiError(400, "At least one design must be selected");
+  }
+  if (shippingFee < 0) {
+    throw new ApiError(400, "Shipping fee must be non-negative");
+  }
+  if (!shippingFee) {
+    shippingFee = 3; // Default shipping fee
+  }
+
+  // Validate designs
+  await Promise.all(
+    designIds.map(async (designId) => {
+      const design = await Design.findById(designId);
+      validateDesignForPurchase(design, userId);
+    })
+  );
+
+  // Prepare order items
+  const orderItems = await prepareOrderItems(designIds, userId);
+  const { subtotal, totalAmount, designerEarnings } = calculateOrderTotals(
+    orderItems,
+    shippingFee
+  );
+
+  // Create the order in pending state
+  const order = await Order.create({
+    orderBy: userId,
+    designs: orderItems,
+    subtotal,
+    shippingFee,
+    totalAmount,
+    designerEarnings,
+    shippingAddress,
+    paymentStatus: paymentMethod === "online" ? "pending" : paymentStatus || "pending",
+    paymentMethod: paymentMethod || "COD",
+    deliveryStatus: "pending",
+  });
+
+  // If payment method is online, create Stripe checkout session
+  if (paymentMethod === "online") {
+    try {
+      // Create line items for Stripe
+      const lineItems = orderItems.map(item => ({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: `Design ${item.design.toString()}`,
+            // You might want to add more product details here
+          },
+          unit_amount: Math.round(item.unitPrice * 100), // Convert to cents
+        },
+        quantity: item.quantity,
+      }));
+
+      // Add shipping fee as a separate line item if needed
+      if (shippingFee > 0) {
+        lineItems.push({
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'Shipping Fee',
+            },
+            unit_amount: Math.round(shippingFee * 100),
+          },
+          quantity: 1,
+        });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment',
+        success_url: `${process.env.FRONTEND_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL}/order/canceled`,
+        client_reference_id: order._id.toString(),
+        metadata: {
+          orderId: order._id.toString(),
+          userId: userId.toString(),
+        },
+      });
+
+      // Return the Stripe session URL to the frontend
+      return res.status(200).json(new ApiResponse(200, { 
+        order, 
+        stripeSessionUrl: session.url 
+      }, "Stripe checkout session created"));
+
+    } catch (error) {
+      // If Stripe fails, delete the order we just created
+      await Order.findByIdAndDelete(order._id);
+      throw new ApiError(500, `Stripe error: ${error.message}`);
+    }
+  }
+
+  // For COD payments, just return the order
+  return res
+    .status(201)
+    .json(new ApiResponse(201, order, "Order created successfully"));
+});
+
+// Add a new endpoint to handle Stripe webhooks
+const handleStripeWebhook = asyncHandler(async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error(`Webhook Error: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the checkout.session.completed event
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    
+    // Update the order status
+    const order = await Order.findById(session.metadata.orderId);
+    if (!order) {
+      console.error(`Order not found: ${session.metadata.orderId}`);
+      return res.status(404).json(new ApiResponse(404, null, "Order not found"));
+    }
+
+    // Verify the payment was successful
+    if (session.payment_status === 'paid') {
+      order.paymentStatus = 'paid';
+      order.paymentDate = new Date();
+      await order.save();
+      
+      // Here you might want to trigger other actions like sending confirmation emails
+      console.log(`Order ${order._id} payment confirmed`);
+    }
+  }
+
+  res.status(200).json(new ApiResponse(200, null, "Webhook received"));
 });
 
 const prepareOrderItems = async (designIds, userId) => {
@@ -464,4 +623,6 @@ export {
   requestReturn,
   processReturn,
   getOrderByIdPipeline,
+  createOrder,
+  handleStripeWebhook
 };

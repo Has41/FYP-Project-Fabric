@@ -49,7 +49,6 @@ const registerUser = asyncHandler(async (req, res, next) => {
       address,
       city,
       postalCode,
-      country,
     } = req.body;
 
     if (
@@ -61,7 +60,6 @@ const registerUser = asyncHandler(async (req, res, next) => {
         phoneNumber,
         address,
         city,
-        country,
       ].some((field) => field?.trim() === "")
     ) {
       throw new ApiError(400, "All fields are required");
@@ -90,7 +88,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
       postalCode,
       username: username.toLowerCase(),
       avatar: avatar?.url || "",
-      country,
+      
     });
 
     const userCreated = await User.findOne({ _id: user._id }).select(
@@ -393,11 +391,10 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     address,
     city,
     postalCode,
-    country,
   } = req.body;
 
   if (
-    [fullname, username, email, phoneNumber, address, city, country].some(
+    [fullname, username, email, phoneNumber, address, city].some(
       (field) => field?.trim() === ""
     )
   ) {
@@ -414,7 +411,6 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         phoneNumber,
         address,
         city,
-        country,
         postalCode: postalCode || "",
       },
     },

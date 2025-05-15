@@ -47,7 +47,7 @@ const userSchema = new Schema(
     },
     country: {
       type: String,
-      required: [true, "Country is required"],
+      default: "Pakistan"
     },
     address: {
       type: String,
