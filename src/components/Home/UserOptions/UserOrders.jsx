@@ -1,8 +1,7 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "react-query"
 import { Link, useNavigate } from "react-router-dom"
 import axiosInstance from "../../../utils/axiosInstance"
-import { Bar } from "react-chartjs-2"
 import "chart.js/auto"
 import { FiArrowLeft, FiEye, FiTrash2 } from "react-icons/fi"
 import EditForm from "../../Shared/EditForm"
@@ -12,19 +11,20 @@ const UserOrders = () => {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState("details")
 
-  const {
-    data: statsData,
-    isLoading: statsLoading,
-    error: statsError
-  } = useQuery(
-    "dashboardStats",
-    async () => {
-      const { data } = await axiosInstance.get("/api/v1/users/dashboard-stats")
-      return data.data
+  const returnMutation = useMutation(
+    async ({ orderId, reason }) => {
+      const res = await axiosInstance.post(`/api/v1/orders/${orderId}/return`, { reason })
+      return res.data.data
     },
     {
-      onSuccess: (data) => {
-        console.log("Dashboard Stats:", data)
+      onSuccess: (updatedOrder) => {
+        alert("Return requested successfully")
+        // Refresh order list to pick up the new `returnRequested` flag
+        refetchOrders()
+      },
+      onError: (err) => {
+        console.error(err)
+        alert(err.response?.data?.message || "Failed to request return")
       }
     }
   )
@@ -70,30 +70,6 @@ const UserOrders = () => {
       }
     }
   )
-
-  if (statsLoading || ordersLoading) return <div>Loading...</div>
-  if (statsError || ordersError) return <div>Error loading data</div>
-
-  const breakdown = statsData?.statusBreakdown || {}
-  const statusLabels = Object.keys(breakdown)
-  const statusCounts = Object.values(breakdown)
-  const barData = {
-    labels: statusLabels,
-    datasets: [
-      {
-        label: "Orders",
-        data: statusCounts
-      }
-    ]
-  }
-  const barOptions = {
-    indexAxis: "y",
-    maintainAspectRatio: false,
-    aspectRatio: 2,
-    scales: {
-      x: { beginAtZero: true }
-    }
-  }
 
   return (
     <div className="flex font-poppins max-w-full mx-auto h-full">
@@ -142,44 +118,75 @@ const UserOrders = () => {
 
         {activeTab === "details" && (
           <>
-            <h1 className="text-2xl font-semibold">Order Status Breakdown</h1>
-            <div className="bg-white shadow rounded p-4 w-full h-96">
-              {statusLabels.length > 0 ? <Bar data={barData} options={barOptions} /> : <p>No status data available</p>}
-            </div>
-
             <div>
               <h2 className="text-xl font-semibold mb-4">Order History</h2>
               {orders.length > 0 ? (
-                <ul className="space-y-4">
-                  {orders.map((order, index) => (
-                    <li key={order._id} className="bg-white shadow rounded p-4 flex flex-col space-y-2">
-                      <span>
-                        <strong>Order #:</strong> {index + 1}
-                      </span>
-                      <span>
-                        <strong>Status:</strong> {order.deliveryStatus}
-                      </span>
-                      <span>
-                        <strong>Payment:</strong>{" "}
-                        <span
-                          className={`px-2 py-1 rounded text-sm font-semibold ${
-                            order.paymentStatus === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          {order.paymentStatus || "Unpaid"}
-                        </span>
-                      </span>
-                      <span>
-                        <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
-                      </span>
-                      <span>
-                        <strong>Date:</strong> {new Date(order.createdAt).toLocaleString()}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <table className="min-w-full text-sm lg:text-base bg-white shadow rounded overflow-hidden">
+                  <thead className="bg-button-color text-white">
+                    <tr>
+                      <th className="p-3 text-center">#</th>
+                      <th className="p-3">Date</th>
+                      <th className="p-3">Total</th>
+                      <th className="p-3">Payment</th>
+                      <th className="p-3">Delivery</th>
+                      <th className="p-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order, idx) => (
+                      <tr key={order._id} className="border-b hover:bg-gray-50 transition">
+                        <td className="p-3 text-center">{idx + 1}</td>
+                        <td className="p-3">{new Date(order.createdAt).toLocaleString()}</td>
+                        <td className="p-3">${order.totalAmount.toFixed(2)}</td>
+                        <td className="p-3 text-center">
+                          <span
+                            className={`px-2 py-1 rounded-full text-sm font-semibold ${
+                              order.paymentStatus === "paid"
+                                ? "bg-green-100 text-green-800"
+                                : order.paymentStatus === "failed"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {order.paymentStatus || "Unpaid"}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span
+                            className={`px-2 py-1 rounded-full text-sm font-semibold ${
+                              order.deliveryStatus === "delivered"
+                                ? "bg-green-100 text-green-800"
+                                : order.deliveryStatus === "cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {order.deliveryStatus}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          {order.deliveryStatus === "delivered" && !order.returnRequested ? (
+                            <button
+                              onClick={() => handleRequestReturn(order)}
+                              disabled={returnMutation.isLoading}
+                              className="inline-flex items-center px-3 py-1 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+                              title="Request a Return"
+                            >
+                              {returnMutation.isLoading ? <LoadingSpinner size="w-4 h-4" /> : <FiRefreshCw className="mr-1" />}
+                              Return
+                            </button>
+                          ) : order.returnRequested ? (
+                            <span className="text-yellow-600 font-semibold">Return Requested</span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
-                <p>No orders found.</p>
+                <p className="text-center py-6">No orders found.</p>
               )}
             </div>
           </>

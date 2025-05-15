@@ -84,9 +84,9 @@ const OrderDetails = () => {
               <tr key={order._id} className="border-b hover:bg-gray-50 transition">
                 <td className="p-3 text-center">{idx + 1}</td>
 
-                <td className="p-3 text-center">{order.orderBy.username}</td>
+                <td className="p-3 text-center">{order?.orderBy?.username}</td>
 
-                <td className="p-3 text-center">${order.totalAmount}</td>
+                <td className="p-3 text-center">${order?.totalAmount}</td>
 
                 <td className="p-3 text-center">
                   {editingId === order._id ? (

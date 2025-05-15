@@ -2,6 +2,10 @@ import { z } from "zod"
 
 const registerSchema = z
   .object({
+    fullName: z
+      .string()
+      .min(1, { message: "Full name is required" })
+      .max(100, { message: "Full name can't be longer than 100 characters" }),
     username: z
       .string()
       .min(1, { message: "Username is required" })
