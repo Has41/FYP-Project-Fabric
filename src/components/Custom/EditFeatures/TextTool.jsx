@@ -84,8 +84,21 @@ export default function TextTool({
   }
 
   const handleUpdate = () => {
-    const offset = texts.find((t) => t._id === selectedId).offset
-    updateText.mutate({ id: selectedId, text: inputValue, fontSize, offset, isFront })
+    const updatedText = {
+      text: inputValue,
+      fontSize,
+      offset: texts.find((t) => t._id === selectedId).offset,
+      isFront
+    }
+
+    if (designId) {
+      // If design is saved in DB, update via mutation
+      updateText.mutate({ id: selectedId, ...updatedText })
+    } else {
+      // Else, update local state
+      setTexts((prev) => prev.map((t) => (t._id === selectedId ? { ...t, ...updatedText } : t)))
+    }
+
     setSelectedId(null)
   }
 
