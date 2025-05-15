@@ -76,6 +76,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     if (req.file && req.file.path) {
       avatarLocalPath = req.file.path;
       avatar = await uploadOnCloudinary(avatarLocalPath);
+      console.log(avatar.public_id);
     }
 
     const user = await User.create({
@@ -89,7 +90,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
       username: username.toLowerCase(),
       avatar:{
         url: avatar?.url || "",
-        public_id: avatar?.public_id,
+        publicId: avatar?.public_id,
       },
       
     });
@@ -266,7 +267,7 @@ const deleteUserById = asyncHandler(async (req, res) => {
 
     // Delete avatar from Cloudinary if exists
     if (user.avatar) {
-      await deleteFromCloudinary(avatar.publicId);
+      await deleteFromCloudinary(user.avatar.publicId);
     }
 
     // Delete user from database
@@ -294,9 +295,9 @@ const deleteUserByIdAdmin = asyncHandler(async (req, res) => {
     }
 
     // Delete avatar from Cloudinary if exists
-    if (user.avatar.url) {
-      console.log(`Attempting to delete from Cloudinary: ${avatar.publicId}`);
-      await deleteFromCloudinary(avatar.publicId);
+    if (user.avatar?.publicId) {
+      console.log(`Attempting to delete from Cloudinary: ${user.avatar.publicId}`);
+      await deleteFromCloudinary(user.avatar.publicId);
     }
 
     // Delete user from database

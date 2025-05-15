@@ -69,10 +69,11 @@ export const deleteFromCloudinary = async (publicId) => {
 
     // Delete from Cloudinary
     const result = await cloudinary.uploader.destroy(publicId, {
-      resource_type: 'raw' // Important for 3D models, adjust if needed
+      resource_type: 'image' // Important for 3D models, adjust if needed
     });
 
     if (result.result !== 'ok') {
+      console.error(`Cloudinary delete failed for publicId: ${publicId}`);
       throw new ApiError(404, "File not found on Cloudinary");
     }
 
