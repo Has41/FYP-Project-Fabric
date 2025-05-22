@@ -80,7 +80,7 @@ export default function TextTool({
 
   // handlers
   const handleAdd = () => {
-    addText.mutate({ text: inputValue, fontSize, offset: { x: 0, y: 0 }, isFront })
+    addText.mutate({ text: inputValue, fontSize, offset: { x: 0, y: 0 }, isFront, color: textColor })
   }
 
   const handleUpdate = () => {
@@ -88,7 +88,8 @@ export default function TextTool({
       text: inputValue,
       fontSize,
       offset: texts.find((t) => t._id === selectedId).offset,
-      isFront
+      isFront,
+      color: textColor
     }
 
     if (designId) {
