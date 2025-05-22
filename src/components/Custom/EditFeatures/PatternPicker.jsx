@@ -20,7 +20,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
   })
 
   const { refetch: refetchDefaultPatterns } = useQuery({
-    queryKey: "/api/v1/defaupattrens",
+    queryKey: "/api/v1/defaultpatterns",
     queryFn: async () => {
       const { data } = await axiosInstance.get("/api/v1/defaultpatterns")
       return data
@@ -93,7 +93,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
         const blob = await response.blob()
         const convertedFile = new File([blob], `converted-${Date.now()}.svg`, { type: blob.type })
         const formData = new FormData()
-        formData.append("pattren", convertedFile)
+        formData.append("pattern", convertedFile)
         formData.append("name", convertedFile.name)
         addCustomPattern(formData)
         e.target.value = null
@@ -169,7 +169,7 @@ const PatternPicker = ({ isPatternDragging, closePopup, patternPickerRef, subAct
                   selectedPattern?.image === pattern.image ? "shadow-black" : ""
                 } bg-cover size-14 rounded-full shadow-md hover:shadow-2xl transition-shadow duration-500`}
                 style={{
-                  backgroundImage: `url(${pattern.image})`
+                  backgroundImage: `url(${pattern?.image?.url})`
                 }}
               />
             </div>

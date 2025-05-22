@@ -86,9 +86,6 @@ const ProductPage = () => {
                 />
               </div>
               <div className="flex gap-4">
-                <button className="bg-amber-300 text-white px-6 py-3 rounded-md shadow hover:bg-amber-400 transition-colors duration-300">
-                  Add to Cart
-                </button>
                 <button
                   onClick={handleEditProduct}
                   className="bg-black/80 text-white px-6 py-3 rounded-md shadow hover:bg-white hover:text-black/80 transition-colors duration-300"
