@@ -22,12 +22,12 @@ const createDesign = asyncHandler(async (req, res) => {
     defaultPattern,
     text,
     graphic,
-    basePrice,
     isPublic,
   } = req.body;
   const designerProfit = Number(req.body.designerProfit) || 0;
-
+  const basePrice = Number(req.body.basePrice);
   let salePrice;
+  
 
   // Validation
   if (!name || !product || !color || !basePrice) {
@@ -45,10 +45,12 @@ const createDesign = asyncHandler(async (req, res) => {
     mongoose.Types.ObjectId.isValid(graphic)
   ) {
     salePrice = basePrice + 20;
+    console.log(`salePrice after pattern: ${salePrice}`);
   }
 
   if (color !== "#ffffff" && color !== "#FFFFFF") {
     salePrice = basePrice + 10;
+    console.log(`salePrice after color: ${salePrice}`);
   }
 
   if (isPublic === "true" && req.user.role === "user") {
