@@ -8,11 +8,13 @@ import { Pattern } from "../models/pattern.model.js";
 import { Product } from "../models/product.model.js";
 import { User } from "../models/user.model.js";
 import { DefaultPattern } from "../models/defaultPattern.model.js";
-import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 
 import mongoose from "mongoose";
 
-// Create a new design (private by default)
 const createDesign = asyncHandler(async (req, res) => {
   const {
     name,
@@ -24,35 +26,49 @@ const createDesign = asyncHandler(async (req, res) => {
     graphic,
     isPublic,
   } = req.body;
+
   const designerProfit = Number(req.body.designerProfit) || 0;
+  console.log(`designerProfit: ${designerProfit}`);
   const basePrice = Number(req.body.basePrice);
-  let salePrice;
-  
+
+  // Debugging log
+  // console.log("Raw basePrice:", req.body.basePrice);
 
   // Validation
-  if (!name || !product || !color || !basePrice) {
-    throw new ApiError(400, "Required fields are missing");
+  if (!name || !product || !color || isNaN(basePrice)) {
+    throw new ApiError(400, "Required fields are missing or invalid");
   }
 
   if (basePrice <= 0) {
-    throw new ApiError(400, "Base price must be positive");
+    throw new ApiError(400, "Base price must be a positive number");
   }
 
+  let salePrice = basePrice;
+
+  // Add extra cost for pattern, defaultPattern, text, or graphic
   if (
     mongoose.Types.ObjectId.isValid(pattern) ||
     mongoose.Types.ObjectId.isValid(defaultPattern) ||
     mongoose.Types.ObjectId.isValid(text) ||
     mongoose.Types.ObjectId.isValid(graphic)
   ) {
-    salePrice = basePrice + 20;
-    console.log(`salePrice after pattern: ${salePrice}`);
+    salePrice += 20;
+    // console.log(`salePrice after pattern: ${salePrice}`);
   }
 
-  if (color !== "#ffffff" && color !== "#FFFFFF") {
-    salePrice = basePrice + 10;
-    console.log(`salePrice after color: ${salePrice}`);
+  // Add cost for non-white color
+  if (color.toLowerCase() !== "#ffffff") {
+    salePrice += 10;
+    // console.log(`salePrice after color: ${salePrice}`);
   }
 
+  // Add designer profit
+  if (designerProfit > 0) {
+    salePrice += designerProfit;
+    console.log(`salePrice after designerProfit: ${salePrice}`);
+  }
+
+  // Role-based access control
   if (isPublic === "true" && req.user.role === "user") {
     throw new ApiError(403, "Be a Designer for Public Designs");
   }
@@ -63,15 +79,19 @@ const createDesign = asyncHandler(async (req, res) => {
       "You are an admin, you should add a product or model?"
     );
   }
+
+  // Image validation
   if (!req.file?.path) {
     throw new ApiError(400, "Image file is required");
   }
 
+  // Upload to Cloudinary
   const uploadResult = await uploadOnCloudinary(req.file.path);
   if (!uploadResult?.secure_url || !uploadResult?.public_id) {
     throw new ApiError(500, "Failed to upload pattern to Cloudinary");
   }
 
+  // Create the design
   const design = await Design.create({
     owner: req.user._id,
     name,
@@ -79,8 +99,8 @@ const createDesign = asyncHandler(async (req, res) => {
     color,
     pattern: pattern === "" ? null : pattern,
     defaultPattern: defaultPattern === "" ? null : defaultPattern,
-    text, // Expecting an array of ObjectId references
-    graphic, // Expecting an array of ObjectId references
+    text,
+    graphic,
     designerProfit,
     basePrice,
     salePrice,
@@ -99,7 +119,6 @@ const createDesign = asyncHandler(async (req, res) => {
     .status(201)
     .json(new ApiResponse(201, design, "Design created successfully"));
 });
-
 
 // Get my designs
 const getMyDesigns = asyncHandler(async (req, res) => {
@@ -419,9 +438,9 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
       .populate("text")
       .populate("graphic")
       .populate("pattern")
-      .populate("defaultPattern")  // Fixed typo from 'defaultpattern' to 'defaultPattern'
-      .populate('owner')
-      .populate('product');
+      .populate("defaultPattern") // Fixed typo from 'defaultpattern' to 'defaultPattern'
+      .populate("owner")
+      .populate("product");
 
     if (!design) throw new ApiError(404, "Design not found");
     return res
@@ -438,14 +457,14 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
     .populate("graphic")
     .populate({
       path: "pattern",
-      model: "Pattern"  
+      model: "Pattern",
     })
     .populate({
       path: "defaultPattern",
-      model: "DefaultPattern"  
+      model: "DefaultPattern",
     })
-    .populate('owner')
-    .populate('product');
+    .populate("owner")
+    .populate("product");
 
   if (!design) {
     throw new ApiError(404, "Design not found or not authorized");
@@ -456,13 +475,10 @@ const getDesignByIdSimple = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, design, "Design retrieved successfully"));
 });
 
-
 // Update design (owner only)
 const updateDesign = asyncHandler(async (req, res) => {
   const { designId } = req.params;
   const updateData = req.body;
-
-  
 
   // Prevent changing certain fields directly
   if ("owner" in updateData || "_id" in updateData) {
@@ -482,12 +498,12 @@ const updateDesign = asyncHandler(async (req, res) => {
   }
 
   const uploadResult = await uploadOnCloudinary(req.file.path);
-    if (!uploadResult?.secure_url || !uploadResult?.public_id) {
-      throw new ApiError(500, "Failed to upload pattern to Cloudinary");
-    }
+  if (!uploadResult?.secure_url || !uploadResult?.public_id) {
+    throw new ApiError(500, "Failed to upload pattern to Cloudinary");
+  }
 
-    updateData.image = uploadResult.secure_url;
-    updateData.imagePublicId = uploadResult.public_id;
+  updateData.image = uploadResult.secure_url;
+  updateData.imagePublicId = uploadResult.public_id;
 
   const design = await Design.findOneAndUpdate(
     { _id: designId, owner: req.user._id },
@@ -518,7 +534,7 @@ const pushText = asyncHandler(async (req, res) => {
   }
 
   const design = await Design.findByIdAndUpdate(
-    designId,  // Just pass the ID directly
+    designId, // Just pass the ID directly
     { $push: { text } },
     { new: true }
   );
@@ -546,7 +562,7 @@ const pushGraphic = asyncHandler(async (req, res) => {
   }
 
   const design = await Design.findByIdAndUpdate(
-    designId,  // Just pass the ID directly
+    designId, // Just pass the ID directly
     { $push: { graphic } },
     { new: true }
   );
@@ -557,8 +573,7 @@ const pushGraphic = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, design, "Graphic added successfully"));  
-  
+    .json(new ApiResponse(200, design, "Graphic added successfully"));
 });
 // Toggle design public status (owner only)
 const toggleDesignPublicStatus = asyncHandler(async (req, res) => {
@@ -598,7 +613,6 @@ const deleteDesign = asyncHandler(async (req, res) => {
       ? { _id: designId }
       : { _id: designId, owner: req.user._id };
 
-  
   const design = await Design.findOneAndDelete(query);
 
   if (!design) {
@@ -629,7 +643,7 @@ const getAllPublicDesigns = asyncHandler(async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 10,
+      limit = 18,
       sortBy = "createdAt",
       sortOrder = -1,
     } = req.query;
@@ -748,5 +762,5 @@ export {
   getAllPublicDesigns,
   getDesignByIdSimple,
   pushText,
-  pushGraphic
+  pushGraphic,
 };
