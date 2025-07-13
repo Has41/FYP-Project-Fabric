@@ -1,0 +1,44 @@
+/* For Chrome, Safari, and Edge */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Hides the scrollbar */
+}
+
+/* For Firefox */
+.hide-scrollbar {
+  scrollbar-width: none; /* Hides the scrollbar */
+}
+
+/* Ensure the DIV still takes the full height and can scroll */
+.hide-scrollbar {
+  overflow-y: scroll; /* Enable vertical scrolling */
+  height: 100vh; /* Full viewport height */
+}
+
+.container {
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
+}
+.container::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
